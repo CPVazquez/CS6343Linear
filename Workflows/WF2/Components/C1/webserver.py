@@ -11,7 +11,7 @@ def verify_order(order):
             return False
     return True
 
-@app.route('/', methods=['POST'])
+@app.route('/order', methods=['POST'])
 def main():    
     data = request.get_json()
     order = json.loads(data)  
