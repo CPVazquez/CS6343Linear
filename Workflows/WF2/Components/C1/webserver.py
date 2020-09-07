@@ -12,7 +12,7 @@ def verify_order(order):
     return True
 
 @app.route('/order', methods=['POST'])
-def main():    
+def recieve_order():    
     data = request.get_json()
     order = json.loads(data)  
     if verify_order(order):
@@ -25,3 +25,6 @@ def main():
         return Response(response=json.dumps(order),
                 status=400,
                 mimetype='application/json')
+
+if __name__ == "__main__":
+    app.run()
