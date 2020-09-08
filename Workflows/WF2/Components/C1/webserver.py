@@ -12,13 +12,13 @@ def verify_order(order):
     return True
 
 @app.route('/order', methods=['POST'])
-def recieve_order():    
+def recieve_order():
     data = request.get_json()
-    order = json.loads(data)  
+    order = json.loads(data)
     if verify_order(order):
         # Initiate Workflow
         # Add order to DB
-        return Response(response=json.dumps(order), 
+        return Response(response=json.dumps(order),
                 status=200,
                 mimetype='application/json')
     else:
