@@ -1,4 +1,27 @@
 {
-    "order1": {"items": {"pizza": 1, "code": -1}},
-    "order2": {"items": {"pizza": 2, "code": -2}}
+	"order1":{		
+		"custName": "pierre gasly",
+		"paymentToken": "noU1234",
+		"paymentTokenType": "paypal",
+		"custLocation": { "lat": 0, "lon": 0},
+		"pizzaList": [{
+      			"crustType": "Thin",
+      			"sauceType": "Spicy",
+      			"cheeseAmt": "Extra",
+      			"toppingList": [ "Onion" ]
+   		}]
+	},
+	"order2":{
+		"store_id": "asda123453",		
+		"custName": "Banana Slam Jama",
+		"paymentToken": "fgdg123",
+		"paymentTokenType": "visa",
+		"custLocation": { "lat": 12, "lon": 15},
+		"pizzaList": [{
+			"crustType": "Traditional",
+      			"sauceType": "Traditional",
+      			"cheeseAmt": "Light",
+      			"toppingList": [ "Lamb" ]
+   		}]
+	}
 }
