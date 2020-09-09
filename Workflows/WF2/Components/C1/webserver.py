@@ -2,11 +2,15 @@ from flask import Flask, request, Response
 import jsonschema
 import json
 
-app = Flask(__name__)
-
 schema = None
 
-def verify_order(order, schema):
+app = Flask(__name__)
+
+with open("./schema.json", "r") as schema:
+    schema = json.loads(schema.read())
+
+def verify_order(order):
+    global schema
     try:
         jsonschema.validate(instance=order, schema=schema)
     except:
@@ -22,7 +26,5 @@ def verify_order(order, schema):
 @app.route('/order', methods=['POST'])
 def main():    
     data = request.get_json()
-    with open("./schema.json", "r") as schema:
-        schema = json.loads(schema.read())
     order = json.loads(data)  
-    return verify_order(order, schema)
+    return verify_order(order)
