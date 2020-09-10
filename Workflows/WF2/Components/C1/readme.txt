@@ -15,7 +15,7 @@ requirements:
   - python -m unittest discover -p test_webserver.py
 
   To launch locally:
-  - gunicorn -b 0.0.0.0:8080 --log-level debug webserver:app
+  - gunicorn -w 4 -b 0.0.0.0:8080 --log-level debug webserver:app
 
 
 
