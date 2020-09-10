@@ -14,7 +14,7 @@ if (argc < 2):
     exit(-1)
 
 # load the schema
-schema_file = open("schema.json", "r")
+schema_file = open("src/schema.json", "r")
 # attempt to parse schema to dictionary 
 try:
     parsed_schema_dict = json.loads(schema_file.read())
