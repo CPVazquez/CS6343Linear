@@ -2,14 +2,14 @@ import json
 import unittest
 import jsonschema
 
-from webserver import app
+from src.webserver import app
 
 app.testing = True
 
 class TestServer(unittest.TestCase):    
     def test_correct_order(self):
         with app.test_client() as client:
-            with open("./correct-orders.json", "r") as correct_orders:                
+            with open("./tests/correct-orders.json", "r") as correct_orders:                
                 orders = json.loads(correct_orders.read())
             for key in orders:
                 order = orders[key]
@@ -19,7 +19,7 @@ class TestServer(unittest.TestCase):
 
     def test_incorrect_order(self):
         with app.test_client() as client:            
-            with open("./incorrect-orders.json", "r") as incorrect_orders:
+            with open("./tests/incorrect-orders.json", "r") as incorrect_orders:
                 orders = json.loads(incorrect_orders.read())
             for key in orders:
                 order = orders[key]

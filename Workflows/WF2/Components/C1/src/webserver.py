@@ -6,7 +6,7 @@ schema = None
 
 app = Flask(__name__)
 
-with open("./schema.json", "r") as schema:
+with open("src/schema.json", "r") as schema:
     schema = json.loads(schema.read())
 
 def verify_order(order):
