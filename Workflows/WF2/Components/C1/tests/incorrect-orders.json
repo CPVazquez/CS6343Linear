@@ -1,27 +1,118 @@
 {
-	"order1":{		
-		"custName": "pierre gasly",
-		"paymentToken": "noU1234",
-		"paymentTokenType": "paypal",
-		"custLocation": { "lat": 0, "lon": 0},
-		"pizzaList": [{
-      			"crustType": "Thin",
-      			"sauceType": "Spicy",
-      			"cheeseAmt": "Extra",
-      			"toppingList": [ "Onion" ]
-   		}]
-	},
-	"order2":{
-		"store_id": "asda123453",		
-		"custName": "Banana Slam Jama",
-		"paymentToken": "fgdg123",
-		"paymentTokenType": "visa",
-		"custLocation": { "lat": 12, "lon": 15},
-		"pizzaList": [{
-			"crustType": "Traditional",
-      			"sauceType": "Traditional",
-      			"cheeseAmt": "Light",
-      			"toppingList": [ "Lamb" ]
-   		}]
-	}
+    "order1": {
+        "custName": "pierre gasly",
+        "paymentToken": "noU1234",
+        "paymentTokenType": "paypal",
+        "custLocation": { "lat": 0, "lon": 0 },
+        "pizzaList": [{
+            "crustType": "Thin",
+            "sauceType": "Spicy",
+            "cheeseAmt": "Extra",
+            "toppingList": [ "Onion" ]
+        }]
+    },
+    "order2": {
+        "store_id": "asda123453",
+        "custName": "Banana Slam Jama",
+        "paymentToken": "fgdg123",
+        "paymentTokenType": "visa",
+        "custLocation": { "lat": 12, "lon": 15 },
+        "pizzaList": [{
+            "crustType": "Traditional",
+            "sauceType": "Traditional",
+            "cheeseAmt": "Light",
+            "toppingList": [ "Lamb" ]
+        }]
+    },
+    "order3":{
+        "storeId": "the1234",
+        "custName": "Lando Norris",
+        "paymentToken": "dhde123",
+        "paymentTokenType": "apple pay",
+        "custLocation": { "lat": -91, "lon": 180 },
+        "pizzaList": [{
+            "crustType": "Thin",
+            "sauceType": "Spicy",
+            "cheeseAmt": "Extra",
+            "toppingList": [ ]
+        }]
+    },
+    "order4":{
+        "storeId": "plo1234",
+        "custName": "Max Verstappen",
+        "paymentToken": "abgb762",
+        "paymentTokenType": "mastercard",
+        "custLocation": { "lat": 91, "lon": -180 },
+        "pizzaList": [{
+            "crustType": "Traditional",
+            "sauceType": "Traditional",
+            "cheeseAmt": "None",
+            "toppingList": [ "Pepperoni", "Sausage", "Beef", "Onion", "Chicken", "Peppers", "Olives", "Bacon", "Pineapple", "Mushrooms" ]
+        }]
+    },
+    "order5":{
+        "storeId": "qwe1234",
+        "custName": "Alex Mason",
+        "paymentToken": "fub4774",
+        "paymentTokenType": "amex",
+        "custLocation": { "lat": 0, "lon": -181 },
+        "pizzaList": [{
+            "crustType": "Traditional",
+            "sauceType": "Traditional",
+            "cheeseAmt": "Light",
+            "toppingList": [ "Pineapple", "Chicken" ]
+        }]
+    },
+    "order6":{
+        "storeId": "str2020",
+        "custName": "Alex Mason",
+        "paymentToken": "usb2374",
+        "paymentTokenType": "google pay",
+        "custLocation": { "lat": 90, "lon": 181 },
+        "pizzaList": [{
+            "crustType": "Traditional",
+            "sauceType": "Traditional",
+            "cheeseAmt": "Light",
+            "toppingList": [ "Pineapple", "Chicken" ]
+        }]
+    },
+    "order7":{
+        "storeId": "str2928",
+        "custName": "Chris Scott",
+        "paymentToken": "dbu2398",
+        "paymentTokenType": "discover",
+        "custLocation": { "lat": 0, "lon": 0 },
+        "pizzaList": [{
+            "crustType": "None",
+            "sauceType": "Traditional",
+            "cheeseAmt": "Normal",
+            "toppingList": [ "Pepperoni" ]
+        }]
+    },
+    "order8":{
+        "storeId": "xyz5678",
+        "custName": "Master Chief",
+        "paymentToken": "mmbr987",
+        "paymentTokenType": "amex",
+        "custLocation": { "lat": 0, "lon": 0 },
+        "pizzaList": [{
+            "crustType": "Traditional",
+            "sauceType": "Alfredo",
+            "cheeseAmt": "Normal",
+            "toppingList": [ "Chicken", "Bacon", "Peppers" ]
+        }]
+    },
+    "order9":{
+        "storeId": "xyz2020",
+        "custName": "Ella Mae",
+        "paymentToken": "fgd1234",
+        "paymentTokenType": "discover",
+        "custLocation": { "lat": -90, "lon": -180 },
+        "pizzaList": [{
+            "crustType": "Traditional",
+            "sauceType": "Traditional",
+            "cheeseAmt": "Super",
+            "toppingList": [ "Pineapple", "Chicken", "Bacon", "Peppers" ]
+        }]
+    }
 }
