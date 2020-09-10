@@ -12,7 +12,7 @@ requirements:
   pipenv shell
 
   To run the tests:
-  - python -m unittest discover -p test_webserver.py 
+  - python -m unittest discover -p tests/test_webserver.py 
 
   To launch locally:
   - gunicorn -w 4 -b 0.0.0.0:8080 --log-level debug src.webserver:app
