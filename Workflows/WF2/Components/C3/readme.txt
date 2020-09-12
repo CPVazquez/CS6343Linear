@@ -4,6 +4,8 @@ get_distance function -
 	Requirements:
 		python >= 3.8
 
-	Command to run:
+	Steps to run:
+		vim src/config.py	
+		Add API_KEY to config.py
 		python3 src/get_distance.py
 
