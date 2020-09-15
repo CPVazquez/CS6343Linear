@@ -1,5 +1,6 @@
 import json
 import unittest
+
 from queue import Queue
 from threading import Thread
 from src.webserver import app
@@ -21,8 +22,7 @@ class TestServer(unittest.TestCase):
             def send_request():
                 order = q.get()
                 data = json.dumps(order)
-                result = client.post('./order', json=data)
-                print('ok')
+                result = client.post('order', json=data)                
                 self.assertEqual('200 OK', result.status)
                 q.task_done()
 
@@ -46,8 +46,7 @@ class TestServer(unittest.TestCase):
             def send_request():
                 order = q.get()
                 data = json.dumps(order)
-                result = client.post('./order', json=data)
-                print('notok')
+                result = client.post('order', json=data)                
                 self.assertEqual('400 BAD REQUEST', result.status)
                 q.task_done()
 
