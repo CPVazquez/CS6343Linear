@@ -10,8 +10,8 @@ import base64
 
 # Globals
 fake = Faker('en_US')
-max_orders = 1     # Maximum orders to be generated
-num_threads = 1     # Number of threads to be started
+max_orders = 5     # Maximum orders to be generated
+num_threads = 2     # Number of threads to be started
 url = "http://0.0.0.0:8080/order"
 
 # TODO: update to pull data from DB, when it's operational
@@ -25,8 +25,8 @@ def generate_order(order_num):
 
     # 'store_id' is base64 encoding of string "RichardsonTX"
     store_id = str(base64.b64encode('RichardsonTX'.encode('utf-8')), 'utf-8')
-    payment_token_type = payment_types[random.randint(0, 7)]
     # 'payment_token' is base64 encoding of 'payment_token_type'
+    payment_token_type = payment_types[random.randint(0, 7)]
     payment_token = str(base64.b64encode(payment_token_type.encode('utf-8')), 'utf-8')
 
     # Construct an order dict:

@@ -2,8 +2,6 @@ from flask import Flask, request, Response
 import jsonschema
 import json
 
-schema = None
-
 app = Flask(__name__)
 
 with open("src/schema.json", "r") as schema:
