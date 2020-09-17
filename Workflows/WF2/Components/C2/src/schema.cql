@@ -145,6 +145,7 @@ CREATE TABLE orderTable (
   paymentID UUID,
   placedAT TIMESTAMP,
   active BOOLEAN,
+  estimatedDeliveryTime INT,
   PRIMARY KEY (orderID)
 );
 
