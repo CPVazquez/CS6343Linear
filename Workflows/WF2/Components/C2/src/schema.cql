@@ -1,5 +1,4 @@
-CREATE KEYSPACE IF NOT EXISTS pizza_grocery
-WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 3 };
+CREATE KEYSPACE IF NOT EXISTS pizza_grocery WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };
 
 USE pizza_grocery;
 
@@ -18,9 +17,9 @@ CREATE TABLE stores (
   PRIMARY KEY (storeID)
 );
 
-INSERT INTO stores (storeID, latitude, longitude, sellsPizza) VALUES ('7098813e-4624-462a-81a1-7e0e4e67631d', 32.8456, -96.9172, true);
-INSERT INTO stores (storeID, latitude, longitude, sellsPizza) VALUES ('5a2bb99f-88d2-4612-ac60-774aea9b8de4', 30.2672, -97.7431, true);
-INSERT INTO stores (storeID, latitude, longitude, sellsPizza) VALUES ('b18b3932-a4ef-485c-a182-8e67b04c208c', 29.7604, -95.3698, true);
+INSERT INTO stores (storeID, latitude, longitude, sellsPizza) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 32.8456, -96.9172, true);
+INSERT INTO stores (storeID, latitude, longitude, sellsPizza) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 30.2672, -97.7431, true);
+INSERT INTO stores (storeID, latitude, longitude, sellsPizza) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 29.7604, -95.3698, true);
 
 CREATE TABLE items (
   name TEXT,
@@ -28,20 +27,20 @@ CREATE TABLE items (
   PRIMARY KEY (name),
 ); 
 
-INSERT INTO items (name, price) VALUES ("Pepperoni", 1.50);
-INSERT INTO items (name, price) VALUES ("Sausage", 1.55);
-INSERT INTO items (name, price) VALUES ("Beef", 1.40);
-INSERT INTO items (name, price) VALUES ("Onion", 0.30);
-INSERT INTO items (name, price) VALUES ("Chicken", 1.35);
-INSERT INTO items (name, price) VALUES ("Peppers", 0.55);
-INSERT INTO items (name, price) VALUES ("Olives", 0.30);
-INSERT INTO items (name, price) VALUES ("Bacon", 1.55); 
-INSERT INTO items (name, price) VALUES ("Pineapple", 0.48);
-INSERT INTO items (name, price) VALUES ("Mushrooms", 0.75);
-INSERT INTO items (name, price) VALUES ("Dough", 4.00);
-INSERT INTO items (name, price) VALUES ("Cheese", 1.00);
-INSERT INTO items (name, price) VALUES ("SpicySauce", 1.10);
-INSERT INTO items (name, price) VALUES ("TraditionalSauce", 1.20);
+INSERT INTO items (name, price) VALUES ('Pepperoni', 1.50);
+INSERT INTO items (name, price) VALUES ('Sausage', 1.55);
+INSERT INTO items (name, price) VALUES ('Beef', 1.40);
+INSERT INTO items (name, price) VALUES ('Onion', 0.30);
+INSERT INTO items (name, price) VALUES ('Chicken', 1.35);
+INSERT INTO items (name, price) VALUES ('Peppers', 0.55);
+INSERT INTO items (name, price) VALUES ('Olives', 0.30);
+INSERT INTO items (name, price) VALUES ('Bacon', 1.55); 
+INSERT INTO items (name, price) VALUES ('Pineapple', 0.48);
+INSERT INTO items (name, price) VALUES ('Mushrooms', 0.75);
+INSERT INTO items (name, price) VALUES ('Dough', 4.00);
+INSERT INTO items (name, price) VALUES ('Cheese', 1.00);
+INSERT INTO items (name, price) VALUES ('SpicySauce', 1.10);
+INSERT INTO items (name, price) VALUES ('TraditionalSauce', 1.20);
 
 CREATE TABLE stock (
   storeID UUID,
@@ -50,56 +49,50 @@ CREATE TABLE stock (
   PRIMARY KEY (storeID, itemName),
 );
 
-BEGIN BATCH
-INSERT INTO items (name, price) VALUES ('7098813e-4624-462a-81a1-7e0e4e67631d', "Pepperoni", 20);
-INSERT INTO items (name, price) VALUES ('7098813e-4624-462a-81a1-7e0e4e67631d', "Sausage", 20);
-INSERT INTO items (name, price) VALUES ('7098813e-4624-462a-81a1-7e0e4e67631d', "Beef", 20);
-INSERT INTO items (name, price) VALUES ('7098813e-4624-462a-81a1-7e0e4e67631d', "Onion", 20);
-INSERT INTO items (name, price) VALUES ('7098813e-4624-462a-81a1-7e0e4e67631d', "Chicken", 20);
-INSERT INTO items (name, price) VALUES ('7098813e-4624-462a-81a1-7e0e4e67631d', "Peppers", 20);
-INSERT INTO items (name, price) VALUES ('7098813e-4624-462a-81a1-7e0e4e67631d', "Olives", 20);
-INSERT INTO items (name, price) VALUES ('7098813e-4624-462a-81a1-7e0e4e67631d', "Bacon", 20); 
-INSERT INTO items (name, price) VALUES ('7098813e-4624-462a-81a1-7e0e4e67631d', "Pineapple", 20);
-INSERT INTO items (name, price) VALUES ('7098813e-4624-462a-81a1-7e0e4e67631d', "Mushrooms", 20);
-INSERT INTO items (name, price) VALUES ('7098813e-4624-462a-81a1-7e0e4e67631d', "Dough", 20);
-INSERT INTO items (name, price) VALUES ('7098813e-4624-462a-81a1-7e0e4e67631d', "Cheese", 20);
-INSERT INTO items (name, price) VALUES ('7098813e-4624-462a-81a1-7e0e4e67631d', "SpicySauce", 20);
-INSERT INTO items (name, price) VALUES ('7098813e-4624-462a-81a1-7e0e4e67631d', "TraditionalSauce", 20);
-APPLY BATCH;
+INSERT INTO stock (storeID, itemName, quantity) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'Pepperoni', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'Sausage', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'Beef', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'Onion', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'Chicken', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'Peppers', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'Olives', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'Bacon', 20); 
+INSERT INTO stock (storeID, itemName, quantity) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'Pineapple', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'Mushrooms', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'Dough', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'Cheese', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'SpicySauce', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'TraditionalSauce', 20);
 
-BEGIN BATCH
-INSERT INTO items (name, price) VALUES ('5a2bb99f-88d2-4612-ac60-774aea9b8de4', "Pepperoni", 20);
-INSERT INTO items (name, price) VALUES ('5a2bb99f-88d2-4612-ac60-774aea9b8de4', "Sausage", 20);
-INSERT INTO items (name, price) VALUES ('5a2bb99f-88d2-4612-ac60-774aea9b8de4', "Beef", 20);
-INSERT INTO items (name, price) VALUES ('5a2bb99f-88d2-4612-ac60-774aea9b8de4', "Onion", 20);
-INSERT INTO items (name, price) VALUES ('5a2bb99f-88d2-4612-ac60-774aea9b8de4', "Chicken", 20);
-INSERT INTO items (name, price) VALUES ('5a2bb99f-88d2-4612-ac60-774aea9b8de4', "Peppers", 20);
-INSERT INTO items (name, price) VALUES ('5a2bb99f-88d2-4612-ac60-774aea9b8de4', "Olives", 20);
-INSERT INTO items (name, price) VALUES ('5a2bb99f-88d2-4612-ac60-774aea9b8de4', "Bacon", 20); 
-INSERT INTO items (name, price) VALUES ('5a2bb99f-88d2-4612-ac60-774aea9b8de4', "Pineapple", 20);
-INSERT INTO items (name, price) VALUES ('5a2bb99f-88d2-4612-ac60-774aea9b8de4', "Mushrooms", 20);
-INSERT INTO items (name, price) VALUES ('5a2bb99f-88d2-4612-ac60-774aea9b8de4', "Dough", 20);
-INSERT INTO items (name, price) VALUES ('5a2bb99f-88d2-4612-ac60-774aea9b8de4', "Cheese", 20);
-INSERT INTO items (name, price) VALUES ('5a2bb99f-88d2-4612-ac60-774aea9b8de4', "SpicySauce", 20);
-INSERT INTO items (name, price) VALUES ('5a2bb99f-88d2-4612-ac60-774aea9b8de4', "TraditionalSauce", 20);
-APPLY BATCH;
+INSERT INTO stock (storeID, itemName, quantity) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'Pepperoni', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'Sausage', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'Beef', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'Onion', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'Chicken', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'Peppers', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'Olives', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'Bacon', 20); 
+INSERT INTO stock (storeID, itemName, quantity) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'Pineapple', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'Mushrooms', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'Dough', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'Cheese', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'SpicySauce', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'TraditionalSauce', 20);
 
-BEGIN BATCH
-INSERT INTO items (name, price) VALUES ('b18b3932-a4ef-485c-a182-8e67b04c208c', "Pepperoni", 20);
-INSERT INTO items (name, price) VALUES ('b18b3932-a4ef-485c-a182-8e67b04c208c', "Sausage", 20);
-INSERT INTO items (name, price) VALUES ('b18b3932-a4ef-485c-a182-8e67b04c208c', "Beef", 20);
-INSERT INTO items (name, price) VALUES ('b18b3932-a4ef-485c-a182-8e67b04c208c', "Onion", 20);
-INSERT INTO items (name, price) VALUES ('b18b3932-a4ef-485c-a182-8e67b04c208c', "Chicken", 20);
-INSERT INTO items (name, price) VALUES ('b18b3932-a4ef-485c-a182-8e67b04c208c', "Peppers", 20);
-INSERT INTO items (name, price) VALUES ('b18b3932-a4ef-485c-a182-8e67b04c208c', "Olives", 20);
-INSERT INTO items (name, price) VALUES ('b18b3932-a4ef-485c-a182-8e67b04c208c', "Bacon", 20); 
-INSERT INTO items (name, price) VALUES ('b18b3932-a4ef-485c-a182-8e67b04c208c', "Pineapple", 20);
-INSERT INTO items (name, price) VALUES ('b18b3932-a4ef-485c-a182-8e67b04c208c', "Mushrooms", 20);
-INSERT INTO items (name, price) VALUES ('b18b3932-a4ef-485c-a182-8e67b04c208c', "Dough", 20);
-INSERT INTO items (name, price) VALUES ('b18b3932-a4ef-485c-a182-8e67b04c208c', "Cheese", 20);
-INSERT INTO items (name, price) VALUES ('b18b3932-a4ef-485c-a182-8e67b04c208c', "SpicySauce", 20);
-INSERT INTO items (name, price) VALUES ('b18b3932-a4ef-485c-a182-8e67b04c208c', "TraditionalSauce", 20);
-APPLY BATCH;
+INSERT INTO stock (storeID, itemName, quantity) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'Pepperoni', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'Sausage', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'Beef', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'Onion', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'Chicken', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'Peppers', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'Olives', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'Bacon', 20); 
+INSERT INTO stock (storeID, itemName, quantity) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'Pineapple', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'Mushrooms', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'Dough', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'Cheese', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'SpicySauce', 20);
+INSERT INTO stock (storeID, itemName, quantity) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'TraditionalSauce', 20);
 
 CREATE TABLE pizzas (
   pizzaID UUID,
@@ -108,54 +101,47 @@ CREATE TABLE pizzas (
   PRIMARY KEY (pizzaID)
 );
 
-CREATE TABLE deliveryEntitesByStore (
+CREATE TABLE deliveryEntitiesByStore (
   storeID UUID,
   name TEXT,
-  latitude FLOAT
+  latitude FLOAT,
   longitude FLOAT,
   status TEXT,
   onDelivery BOOLEAN,
   PRIMARY KEY (storeID, name)
 );
 
-BEGIN BATCH
-INSERT INTO stores (storeID, latitude, longitude, onDelivery, name, staus) VALUES ('7098813e-4624-462a-81a1-7e0e4e67631d', 32.8456, -96.9172, false, 'de11', 'AVAILABLE' );
-INSERT INTO stores (storeID, latitude, longitude, onDelivery, name, staus) VALUES ('7098813e-4624-462a-81a1-7e0e4e67631d', 32.8456, -96.9172, false, 'de12', 'AVAILABLE' );
-INSERT INTO stores (storeID, latitude, longitude, onDelivery, name, staus) VALUES ('7098813e-4624-462a-81a1-7e0e4e67631d', 32.8456, -96.9172, false, 'de13', 'AVAILABLE' );
-INSERT INTO stores (storeID, latitude, longitude, onDelivery, name, staus) VALUES ('7098813e-4624-462a-81a1-7e0e4e67631d', 32.8456, -96.9172, false, 'de14', 'AVAILABLE' );
-INSERT INTO stores (storeID, latitude, longitude, onDelivery, name, staus) VALUES ('7098813e-4624-462a-81a1-7e0e4e67631d', 32.8456, -96.9172, false, 'de15', 'AVAILABLE' );
-APPLY BATCH;
+INSERT INTO deliveryEntitiesByStore (storeID, name, latitude, longitude, status, onDelivery) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'de11', 32.8456, -96.9172, 'AVAILABLE', false);
+INSERT INTO deliveryEntitiesByStore (storeID, name, latitude, longitude, status, onDelivery) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'de12', 32.8456, -96.9172, 'AVAILABLE', false);
+INSERT INTO deliveryEntitiesByStore (storeID, name, latitude, longitude, status, onDelivery) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'de13', 32.8456, -96.9172, 'AVAILABLE', false);
+INSERT INTO deliveryEntitiesByStore (storeID, name, latitude, longitude, status, onDelivery) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'de14', 32.8456, -96.9172, 'AVAILABLE', false);
+INSERT INTO deliveryEntitiesByStore (storeID, name, latitude, longitude, status, onDelivery) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'de15', 32.8456, -96.9172, 'AVAILABLE', false);
 
-BEGIN BATCH
-INSERT INTO stores (storeID, latitude, longitude, onDelivery, name, staus) VALUES ('5a2bb99f-88d2-4612-ac60-774aea9b8de4', 30.2672, -97.7431, false, 'de21', 'AVAILABLE' );
-INSERT INTO stores (storeID, latitude, longitude, onDelivery, name, staus) VALUES ('5a2bb99f-88d2-4612-ac60-774aea9b8de4', 30.2672, -97.7431, false, 'de22', 'AVAILABLE' );
-INSERT INTO stores (storeID, latitude, longitude, onDelivery, name, staus) VALUES ('5a2bb99f-88d2-4612-ac60-774aea9b8de4', 30.2672, -97.7431, false, 'de23', 'AVAILABLE' );
-INSERT INTO stores (storeID, latitude, longitude, onDelivery, name, staus) VALUES ('5a2bb99f-88d2-4612-ac60-774aea9b8de4', 30.2672, -97.7431, false, 'de24', 'AVAILABLE' );
-INSERT INTO stores (storeID, latitude, longitude, onDelivery, name, staus) VALUES ('5a2bb99f-88d2-4612-ac60-774aea9b8de4', 30.2672, -97.7431, false, 'de25', 'AVAILABLE' );
-APPLY BATCH;
+INSERT INTO deliveryEntitiesByStore (storeID, name, latitude, longitude, status, onDelivery) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'de21', 30.2672, -97.7431, 'AVAILABLE', false);
+INSERT INTO deliveryEntitiesByStore (storeID, name, latitude, longitude, status, onDelivery) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'de22', 30.2672, -97.7431, 'AVAILABLE', false);
+INSERT INTO deliveryEntitiesByStore (storeID, name, latitude, longitude, status, onDelivery) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'de23', 30.2672, -97.7431, 'AVAILABLE', false);
+INSERT INTO deliveryEntitiesByStore (storeID, name, latitude, longitude, status, onDelivery) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'de24', 30.2672, -97.7431, 'AVAILABLE', false);
+INSERT INTO deliveryEntitiesByStore (storeID, name, latitude, longitude, status, onDelivery) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'de25', 30.2672, -97.7431, 'AVAILABLE', false);
 
-BEGIN BATCH
-INSERT INTO stores (storeID, latitude, longitude, onDelivery, name, staus) VALUES ('b18b3932-a4ef-485c-a182-8e67b04c208c', 29.7604, -95.3698, false, 'de31', 'AVAILABLE' );
-INSERT INTO stores (storeID, latitude, longitude, onDelivery, name, staus) VALUES ('b18b3932-a4ef-485c-a182-8e67b04c208c', 29.7604, -95.3698, false, 'de32', 'AVAILABLE' );
-INSERT INTO stores (storeID, latitude, longitude, onDelivery, name, staus) VALUES ('b18b3932-a4ef-485c-a182-8e67b04c208c', 29.7604, -95.3698, false, 'de33', 'AVAILABLE' );
-INSERT INTO stores (storeID, latitude, longitude, onDelivery, name, staus) VALUES ('b18b3932-a4ef-485c-a182-8e67b04c208c', 29.7604, -95.3698, false, 'de34', 'AVAILABLE' );
-INSERT INTO stores (storeID, latitude, longitude, onDelivery, name, staus) VALUES ('b18b3932-a4ef-485c-a182-8e67b04c208c', 29.7604, -95.3698, false, 'de35', 'AVAILABLE' );
-APPLY BATCH;
-
+INSERT INTO deliveryEntitiesByStore (storeID, name, latitude, longitude, status, onDelivery) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'de31', 29.7604, -95.3698, 'AVAILABLE', false);
+INSERT INTO deliveryEntitiesByStore (storeID, name, latitude, longitude, status, onDelivery) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'de32', 29.7604, -95.3698, 'AVAILABLE', false);
+INSERT INTO deliveryEntitiesByStore (storeID, name, latitude, longitude, status, onDelivery) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'de33', 29.7604, -95.3698, 'AVAILABLE', false);
+INSERT INTO deliveryEntitiesByStore (storeID, name, latitude, longitude, status, onDelivery) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'de34', 29.7604, -95.3698, 'AVAILABLE', false);
+INSERT INTO deliveryEntitiesByStore (storeID, name, latitude, longitude, status, onDelivery) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'de35', 29.7604, -95.3698, 'AVAILABLE', false);
 
 CREATE TABLE payments (
     paymentToken UUID,
     method TEXT, 
-    PRIMARY KEY (storeID)
+    PRIMARY KEY (paymentToken)
 );
 
-CREATE TABLE order (
+CREATE TABLE orderTable (
   orderID UUID,
   orderedFrom UUID,
   orderedBy TEXT,
   delivieredBy TEXT,
   containsPizzas SET<UUID>,
-  containsItems SET<TUPLE<TEXT, IN>>
+  containsItems SET<TUPLE<TEXT, INT>>,
   paymentID UUID,
   placedAT TIMESTAMP,
   active BOOLEAN,
