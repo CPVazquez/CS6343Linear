@@ -22,7 +22,12 @@ def verify_order(order):
 
 
 @app.route('/order', methods=['POST'])
-def main():    
+def order_funct():    
     data = request.get_json()
     order = json.loads(data)  
     return verify_order(order)
+
+
+@app.route('/health', methods=['POST'])
+def health_check():
+    return Response(status=200,response="healthy")
