@@ -12,7 +12,7 @@
         }]
     },
     "order2": {
-        "store_id": "asda123453",
+        "storeId": "asda123453",
         "custName": "Banana Slam Jama",
         "paymentToken": "fgdg123",
         "paymentTokenType": "visa",
@@ -24,7 +24,7 @@
             "toppingList": [ "Lamb" ]
         }]
     },
-    "order3":{
+    "order3": {
         "storeId": "the1234",
         "custName": "Lando Norris",
         "paymentToken": "dhde123",
@@ -37,7 +37,7 @@
             "toppingList": [ ]
         }]
     },
-    "order4":{
+    "order4": {
         "storeId": "plo1234",
         "custName": "Max Verstappen",
         "paymentToken": "abgb762",
@@ -50,7 +50,7 @@
             "toppingList": [ "Pepperoni", "Sausage", "Beef", "Onion", "Chicken", "Peppers", "Olives", "Bacon", "Pineapple", "Mushrooms" ]
         }]
     },
-    "order5":{
+    "order5": {
         "storeId": "qwe1234",
         "custName": "Alex Mason",
         "paymentToken": "fub4774",
@@ -63,7 +63,7 @@
             "toppingList": [ "Pineapple", "Chicken" ]
         }]
     },
-    "order6":{
+    "order6": {
         "storeId": "str2020",
         "custName": "Alex Mason",
         "paymentToken": "usb2374",
@@ -76,7 +76,7 @@
             "toppingList": [ "Pineapple", "Chicken" ]
         }]
     },
-    "order7":{
+    "order7": {
         "storeId": "str2928",
         "custName": "Chris Scott",
         "paymentToken": "dbu2398",
@@ -89,7 +89,7 @@
             "toppingList": [ "Pepperoni" ]
         }]
     },
-    "order8":{
+    "order8": {
         "storeId": "xyz5678",
         "custName": "Master Chief",
         "paymentToken": "mmbr987",
@@ -102,7 +102,7 @@
             "toppingList": [ "Chicken", "Bacon", "Peppers" ]
         }]
     },
-    "order9":{
+    "order9": {
         "storeId": "xyz2020",
         "custName": "Ella Mae",
         "paymentToken": "fgd1234",

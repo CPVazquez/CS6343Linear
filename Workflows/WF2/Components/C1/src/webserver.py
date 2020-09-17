@@ -12,17 +12,17 @@ def verify_order(order):
     try:
         jsonschema.validate(instance=order, schema=schema)
     except:
-        return Response(response=json.dumps(order), 
+        return Response(response=json.dumps(order),
                 status=400,
                 mimetype='application/json')
-    
-    return Response(response=json.dumps(order), 
+
+    return Response(response=json.dumps(order),
                 status=200,
                 mimetype='application/json')
 
 
 @app.route('/order', methods=['POST'])
-def main():    
+def main():
     data = request.get_json()
-    order = json.loads(data)  
+    order = json.loads(data)
     return verify_order(order)

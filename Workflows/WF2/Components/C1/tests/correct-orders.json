@@ -1,5 +1,5 @@
 {
-    "order1":{
+    "order1": {
         "storeId": "asdf1234",
         "custName": "pierre gasly",
         "paymentToken": "noU1234",
@@ -12,7 +12,7 @@
             "toppingList": [ "Onion" ]
         }]
     },
-    "order2":{
+    "order2": {
         "storeId": "qwe1234",
         "custName": "Banana Slam Jama",
         "paymentToken": "fgdg123",
@@ -25,7 +25,7 @@
             "toppingList": [ "Pineapple", "Chicken" ]
         }]
     },
-    "order3":{
+    "order3": {
         "storeId": "xyz1234",
         "custName": "Master Chief",
         "paymentToken": "fgdh987",
@@ -38,7 +38,7 @@
             "toppingList": [ "Pineapple", "Chicken", "Bacon", "Peppers" ]
         }]
     },
-    "order4":{
+    "order4": {
         "storeId": "def0034",
         "custName": "Captain Price",
         "paymentToken": "abcd223",
@@ -51,7 +51,7 @@
             "toppingList": [ "Pepperoni", "Sausage", "Beef", "Onion", "Chicken", "Peppers", "Olives", "Bacon", "Pineapple", "Mushrooms" ]
         }]
     },
-    "order5":{
+    "order5": {
         "storeId": "mno5678",
         "custName": "Frank Woods",
         "paymentToken": "reyt556",

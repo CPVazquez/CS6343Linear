@@ -7,14 +7,14 @@ from src.webserver import app
 
 app.testing = True
 
-class TestServer(unittest.TestCase):    
+class TestServer(unittest.TestCase):
     def setUp(self):
         self.max_requests = 10
-        
 
-    def test_correct_order(self):        
+
+    def test_correct_order(self):
         with app.test_client() as client:
-            with open("tests/correct-orders.json", "r") as correct_orders:                
+            with open("tests/correct-orders.json", "r") as correct_orders:
                 orders = json.loads(correct_orders.read())
 
             q = Queue(len(orders))
@@ -22,7 +22,7 @@ class TestServer(unittest.TestCase):
             def send_request():
                 order = q.get()
                 data = json.dumps(order)
-                result = client.post('order', json=data)                
+                result = client.post('order', json=data)
                 self.assertEqual('200 OK', result.status)
                 q.task_done()
 
@@ -34,11 +34,11 @@ class TestServer(unittest.TestCase):
             for key in orders:
                 q.put(orders[key])
             q.join()
-                
+
 
     def test_incorrect_order(self):
-        with app.test_client() as client:            
-            with open("tests/incorrect-orders.json", "r") as incorrect_orders:                
+        with app.test_client() as client:
+            with open("tests/incorrect-orders.json", "r") as incorrect_orders:
                 orders = json.loads(incorrect_orders.read())
 
             q = Queue(len(orders))
@@ -46,7 +46,7 @@ class TestServer(unittest.TestCase):
             def send_request():
                 order = q.get()
                 data = json.dumps(order)
-                result = client.post('order', json=data)                
+                result = client.post('order', json=data)
                 self.assertEqual('400 BAD REQUEST', result.status)
                 q.task_done()
 

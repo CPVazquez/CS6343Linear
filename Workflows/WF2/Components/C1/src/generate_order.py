@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 from faker import Faker
 from queue import Queue
 from threading import Thread
@@ -10,8 +8,8 @@ import base64
 
 # Globals
 fake = Faker('en_US')
-max_orders = 5     # Maximum orders to be generated
-num_threads = 2     # Number of threads to be started
+max_orders = 1     # Maximum orders to be generated
+num_threads = 1     # Number of threads to be started
 url = "http://0.0.0.0:8080/order"
 
 # TODO: update to pull data from DB, when it's operational
@@ -34,7 +32,7 @@ def generate_order(order_num):
     # - Generate random coordinates ("lat" & "lon") from valid range
     # - Randomly select pizza attributes from above Lists
     order_dict = {
-        ('order' + str(order_num).zfill(3)): {
+        ("order" + str(order_num).zfill(4)): {
             "storeId": store_id,
             "custName": fake.name(),
             "paymentToken": payment_token,
@@ -56,6 +54,7 @@ def generate_order(order_num):
 def post_order(q):
     while True:
         order_dict = q.get()
+        #print(json.dumps(order_dict, indent=4))
         order_json = json.dumps(order_dict)
         r = requests.post(url, json=order_json)
         print('Response Text: ' + r.text)
