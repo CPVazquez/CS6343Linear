@@ -6,60 +6,77 @@ import json
 import random
 import base64
 
-# Globals
 fake = Faker('en_US')
-max_orders = 1     # Maximum orders to be generated
-num_threads = 1     # Number of threads to be started
+max_orders = 100    # Maximum orders to be generated
+max_pizzas = 20     # Maximum number of pizzas allowed per order
+num_threads = 5     # Number of threads to be started
 url = "http://0.0.0.0:8080/order"
 
-# TODO: update to pull data from DB, when it's operational
-def generate_order(order_num):
-    # Lists containing valid order properties
+class PizzaOrder:
+    # List of Pizza Attributes
     payment_types = ['PayPal','Google Pay','Apple Pay','Visa','Mastercard','AMEX','Discover','Gift Card']
     crust_types = ['Thin','Traditional']
     sauce_types = ['Spicy','Traditional']
     cheese_amts = ['None','Light','Normal','Extra']
     topping_types = ['Pepperoni','Sausage','Beef','Onion','Chicken','Peppers','Olives','Bacon','Pineapple','Mushrooms']
 
-    # 'store_id' is base64 encoding of string "RichardsonTX"
-    store_id = str(base64.b64encode('RichardsonTX'.encode('utf-8')), 'utf-8')
-    # 'payment_token' is base64 encoding of 'payment_token_type'
-    payment_token_type = payment_types[random.randint(0, 7)]
-    payment_token = str(base64.b64encode(payment_token_type.encode('utf-8')), 'utf-8')
+    def __init__(self, order_num):
+        self.order_num = order_num
+        self.order_name = "order" + str(order_num).zfill(4)
 
-    # Construct an order dict:
-    # - Generate fake data for "storeId" ... "paymentTokenType"
-    # - Generate random coordinates ("lat" & "lon") from valid range
-    # - Randomly select pizza attributes from above Lists
-    order_dict = {
-        ("order" + str(order_num).zfill(4)): {
-            "storeId": store_id,
-            "custName": fake.name(),
-            "paymentToken": payment_token,
-            "paymentTokenType": payment_token_type,
-            "custLocation": {
-                "lat": round(random.uniform(-90.0, 90.0), 4),
-                "lon": round(random.uniform(-180.0, 180.0), 4)
-            },
-            "pizzaList": [{
-                "crustType": crust_types[random.randint(0, 1)],
-                "sauceType": sauce_types[random.randint(0, 1)],
-                "cheeseAmt": cheese_amts[random.randint(0, 3)],
-                "toppingList": random.sample(topping_types, random.randint(0, 9))
-            }]
+    def get_store_id(self):
+        return str(base64.b64encode('RichardsonTX'.encode('utf-8')), 'utf-8')
+
+    def get_payment_token(self):
+        return str(base64.b64encode('PaymentToken'.encode('utf-8')), 'utf-8')
+
+    def get_payment_token_type(self):
+        return self.payment_types[random.randint(0, 7)]
+
+    def add_more_pizzas(self, order_dict):
+        n = round(random.triangular(1, max_pizzas, 1))  # Random number 1 <= n <= max_pizzas [mode is 1]
+        for _ in range(1, n):
+            new_pizza = {
+                "crustType": self.crust_types[random.randint(0, 1)],
+                "sauceType": self.sauce_types[random.randint(0, 1)],
+                "cheeseAmt": self.cheese_amts[random.randint(0, 3)],
+                "toppingList": random.sample(self.topping_types, random.randint(0, 9))
+            }
+            order_dict[self.order_name]["pizzaList"].append(new_pizza)
+        return order_dict
+
+    def generate_order(self):
+        order_dict = {
+            self.order_name: {
+                "storeId": self.get_store_id(),
+                "custName": fake.name(),
+                "paymentToken": self.get_payment_token(),
+                "paymentTokenType": self.get_payment_token_type(),
+                "custLocation": {
+                    "lat": round(random.uniform(-90.0, 90.0), 4),
+                    "lon": round(random.uniform(-180.0, 180.0), 4)
+                },
+                "pizzaList": [{
+                    "crustType": self.crust_types[random.randint(0, 1)],
+                    "sauceType": self.sauce_types[random.randint(0, 1)],
+                    "cheeseAmt": self.cheese_amts[random.randint(0, 3)],
+                    "toppingList": random.sample(self.topping_types, random.randint(0, 9))
+                }]
+            }
         }
-    }
-    return order_dict
+        return self.add_more_pizzas(order_dict)
+
 
 def post_order(q):
     while True:
-        order_dict = q.get()
-        #print(json.dumps(order_dict, indent=4))
-        order_json = json.dumps(order_dict)
-        r = requests.post(url, json=order_json)
-        print('Response Text: ' + r.text)
-        print('-->Response Status Code: ' + str(r.status_code) + '\n')
+        order = q.get()
+        order_dict = order.generate_order()
+        #print(json.dumps(order_dict, indent=2))
+        json_obj = json.dumps(order_dict)
+        response = requests.post(url, json=json_obj)
+        #print(response)
         q.task_done()
+
 
 if __name__ == "__main__":
     q = Queue(max_orders)
@@ -70,7 +87,7 @@ if __name__ == "__main__":
         t.start()
 
     for order_num in range(max_orders):
-        order_dict = generate_order(order_num)
-        q.put(order_dict)
+        pizza_order = PizzaOrder(order_num)
+        q.put(pizza_order)
 
     q.join()

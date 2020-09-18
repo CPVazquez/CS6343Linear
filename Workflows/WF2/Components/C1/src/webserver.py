@@ -24,5 +24,6 @@ def verify_order(order):
 @app.route('/order', methods=['POST'])
 def main():
     data = request.get_json()
-    order = json.loads(data)
-    return verify_order(order)
+    nested_order = json.loads(data)
+    for order in nested_order:
+        return verify_order(nested_order[order])

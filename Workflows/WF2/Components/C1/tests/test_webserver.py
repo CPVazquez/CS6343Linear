@@ -1,5 +1,6 @@
 import json
 import unittest
+import os
 
 from queue import Queue
 from threading import Thread
@@ -14,10 +15,7 @@ class TestServer(unittest.TestCase):
 
     def test_correct_order(self):
         with app.test_client() as client:
-            with open("tests/correct-orders.json", "r") as correct_orders:
-                orders = json.loads(correct_orders.read())
-
-            q = Queue(len(orders))
+            q = Queue(len(os.listdir("tests/valid")))
 
             def send_request():
                 order = q.get()
@@ -31,17 +29,18 @@ class TestServer(unittest.TestCase):
                 t.daemon = True
                 t.start()
 
-            for key in orders:
-                q.put(orders[key])
+            for entry in os.scandir("tests/valid"):
+                if entry.path.endswith(".json"):
+                    with open(entry.path, "r") as correct_order:
+                        order = json.loads(correct_order.read())
+                        q.put(order)
+
             q.join()
 
 
     def test_incorrect_order(self):
         with app.test_client() as client:
-            with open("tests/incorrect-orders.json", "r") as incorrect_orders:
-                orders = json.loads(incorrect_orders.read())
-
-            q = Queue(len(orders))
+            q = Queue(len(os.listdir("tests/invalid")))
 
             def send_request():
                 order = q.get()
@@ -55,6 +54,10 @@ class TestServer(unittest.TestCase):
                 t.daemon = True
                 t.start()
 
-            for key in orders:
-                q.put(orders[key])
+            for entry in os.scandir("tests/invalid"):
+                if entry.path.endswith(".json"):
+                    with open(entry.path, "r") as incorrect_order:
+                        order = json.loads(incorrect_order.read())
+                        q.put(order)
+
             q.join()
