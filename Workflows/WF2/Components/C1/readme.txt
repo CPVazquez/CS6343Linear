@@ -30,3 +30,15 @@ To run the docker container run the following command:
   This runs the container in detached mode, which means it won't hang
   and binds the container's port 8080 to the machine's port 8080.
   that means that you can reach the port from your local machine.
+
+To add the image as a service on the cluster:
+  
+  First make sure that the image is built on all machines on the cluster
+  and that the cluster is in swarm mode. Then write the following command
+  on the swarm master node:
+  
+- docker service create --name webserver --publish published=8080,target=8080 webserver:1.0
+  
+To remove the service from the cluster:
+
+- docker service rm webserver
