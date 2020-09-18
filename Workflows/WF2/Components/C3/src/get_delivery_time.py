@@ -1,7 +1,6 @@
 import requests
 import json
 from config import API_KEY
-import heapq
  
 URL = "https://maps.googleapis.com/maps/api/directions/json?origin={}&destination={}&key={}"
 
