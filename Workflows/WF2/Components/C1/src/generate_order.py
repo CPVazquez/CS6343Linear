@@ -1,16 +1,16 @@
 from faker import Faker
 from queue import Queue
 from threading import Thread
-import requests
+import base64
 import json
 import random
-import base64
+import requests
 
 fake = Faker('en_US')
 max_orders = 100    # Maximum orders to be generated
 max_pizzas = 20     # Maximum number of pizzas allowed per order
-num_threads = 5     # Number of threads to be started
-url = "http://0.0.0.0:8080/order"
+num_threads = 4     # Number of threads to be started
+webserver_url = "http://0.0.0.0:8080/order"
 
 class PizzaOrder:
     # List of Pizza Attributes
@@ -79,8 +79,8 @@ def post_order(q):
         order_dict = order.generate_order()
         #print(json.dumps(order_dict, indent=4))
         json_obj = json.dumps(order_dict)
-        response = requests.post(url, json=json_obj)
-        #print(response)
+        response = requests.post(webserver_url, json=json_obj)
+        print(response)
         q.task_done()
 
 
