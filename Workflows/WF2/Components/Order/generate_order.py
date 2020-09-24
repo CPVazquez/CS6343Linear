@@ -87,7 +87,7 @@ def post_order(q):
 if __name__ == "__main__":
     if len(sys.argv) != 5:
         raise ValueError('Incorrect command line arguments provided.')
-    # python3 generate_order.py http://0.0.0.0:8080/order 1 10 20
+
     url = sys.argv[1]               # URL to send post requests
     num_threads = int(sys.argv[2])  # Number of threads to be started
     max_orders = int(sys.argv[3])   # Maximum orders to be generated
