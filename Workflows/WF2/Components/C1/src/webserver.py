@@ -2,6 +2,7 @@ from flask import Flask, request, Response
 from cassandra.cluster import Cluster
 import jsonschema
 import json
+import uuid
 
 app = Flask(__name__)
 
@@ -46,9 +47,23 @@ def aggregate_supplies(order_dict):
             index += 1
     return supplies
 
+
 def decrement_supplies(store_id, instock_dict, supply_dict):
     for item in supply_dict:
         session.execute(decrement_stock_prepared, (instock_dict[item] - supply_dict[item]), store_id, item)
+
+
+#def insert_order(order_dict):
+#    for order_id in order_dict:
+#        print(order_id)
+#        print(order_dict[order_id]["storeId"])
+#        print(order_dict[order_id]["custName"])
+#        print(order_dict[order_id]["paymentToken"])
+#        print(order_dict[order_id]["paymentTokenType"])
+#        print(order_dict[order_id]["custLocation"])
+#        for pizza in range(len(order_dict[order_id]["pizzaList"])):
+#            print(str(uuid.uuid4()))
+#            print(order_dict[order_id]["pizzaList"][pizza])
 
 
 def check_supplies(order_dict):
@@ -68,10 +83,9 @@ def check_supplies(order_dict):
         else:
             instock_dict[item] = quantity
 
-    print(json.dumps(restock_list))
-
     if in_stock:
         decrement_supplies(store_id, instock_dict, supply_dict)
+        insert_order(order_dict)
 
     return in_stock
 
@@ -85,6 +99,8 @@ def verify_order(order_dict):
         return Response(response="JSON failed validation",
                 status=400,
                 mimetype='application/json')
+
+    insert_order(order_dict)
 
     if check_supplies(order_dict):
         return Response(response="Order accepted, sufficient supplies",
