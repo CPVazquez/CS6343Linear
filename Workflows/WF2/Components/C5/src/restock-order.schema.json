@@ -1,0 +1,39 @@
+{
+    
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://github.com/CPVazquez/CS6343/tree/Component1/Workflows/WF2/Components/C2/src/restock-order.schema.json",
+    "type":"object",
+    "description": "A restock order for a store",
+    "properties": {
+        "storeID": {
+            "$id": "#/properties/storeID",
+            "type": "string",
+            "format": "uuid",
+            "description": "the store that needs restocking"
+        },
+        "restock-list": {
+            "$id": "#/properties/restock-list",
+            "type": "array",
+            "description": "A list of items to restock and their quantities",
+            "items": {
+                "$id": "#/properties/restock-list/items",
+                "type":"object",
+                "description": "an item, quantity pair",
+                "properties": {
+                    "item-name": {
+                        "type": "string",
+                        "description": " the item that needs restocking"
+                    }, 
+                    "quantity": {
+                        "type": "integer",
+                        "description": "the number of the item we want restocked"
+                    }
+                },
+                "additionalProperties": false,
+                "required": ["itemName", "quantity"]
+            }
+        }
+    },
+    "additionalProperties": false,
+    "required": ["storeID", "restockOrder"]
+}

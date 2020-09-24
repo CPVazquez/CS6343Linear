@@ -1,0 +1,46 @@
+from flask import Flask, request, Response
+from cassandra.cluster import Cluster
+import jsonschema
+import json
+import uuid
+
+# cluster = Cluster()
+# session = cluster.connect('pizza_grocery')
+# add_stock_prepared = session.prepare('UPDATE stock SET quantity = ?  WHERE store = ? AND itemName = ?')
+
+app = Flask(__name__)
+
+
+with open("src/restock-order.schema.json", "r") as schema:
+    schema = json.loads(schema.read())
+
+
+def verify_restock_order(order):
+    global schema
+    valid = True
+    try:
+        jsonschema.validate(instance=order, schema=schema)
+    except:
+        valid = False
+    return valid
+
+
+@app.route('/restock', methods=['POST'])
+def restocker():
+    valid = False
+    restock_json = request.get_json(silent=True)
+    
+    if restock_json != None :
+        restock_dictionary = json.loads(restock_json)
+        valid = verify_restock_order(restock_dictionary)
+
+        # if valid :
+        #     storeID = uuid.UUID(restock_dictionary["storeID"])
+        #     for item_dict in restock_dictionary["restock-list"]:
+        #         session.execute(add_stock_prepared, item_dict["quantity"], storeID, item_dict["itemName"])
+
+    return valid
+        
+
+
+        
