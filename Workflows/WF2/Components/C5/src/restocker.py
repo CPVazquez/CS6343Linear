@@ -20,8 +20,12 @@ def verify_restock_order(order):
     valid = True
     try:
         jsonschema.validate(instance=order, schema=schema)
-    except:
+    except Exception as inst:
+        print(type(inst))    # the exception instance
+        print(inst.args)     # arguments stored in .args
+        print(inst)          # __str__ allows args to be printed directly,
         valid = False
+        print(order)
     return valid
 
 
@@ -29,17 +33,17 @@ def verify_restock_order(order):
 def restocker():
     valid = False
     restock_json = request.get_json(silent=True)
+
     
     if restock_json != None :
-        restock_dictionary = json.loads(restock_json)
-        valid = verify_restock_order(restock_dictionary)
+        valid = verify_restock_order(restock_json)
 
         # if valid :
         #     storeID = uuid.UUID(restock_dictionary["storeID"])
         #     for item_dict in restock_dictionary["restock-list"]:
         #         session.execute(add_stock_prepared, item_dict["quantity"], storeID, item_dict["itemName"])
 
-    return valid
+    return Response(status=200, response="1" if valid else "0")
         
 
 

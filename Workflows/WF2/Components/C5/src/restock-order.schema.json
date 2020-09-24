@@ -8,7 +8,6 @@
         "storeID": {
             "$id": "#/properties/storeID",
             "type": "string",
-            "format": "uuid",
             "description": "the store that needs restocking"
         },
         "restock-list": {
@@ -30,10 +29,10 @@
                     }
                 },
                 "additionalProperties": false,
-                "required": ["itemName", "quantity"]
+                "required": ["item-name", "quantity"]
             }
         }
     },
     "additionalProperties": false,
-    "required": ["storeID", "restockOrder"]
+    "required": ["storeID", "restock-list"]
 }
