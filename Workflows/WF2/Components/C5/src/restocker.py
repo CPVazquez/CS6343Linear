@@ -4,9 +4,9 @@ import jsonschema
 import json
 import uuid
 
-# cluster = Cluster()
-# session = cluster.connect('pizza_grocery')
-# add_stock_prepared = session.prepare('UPDATE stock SET quantity = ?  WHERE store = ? AND itemName = ?')
+cluster = Cluster()
+session = cluster.connect('pizza_grocery')
+add_stock_prepared = session.prepare('UPDATE stock SET quantity = ?  WHERE store = ? AND itemName = ?')
 
 app = Flask(__name__)
 
@@ -38,10 +38,10 @@ def restocker():
     if restock_json != None :
         valid = verify_restock_order(restock_json)
 
-        # if valid :
-        #     storeID = uuid.UUID(restock_dictionary["storeID"])
-        #     for item_dict in restock_dictionary["restock-list"]:
-        #         session.execute(add_stock_prepared, item_dict["quantity"], storeID, item_dict["itemName"])
+        if valid :
+            storeID = uuid.UUID(restock_dictionary["storeID"])
+            for item_dict in restock_dictionary["restock-list"]:
+                session.execute(add_stock_prepared, item_dict["quantity"], storeID, item_dict["item-name"])
 
     return Response(status=200, response="1" if valid else "0")
         

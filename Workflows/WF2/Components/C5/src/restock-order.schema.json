@@ -8,6 +8,7 @@
         "storeID": {
             "$id": "#/properties/storeID",
             "type": "string",
+            "format": "uuid",
             "description": "the store that needs restocking"
         },
         "restock-list": {
