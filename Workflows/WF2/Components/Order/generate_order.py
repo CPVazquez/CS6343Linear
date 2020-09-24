@@ -80,13 +80,13 @@ def post_order(q):
         #print(json.dumps(order_dict, indent=4))
         json_obj = json.dumps(order_dict)
         response = requests.post(url, json=json_obj)
-        print(response)
+        print("Order " + order.order_id + ": Status " + str(response.status_code) + " - " + response.text)
         q.task_done()
 
 
 if __name__ == "__main__":
     if len(sys.argv) != 5:
-        raise ValueError('Incorrect command line arguments provided.')
+        raise ValueError('Invalid command line arguments provided.')
 
     url = sys.argv[1]               # URL to send post requests
     num_threads = int(sys.argv[2])  # Number of threads to be started
