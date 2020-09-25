@@ -9,8 +9,8 @@ verify_ssl = true
 flask = "*"
 gunicorn = "*"
 jsonschema = "*"
-cassandra-driver = "*"
 uuid = "*"
+cassandra-driver = "*"
 
 [requires]
 python_version = "3.8"

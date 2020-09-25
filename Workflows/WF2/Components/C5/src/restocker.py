@@ -4,7 +4,7 @@ import jsonschema
 import json
 import uuid
 
-cluster = Cluster()
+cluster = Cluster("10.0.1.3")
 session = cluster.connect('pizza_grocery')
 add_stock_prepared = session.prepare('UPDATE stock SET quantity = ?  WHERE store = ? AND itemName = ?')
 
@@ -24,8 +24,8 @@ def verify_restock_order(order):
         print(type(inst))    # the exception instance
         print(inst.args)     # arguments stored in .args
         print(inst)          # __str__ allows args to be printed directly,
-        valid = False
         print(order)
+        valid = False
     return valid
 
 
