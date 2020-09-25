@@ -8,7 +8,8 @@ WORKDIR /app
 
 RUN pip install pipenv
 RUN echo python3 --version
-RUN pipenv install --system --deploy
+#RUN pipenv install --system --deploy
+RUN pipenv install --deploy
 
 EXPOSE 8080
 
