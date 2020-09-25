@@ -4,7 +4,7 @@ import jsonschema
 import json
 import uuid
 
-cluster = Cluster("10.0.1.3")
+cluster = Cluster("10.0.1.97")
 session = cluster.connect('pizza_grocery')
 add_stock_prepared = session.prepare('UPDATE stock SET quantity = ?  WHERE store = ? AND itemName = ?')
 
