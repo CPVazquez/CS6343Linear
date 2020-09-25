@@ -13,7 +13,7 @@ After this is complete, connect to the server you want the worker nodes to exist
 This can be verified by returning to the server with the Manager node and running `docker node ls` and verifying the worker and manager nodes are in the list.  
 
 ## Dockerhub as a Registry
-To make sure that all node are using the correct image, and have access to said image, to create a service, we are using Dockerhub as a registry for our repository<sup>[1](#repositoryFootnote)</sup>. Currently we are using Carla's account on dockerhub, trishaire, to host the repositories. Carla's credentials are on the `cluster1-1` machine. 
+To make sure that all nodes are using the correct image, and have access to said image, when creating a service, we are using Dockerhub as a registry for our repository<sup>[1](#repositoryFootnote)</sup>. Currently we are using Carla's account on dockerhub, trishaire, to host the repositories. Carla's credentials are on the `cluster1-1` machine. 
 
 To login simply type in `sudo docker login` and you will connect to the account trishaire. If you are going to be creating a new repository or pushing an updated image to the repository you need to be logged in or you will get an error. Pulling should be able to be performed without authentication.
 
