@@ -84,8 +84,10 @@ def check_supplies(order_dict):
             instock_dict[item] = quantity
 
     if in_stock:
-        decrement_supplies(store_id, instock_dict, supply_dict)
-        insert_order(order_dict)
+        #decrement_supplies(store_id, instock_dict, supply_dict)
+        #insert_order(order_dict)
+        print("Completed Check Supplies")
+        print(instock_dict)
 
     return in_stock
 
@@ -100,7 +102,7 @@ def verify_order(order_dict):
                 status=400,
                 mimetype='application/json')
 
-    insert_order(order_dict)
+    #insert_order(order_dict)
 
     if check_supplies(order_dict):
         return Response(response="Order accepted, sufficient supplies",
