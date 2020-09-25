@@ -23,7 +23,6 @@ def verify_order(order):
 #                status=200,
 #                mimetype='application/json')
 
-
 @app.route('/order', methods=['POST'])
 def order_funct():    
     data = request.get_json()
