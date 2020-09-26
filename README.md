@@ -9,7 +9,7 @@ Before initalizaing swarm it is necessary to take a few steps to set it up.
 
 On the node that will be the Manager node port `2377/tcp` needs to be opened. This port is used for cluster management communications. 
 
-On all nodes that will be in the swarm, regardless of Manager or Work, the following ports are necessary for Swarm Routing Mesh:
+On all nodes that will be in the swarm, regardless of Manager or Worker, the following ports are necessary for Swarm Routing Mesh:
 
 * `2376/tcp` - for secure silent Docker communication
 * `7946/tcp` and `7946/udp` - for communicating among nodes (container discovery)
