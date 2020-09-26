@@ -8,8 +8,8 @@ app = Flask(__name__)
 
 cluster = Cluster(["10.0.0.46", "10.0.2.5"])
 session = cluster.connect('pizza_grocery')
-#check_stock_prepared = session.prepare('SELECT quantity FROM stock WHERE store = ? and itemName = ?')
-#decrement_stock_prepared = session.prepare('UPDATE stock SET quantity = ? WHERE store = ? AND itemName = ?')
+check_stock_prepared = session.prepare('SELECT quantity FROM stock WHERE storeID = ? AND itemName = ?')
+#decrement_stock_prepared = session.prepare('UPDATE stock SET quantity = ? WHERE storeID = ? AND itemName = ?')
 
 with open("src/schema.json", "r") as schema:
     schema = json.loads(schema.read())
@@ -76,7 +76,6 @@ def check_supplies(order_dict):
         store_id = order_dict[order_id]["storeId"]
 
     for item in supply_dict:
-        check_stock_prepared = session.prepare('SELECT quantity FROM stock WHERE store = ? and itemName = ?')
         quantity = session.execute(check_stock_prepared, store_id, item)
         if quantity > supply_dict[item]:
             in_stock = False
