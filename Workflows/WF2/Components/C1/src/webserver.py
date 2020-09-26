@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 cluster = Cluster(["10.0.0.46", "10.0.2.5"])
 session = cluster.connect('pizza_grocery')
-check_stock_prepared = session.prepare('SELECT quantity FROM stock WHERE storeID = ? AND itemName = ?')
+#check_stock_prepared = session.prepare('SELECT quantity FROM stock WHERE storeID = ? AND itemName = ?')
 #decrement_stock_prepared = session.prepare('UPDATE stock SET quantity = ? WHERE storeID = ? AND itemName = ?')
 
 with open("src/schema.json", "r") as schema:
@@ -115,11 +115,22 @@ def verify_order(order_dict):
             mimetype='application/json')
 
 
+def test_query():
+    get_stores = session.prepare("SELECT storeID FROM stores")
+    stores = session.execute(get_stores)
+    for store in stores:
+        print(stores[store])
+    return Response(response="Test Query for StoreIDs",
+        status=200,
+        mimetype='application/json')
+
+
 @app.route('/order', methods=['POST'])
 def order_funct():
     data = request.get_json()
     order_dict = json.loads(data)
-    return verify_order(order_dict)
+    #return verify_order(order_dict)
+    return test_query()
 
 
 @app.route('/health', methods=['POST'])
