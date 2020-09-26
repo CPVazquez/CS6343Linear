@@ -1,11 +1,16 @@
 from flask import Flask, request, Response
 from cassandra.cluster import Cluster
+import docker
 import jsonschema
 import json
 import uuid
 import time
 import threading
 import logging
+
+client = docker.from_env()
+
+
 
 cluster = Cluster(["10.0.0.46", "10.0.2.5"])
 session = cluster.connect('pizza_grocery')
