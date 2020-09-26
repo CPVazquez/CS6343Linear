@@ -7,7 +7,7 @@ import time
 import threading
 import logging
 
-cluster = Cluster()
+cluster = Cluster(["10.0.0.46", "10.0.2.5"])
 session = cluster.connect('pizza_grocery')
 get_quantity = session.prepare('SELECT quantity FROM stock  WHERE storeID = ? AND itemName = ?')
 add_stock_prepared = session.prepare('UPDATE stock SET quantity = ?  WHERE storeID = ? AND itemName = ?')
@@ -54,6 +54,11 @@ def restocker():
             response = Response(status=200, response="Filled out the following restock order: \n" + json.dumps(restock_json))
 
     return response
+
+
+@app.route('/health', methods=['POST'])
+def health_check():
+    return Response(status=200,response="healthy")
 
 
 # #scan the database for items that are out of stock or close to it
