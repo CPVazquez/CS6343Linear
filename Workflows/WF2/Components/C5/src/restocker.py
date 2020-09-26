@@ -10,7 +10,9 @@ import logging
 
 client = docker.from_env()
 
-
+service_info_dict = client.inspect_service("cass")
+vips = service_info_dict["Endpoint"]["VirtualIPs"]
+json.dumps(vips)
 
 cluster = Cluster(["10.0.0.46", "10.0.2.5"])
 session = cluster.connect('pizza_grocery')
