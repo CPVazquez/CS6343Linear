@@ -2,11 +2,44 @@
 Repository for our Cloud Computing Project
 
 ## Swarm initialization
+
+### Preinitialization Steps
+
+Before initalizaing swarm it is necessary to take a few steps to set it up. 
+
+On the node that will be the Manager node port `2377/tcp` needs to be opened. This port is used for cluster management communications. 
+
+On all nodes that will be in the swarm, regardless of Manager or Worker, the following ports are necessary for Swarm Routing Mesh:
+
+* `2376/tcp` - for secure silent Docker communication
+* `7946/tcp` and `7946/udp` - for communicating among nodes (container discovery)
+* `4789/udp` - for overlay network traffic (container ingress networking)
+
+In addition to the ports required above, we need to open the ports used by the containers on our swarm:
+
+* `8080/tcp` - for Workflow 2, Component 1
+* `9042/tcp` - for the Database Component
+* `8000/tcp` - for the Restocking Component
+
+To open these ports the following command may prove useful:
+```
+firewall-cmd --add-port=portNum/protocol --permanent
+```
+where portNum is the port number you wish to open and protocol is the protocol you want to use, such as tcp or udp.
+
+After you open the appropriate ports it will be necessary to reload the firewall with the following command:
+```
+firewall-cmd --reload
+```
+And lastly docker will need to be restarted as well using the following command:
+```
+systemctl restart docker
+```
+### Initilaization
+
 To initialize the Docker Swarm, first connect to the server that you want the Manager node to exist on. In our case, this is done with `ssh cluster1-1` (if you are connected somewhere with the same username and hostname as an account on the server, such as `pubssh.utdallas.edu` to dodge the VPN requirement, those parts can be omitted from `ssh`. Additionally, setting up the `.ssh/authorized_keys` files will prevent you needing to log in with password). Then, initialize the swarm with `docker swarm init`.  
 
-This command will specify a command to run on the other node to have a Docker worker ndoe join. This can also be generated with `docker swarm join-token worker`.  
-
-Additionally, the firewall may need to be opened with `firewall-cmd --add-port=2377/tcp --permanent`, followed by `firewall-cmd --reload`.  
+This command will specify a command to run on the other node to have a Docker worker ndoe join. This can also be generated with `docker swarm join-token worker`.   
 
 After this is complete, connect to the server you want the worker nodes to exist on. In our case, this is `ssh cluster1-2` or `ssh cluster1-3`. On that server, run the join command that was generated in the previous step. This should join your node to the swarm.  
 

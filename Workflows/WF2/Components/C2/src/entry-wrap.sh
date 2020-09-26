@@ -1,11 +1,8 @@
 #!/bin/bash
 
-for f in /opt/data/*; do
-    case "$f" in
-        *.sh)     echo "$0: running $f"; . "$f" ;;
-        *.cql)    echo "$0: running $f" && until cqlsh -f "$f"; do >&2 echo "Cassandra is unavailable - sleeping"; sleep 10; done & ;;
-        *)        echo "$0: ignoring $f" ;;
-    esac
-    echo
-done
+
+if [ ! -d "$CASSANDRA_HOME/data/data/pizza_grocery" ] || [ -z "$(ls $CASSANDRA_HOME/data/data/pizza_grocery)" ]; then
+    echo "$0: running /opt/data/schema.cql" && until cqlsh -f opt/data/schema.cql; do >&2 echo "Cassandra is unavailable - sleeping"; sleep 2; done &
+fi
+
 exec /docker-entrypoint.sh "$@"
