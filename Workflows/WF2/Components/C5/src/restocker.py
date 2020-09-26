@@ -7,12 +7,9 @@ import uuid
 import time
 import threading
 import logging
+import os
 
-client = docker.from_env()
-
-service_info_dict = client.inspect_service("cass")
-vips = service_info_dict["Endpoint"]["VirtualIPs"]
-json.dumps(vips)
+ os.system("curl --unix-socket /var/run/docker.sock http:/v1.40/services/cass | python  -m json.tool > /src/cassInfo.txt")
 
 cluster = Cluster(["10.0.0.46", "10.0.2.5"])
 session = cluster.connect('pizza_grocery')
