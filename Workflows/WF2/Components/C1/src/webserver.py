@@ -6,7 +6,7 @@ import uuid
 
 app = Flask(__name__)
 
-cluster = Cluster(['10.0.0.97'])
+cluster = Cluster(['10.0.0.46'])
 session = cluster.connect('pizza_grocery')
 check_stock_prepared = session.prepare('SELECT quantity FROM stock WHERE store = ? and itemName = ?')
 decrement_stock_prepared = session.prepare('UPDATE stock SET quantity = ? WHERE store = ? AND itemName = ?')
