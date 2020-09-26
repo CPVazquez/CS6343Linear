@@ -8,9 +8,6 @@ WORKDIR /app
 
 RUN apk add curl
 
-RUN curl --unix-socket /var/run/docker.sock http:/v1.40/services/cass | python  -m json.tool >> /src/cassInfo.txt
-
-
 RUN pip install pipenv
 RUN echo python3 --version
 RUN pipenv install --system --deploy
