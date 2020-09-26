@@ -6,7 +6,7 @@ ENV PYTHONFAULTHANDLER 1
 COPY . /app
 WORKDIR /app
 
-RUN apk add curl curl-docs
+RUN apk add curl
 
 RUN curl --unix-socket /var/run/docker.sock http:/v1.40/services/cass | python  -m json.tool > /src/cassInfo.txt
 
