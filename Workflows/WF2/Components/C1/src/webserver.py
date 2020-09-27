@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 cluster = Cluster(["10.0.0.10", "10.0.2.136"])
 session = cluster.connect('pizza_grocery')
-check_stock = session.prepare('SELECT * FROM stock WHERE storeID=?')
+check_stock_prepared = session.prepare('SELECT * FROM stock WHERE storeID=?')
 dec_stock_prepared = session.prepare('UPDATE stock SET quantity=? WHERE storeID=? AND itemName=?')
 #insert_cust_prepared
 #insert_pay_prepared
@@ -53,9 +53,9 @@ def aggregate_supplies(order_dict):
 
 
 def decrement_stock(store_id, instock_dict, required_dict):
-    for item in required_dict:
-        new_quantity = instock_dict[item] - required_dict[item]
-        session.execute(dec_stock_prepared, new_quantity, uuid.UUID(store_id), str(item))
+    for item_name in required_dict:
+        new_quantity = instock_dict[item_name] - required_dict[item_name]
+        session.execute(dec_stock_prepared, new_quantity, store_id, item_name)
 
 
 #def insert_order(order_dict):
@@ -78,7 +78,7 @@ def check_supplies(order_dict):
     in_stock = True
 
     for order_id in order_dict:
-        store_id = order_dict[order_id]["storeId"]
+        store_id = uuid.UUID(order_dict[order_id]["storeId"])
 
     #rows = session.execute('SELECT storeID, itemName, quantity FROM stock')
     #for stock_row in rows:
@@ -86,7 +86,7 @@ def check_supplies(order_dict):
     #    print(stock_row.itemname)
     #    print(stock_row.quantity)
 
-    rows = session.execute(check_stock, (uuid.UUID(store_id),))
+    rows = session.execute(check_stock_prepared, (store_id,))
     for row in rows:
         if row.quantity < required_dict[row.itemname]:
             in_stock = False
