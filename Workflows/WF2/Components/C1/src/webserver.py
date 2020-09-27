@@ -1,23 +1,24 @@
 from flask import Flask, request, Response
 from cassandra.cluster import Cluster
+from datetime import datetime
 import jsonschema
 import json
 import logging
 import time
 import uuid
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+#logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 app = Flask(__name__)
 
-cluster = Cluster(["10.0.0.10", "10.0.2.136"])
+cluster = Cluster(["0.0.0.0"])
 session = cluster.connect('pizza_grocery')
 check_stock_prepared = session.prepare('SELECT * FROM stock WHERE storeID=?')
 dec_stock_prepared = session.prepare('UPDATE stock SET quantity=? WHERE storeID=? AND itemName=?')
-#insert_cust_prepared
-#insert_pay_prepared
-#insert_pizzas_prepared
-#insert_items_prepared
+insert_cust_prepared = session.prepare('INSERT INTO customers (customerName, latitude, longitude) VALUES (?, ?, ?)')
+insert_pay_prepared = session.prepare('INSERT INTO payments (paymentToken, method) VALUES (?, ?)')
+insert_pizzas_prepared = session.prepare('INSERT INTO pizzas (pizzaID, toppings, cost) VALUES (?, ?, ?)')
+insert_order_prepared = session.prepare('INSERT INTO orderTable (orderID, orderedFrom, orderedBy, delivieredBy, containsPizzas, containsItems, paymentID, placedAt, active, estimatedDeliveryTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
 
 with open("src/schema.json", "r") as schema:
     schema = json.loads(schema.read())
@@ -59,21 +60,35 @@ def aggregate_supplies(order_dict):
 def decrement_stock(store_id, instock_dict, required_dict):
     for item_name in required_dict:
         new_quantity = instock_dict[item_name] - required_dict[item_name]
-        logging.debug("Decrementing Stock for Store " + str(store_id) + ": Item - " + item_name + ", Quantity - " + str(new_quantity))
+        #print("Decrementing Stock for Store " + str(store_id) + ": Item - " + item_name + ", Quantity - " + str(new_quantity))
         session.execute(dec_stock_prepared, (new_quantity, store_id, item_name))
 
 
-#def insert_order(order_dict):
-#    for order_id in order_dict:
-#        print(order_id)
-#        print(order_dict[order_id]["storeId"])
-#        print(order_dict[order_id]["custName"])
-#        print(order_dict[order_id]["paymentToken"])
-#        print(order_dict[order_id]["paymentTokenType"])
-#        print(order_dict[order_id]["custLocation"])
-#        for pizza in range(len(order_dict[order_id]["pizzaList"])):
-#            print(str(uuid.uuid4()))
-#            print(order_dict[order_id]["pizzaList"][pizza])
+def insert_pizzas(order_id, order_dict):
+    # TODO: Calculate actual price based on pizza components
+    uuid_set = set()
+    for pizza in range(len(order_dict[order_id]["pizzaList"])):
+        pizza_uuid = uuid.uuid4()
+        uuid_set.add(pizza_uuid)
+        topping_set = set()
+        for topping in range(len(order_dict[order_id]["pizzaList"][pizza]["toppingList"])):
+            topping_set.add((order_dict[order_id]["pizzaList"][pizza]["toppingList"][topping], 1))
+        session.execute(insert_pizzas_prepared, (pizza_uuid, topping_set, 10.0))
+    return uuid_set
+
+
+def insert_order(order_id, order_dict):
+    # Insert customer information into 'customers' table
+    session.execute(insert_cust_prepared, (order_dict[order_id]["custName"], order_dict[order_id]["custLocation"]["lat"], order_dict[order_id]["custLocation"]["lon"]))
+    # Insert payment information into 'payments' table
+    session.execute(insert_pay_prepared,(uuid.UUID(order_dict[order_id]["paymentToken"]), order_dict[order_id]["paymentTokenType"]))
+    # Insert pizzas into 'pizzas' table
+    pizza_uuid_set = insert_pizzas(order_id, order_dict)
+    # Insert order into 'orderTable'
+    order_uuid = uuid.UUID(order_id)
+    store_uuid = uuid.UUID(order_dict[order_id]["storeId"])
+    pay_uuid = uuid.UUID(order_dict[order_id]["paymentToken"])
+    session.execute(insert_order_prepared, (order_uuid, store_uuid, order_dict[order_id]["custName"], "", pizza_uuid_set, None, pay_uuid, datetime.now(), True, -1))
 
 
 def check_supplies(order_dict):
@@ -100,7 +115,7 @@ def check_supplies(order_dict):
 
     if in_stock:
         decrement_stock(store_id, instock_dict, required_dict)
-        #insert_order(order_dict)
+        insert_order(order_id, order_dict)
 
     return in_stock
 
