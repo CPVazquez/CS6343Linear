@@ -55,7 +55,7 @@ def aggregate_supplies(order_dict):
 def decrement_stock(store_id, instock_dict, required_dict):
     for item in required_dict:
         new_quantity = instock_dict[item] - required_dict[item]
-        session.execute(dec_stock_prepared, new_quantity, uuid.UUID(store_id), item)
+        session.execute(dec_stock_prepared, new_quantity, uuid.UUID(store_id), str(item))
 
 
 #def insert_order(order_dict):
