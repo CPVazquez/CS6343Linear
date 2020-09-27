@@ -7,20 +7,23 @@ import uuid
 import time
 import threading
 import logging
-import os
 
-os.system("curl --unix-socket /var/run/docker.sock http:/v1.40/services/cass | python  -m json.tool > /src/cassInfo.txt")
+# os.system("curl --unix-socket /var/run/docker.sock http:/v1.40/services/cass | python  -m json.tool >> /app/src/cassInfo.txt  ")
 
-cluster = Cluster(["10.0.0.46", "10.0.2.5"])
+#cluster = Cluster(["10.0.0.46", "10.0.2.5"])
+cluster = Cluster()
 session = cluster.connect('pizza_grocery')
 get_quantity = session.prepare('SELECT quantity FROM stock  WHERE storeID = ? AND itemName = ?')
 add_stock_prepared = session.prepare('UPDATE stock SET quantity = ?  WHERE storeID = ? AND itemName = ?')
 get_stores = session.prepare("SELECT storeID FROM stores")
+get_items = session.prepare("SELECT name FROM items")
+
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 app = Flask(__name__)
+
 
 with open("src/restock-order.schema.json", "r") as schema:
     schema = json.loads(schema.read())
@@ -65,17 +68,18 @@ def health_check():
     return Response(status=200,response="healthy")
 
 
-# #scan the database for items that are out of stock or close to it
-# def scan_out_of_stock():
-#     stores = session.execute(get_stores)
-#     for store in stores:
-#         logging.debug("Scanning store: " + str(store.storeid) + " for out of stock items")
-#         out_of_stock = session.execute(scan_prepared, (store.storeid, ))
-#         for row in out_of_stock:
-#             logging.debug(str(row.storeid) + " out of " + row.itemname)
-#         out_of_stock = None
-#         #session.execute(add_stock_prepared, (4.0, store.storeid, "Bacon"))
-    
-#     threading.Timer(500, scan_out_of_stock).start()
+#scan the database for items that are out of stock or close to it VERSION A
+def scan_out_of_stock():
+    stores = session.execute(get_stores)
+    for store in stores:
+        items = session.execute(get_items)
+        for item in items:
+            quantity = session.execute(get_quantity, (store.storeid, item.name))
+            quantity_row = quantity.one()
+            if quantity_row != None:
+                if quantity_row.quantity < 5.0 :
+                    session.execute(add_stock_prepared, ( quantity_row.quantity + 20, store.storeid, item.name))
+                    logging.debug(str(store.storeid) + ", " + item.name + " has " + str(quantity_row.quantity + 20.0))
+    # threading.Timer(500, scan_out_of_stock).start()
 
-# scan_out_of_stock()
+scan_out_of_stock()
