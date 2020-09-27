@@ -2,7 +2,11 @@ from flask import Flask, request, Response
 from cassandra.cluster import Cluster
 import jsonschema
 import json
+import logging
+import time
 import uuid
+
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 app = Flask(__name__)
 
@@ -55,6 +59,7 @@ def aggregate_supplies(order_dict):
 def decrement_stock(store_id, instock_dict, required_dict):
     for item_name in required_dict:
         new_quantity = instock_dict[item_name] - required_dict[item_name]
+        logging.debug("Decrementing Stock for Store " + str(store_id) + ": Item - " + item_name + ", Quantity - " + quantity)
         session.execute(dec_stock_prepared, (new_quantity, store_id, item_name))
 
 
@@ -79,12 +84,6 @@ def check_supplies(order_dict):
 
     for order_id in order_dict:
         store_id = uuid.UUID(order_dict[order_id]["storeId"])
-
-    #rows = session.execute('SELECT storeID, itemName, quantity FROM stock')
-    #for stock_row in rows:
-    #    print(stock_row.storeid)
-    #    print(stock_row.itemname)
-    #    print(stock_row.quantity)
 
     rows = session.execute(check_stock_prepared, (store_id,))
     for row in rows:
