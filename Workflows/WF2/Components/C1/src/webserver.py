@@ -131,8 +131,7 @@ def test_query():
 def order_funct():
     data = request.get_json()
     order_dict = json.loads(data)
-    #return verify_order(order_dict)
-    return test_query()
+    return verify_order(order_dict)
 
 
 @app.route('/health', methods=['POST'])
