@@ -85,7 +85,7 @@ def check_supplies(order_dict):
     #    print(stock_row.itemname)
     #    print(stock_row.quantity)
 
-    rows = session.execute(check_stock, (store_id,))
+    rows = session.execute(check_stock, (uuid.UUID(store_id),))
     for row in rows:
         if row.quantity > supply_dict[row.itemname]:
             in_stock = False
