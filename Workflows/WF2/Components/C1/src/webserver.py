@@ -53,7 +53,7 @@ def aggregate_supplies(order_dict):
 
 
 def decrement_supplies(store_id, instock_dict, required_dict):
-    for item in supply_dict:
+    for item in required_dict:
         session.execute(decrement_stock_prepared, (instock_dict[item] - required_dict[item]), store_id, item)
 
 
