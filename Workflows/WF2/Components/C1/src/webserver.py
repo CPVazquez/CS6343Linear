@@ -59,7 +59,7 @@ def aggregate_supplies(order_dict):
 def decrement_stock(store_id, instock_dict, required_dict):
     for item_name in required_dict:
         new_quantity = instock_dict[item_name] - required_dict[item_name]
-        logging.debug("Decrementing Stock for Store " + str(store_id) + ": Item - " + item_name + ", Quantity - " + new_quantity)
+        logging.debug("Decrementing Stock for Store " + str(store_id) + ": Item - " + item_name + ", Quantity - " + str(new_quantity))
         session.execute(dec_stock_prepared, (new_quantity, store_id, item_name))
 
 
