@@ -52,9 +52,9 @@ def aggregate_supplies(order_dict):
     return supplies
 
 
-#def decrement_supplies(store_id, instock_dict, supply_dict):
-#    for item in supply_dict:
-#        session.execute(decrement_stock_prepared, (instock_dict[item] - supply_dict[item]), store_id, item)
+def decrement_supplies(store_id, instock_dict, required_dict):
+    for item in supply_dict:
+        session.execute(decrement_stock_prepared, (instock_dict[item] - required_dict[item]), store_id, item)
 
 
 #def insert_order(order_dict):
@@ -71,9 +71,9 @@ def aggregate_supplies(order_dict):
 
 
 def check_supplies(order_dict):
-    supply_dict = aggregate_supplies(order_dict)
+    required_dict = aggregate_supplies(order_dict)
     restock_list = []
-    instock_dict = dict(supply_dict)    # Create a copy of supply_dict to store instock quantities
+    instock_dict = dict(req_items_dict)    # Create a copy of required_dict to store instock quantities
     in_stock = True
 
     for order_id in order_dict:
@@ -87,17 +87,15 @@ def check_supplies(order_dict):
 
     rows = session.execute(check_stock, (uuid.UUID(store_id),))
     for row in rows:
-        if row.quantity > supply_dict[row.itemname]:
+        if row.quantity < required_dict[row.itemname]:
             in_stock = False
             restock_list.append({"item-name": row.itemname, "quantity": row.quantity})
         else:
             instock_dict[row.itemname] = row.quantity
 
     if in_stock:
-        #decrement_supplies(store_id, instock_dict, supply_dict)
+        decrement_supplies(store_id, instock_dict, required_dict)
         #insert_order(order_dict)
-        print("Completed Check Supplies")
-        print(instock_dict)
 
     return in_stock
 
