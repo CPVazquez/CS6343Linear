@@ -19,9 +19,13 @@ requirements:
 
 
 
-To build the docker image run the following command:
+To build the docker image run the following command in the folder containing the Dockerfile:
 
-- docker build -t webserver:1.0 .
+- docker build -t trishaire/webserver .
+
+To create the image as a service run the following command:
+
+- docker service create --name webserver --network myNet --publish 8080:8080 trishaire/webserver
 
 To run the docker container run the following command:
 
