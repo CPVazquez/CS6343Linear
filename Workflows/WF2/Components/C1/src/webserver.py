@@ -121,7 +121,7 @@ def test_query():
     get_stores = session.prepare("SELECT storeID FROM stores")
     stores = session.execute(get_stores)
     for store in stores:
-        print(stores[store])
+        print(str(stores[store]))
     return Response(response="Test Query for StoreIDs",
         status=200,
         mimetype='application/json')
