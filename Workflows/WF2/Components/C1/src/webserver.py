@@ -11,7 +11,7 @@ import uuid
 
 app = Flask(__name__)
 
-cluster = Cluster(["0.0.0.0"])
+cluster = Cluster(["10.0.0.10", "10.0.2.136"])
 session = cluster.connect('pizza_grocery')
 check_stock_prepared = session.prepare('SELECT * FROM stock WHERE storeID=?')
 dec_stock_prepared = session.prepare('UPDATE stock SET quantity=? WHERE storeID=? AND itemName=?')
