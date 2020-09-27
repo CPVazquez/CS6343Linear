@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 cluster = Cluster(["10.0.0.10", "10.0.2.136"])
 session = cluster.connect('pizza_grocery')
-#check_stock = session.prepare('SELECT quantity FROM stock  WHERE storeID = ? AND itemName = ?')
+check_stock = session.prepare('SELECT * FROM stock WHERE storeID=?')
 #decrement_stock_prepared = session.prepare('UPDATE stock SET quantity = ? WHERE storeID = ? AND itemName = ?')
 #insert_cust_prepared
 #insert_pay_prepared
@@ -79,19 +79,19 @@ def check_supplies(order_dict):
     for order_id in order_dict:
         store_id = order_dict[order_id]["storeId"]
 
-    rows = session.execute('SELECT storeID, itemName, quantity FROM stock')
-    for stock_row in rows:
-        print(stock_row.storeid)
-        print(stock_row.itemname)
-        print(stock_row.quantity)
+    #rows = session.execute('SELECT storeID, itemName, quantity FROM stock')
+    #for stock_row in rows:
+    #    print(stock_row.storeid)
+    #    print(stock_row.itemname)
+    #    print(stock_row.quantity)
 
-    #for item in supply_dict:
-    #    quantity = session.execute(check_stock, store_id, item)
-    #    if quantity > supply_dict[item]:
-    #        in_stock = False
-    #        restock_list.append({"item-name": item, "quantity": quantity})
-    #    else:
-    #        instock_dict[item] = quantity
+    rows = session.execute(check_stock, store_id)
+    for row in rows:
+        if row.quantity > supply_dict[row.itemname]:
+            in_stock = False
+            restock_list.append({"item-name": item, "quantity": quantity})
+        else:
+            instock_dict[row.itemname] = row.quantity
 
     if in_stock:
         #decrement_supplies(store_id, instock_dict, supply_dict)
