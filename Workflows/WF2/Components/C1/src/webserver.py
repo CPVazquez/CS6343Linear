@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 cluster = Cluster(["10.0.0.10", "10.0.2.136"])
 session = cluster.connect('pizza_grocery')
-check_stock_prepared = session.prepare('SELECT quantity FROM stock WHERE storeID = ? AND itemName = ?')
+check_stock = session.prepare('SELECT quantity FROM stock  WHERE storeID = ? AND itemName = ?')
 #decrement_stock_prepared = session.prepare('UPDATE stock SET quantity = ? WHERE storeID = ? AND itemName = ?')
 #insert_cust_prepared
 #insert_pay_prepared
@@ -52,9 +52,9 @@ def aggregate_supplies(order_dict):
     return supplies
 
 
-def decrement_supplies(store_id, instock_dict, supply_dict):
-    for item in supply_dict:
-        session.execute(decrement_stock_prepared, (instock_dict[item] - supply_dict[item]), store_id, item)
+#def decrement_supplies(store_id, instock_dict, supply_dict):
+#    for item in supply_dict:
+#        session.execute(decrement_stock_prepared, (instock_dict[item] - supply_dict[item]), store_id, item)
 
 
 #def insert_order(order_dict):
@@ -80,7 +80,7 @@ def check_supplies(order_dict):
         store_id = order_dict[order_id]["storeId"]
 
     for item in supply_dict:
-        quantity = session.execute(check_stock_prepared, store_id, item)
+        quantity = session.execute(check_stock, store_id, item)
         if quantity > supply_dict[item]:
             in_stock = False
             restock_list.append({"item-name": item, "quantity": quantity})
@@ -115,16 +115,6 @@ def verify_order(order_dict):
         return Response(response="Order rejected, insufficient supplies",
             status=400,
             mimetype='application/json')
-
-
-def test_query():
-    get_stores = session.prepare("SELECT storeID FROM stores")
-    stores = session.execute(get_stores)
-    for store in stores:
-        print(str(stores[store]))
-    return Response(response="Test Query for StoreIDs",
-        status=200,
-        mimetype='application/json')
 
 
 @app.route('/order', methods=['POST'])
