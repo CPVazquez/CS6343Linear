@@ -81,7 +81,9 @@ def check_supplies(order_dict):
 
     rows = session.execute('SELECT storeID, itemName, quantity FROM stock')
     for stock_row in rows:
-        print stock_row.storeID, stock_row.itemName, stock_row.quantity
+        print(stock_row.storeID)
+        print(stock_row.itemName)
+        print(stock_row.quantity)
 
     #for item in supply_dict:
     #    quantity = session.execute(check_stock, store_id, item)
