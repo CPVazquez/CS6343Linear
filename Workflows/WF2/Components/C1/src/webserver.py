@@ -6,10 +6,14 @@ import uuid
 
 app = Flask(__name__)
 
-cluster = Cluster(["10.0.0.46", "10.0.2.5"])
+cluster = Cluster(["10.0.0.10", "10.0.2.136"])
 session = cluster.connect('pizza_grocery')
 #check_stock_prepared = session.prepare('SELECT quantity FROM stock WHERE storeID = ? AND itemName = ?')
 #decrement_stock_prepared = session.prepare('UPDATE stock SET quantity = ? WHERE storeID = ? AND itemName = ?')
+#insert_cust_prepared
+#insert_pay_prepared
+#insert_pizzas_prepared
+#insert_items_prepared
 
 with open("src/schema.json", "r") as schema:
     schema = json.loads(schema.read())
@@ -101,8 +105,6 @@ def verify_order(order_dict):
         return Response(response="JSON failed validation",
                 status=400,
                 mimetype='application/json')
-
-    #insert_order(order_dict)
 
     if check_supplies(order_dict):
         return Response(response="Order accepted, sufficient supplies",
