@@ -73,7 +73,7 @@ def decrement_supplies(store_id, instock_dict, required_dict):
 def check_supplies(order_dict):
     required_dict = aggregate_supplies(order_dict)
     restock_list = []
-    instock_dict = dict(req_items_dict)    # Create a copy of required_dict to store instock quantities
+    instock_dict = dict(required_dict)    # Create a copy of required_dict to store instock quantities
     in_stock = True
 
     for order_id in order_dict:
