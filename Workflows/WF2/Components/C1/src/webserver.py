@@ -89,7 +89,7 @@ def check_supplies(order_dict):
     for row in rows:
         if row.quantity > supply_dict[row.itemname]:
             in_stock = False
-            restock_list.append({"item-name": item, "quantity": quantity})
+            restock_list.append({"item-name": row.itemname, "quantity": row.quantity})
         else:
             instock_dict[row.itemname] = row.quantity
 
