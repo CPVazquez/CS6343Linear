@@ -9,7 +9,7 @@ app = Flask(__name__)
 cluster = Cluster(["10.0.0.10", "10.0.2.136"])
 session = cluster.connect('pizza_grocery')
 check_stock = session.prepare('SELECT * FROM stock WHERE storeID=?')
-decrement_stock_prepared = session.prepare('UPDATE stock SET quantity = ? WHERE storeID = ? AND itemName = ?')
+decrement_stock_prepared = session.prepare('UPDATE stock SET quantity=? WHERE storeID=? AND itemName=?')
 #insert_cust_prepared
 #insert_pay_prepared
 #insert_pizzas_prepared
@@ -54,7 +54,8 @@ def aggregate_supplies(order_dict):
 
 def decrement_supplies(store_id, instock_dict, required_dict):
     for item in required_dict:
-        session.execute(decrement_stock_prepared, (instock_dict[item] - required_dict[item]), store_id, item)
+        new_quantity = instock_dict[item]-required_dict[item]
+        session.execute(decrement_stock_prepared, new_quantity, store_id, item)
 
 
 #def insert_order(order_dict):
