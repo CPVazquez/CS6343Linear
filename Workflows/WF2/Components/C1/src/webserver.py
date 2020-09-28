@@ -15,11 +15,13 @@ cluster = Cluster()     # Add Cassandra VIPs here
 session = cluster.connect('pizza_grocery')
 check_stock_prepared = session.prepare('SELECT * FROM stock WHERE storeID=?')
 dec_stock_prepared = session.prepare('UPDATE stock SET quantity=? WHERE storeID=? AND itemName=?')
+item_price_prepared = session.prepare('SELECT * FROM items WHERE name=?')
 insert_cust_prepared = session.prepare('INSERT INTO customers (customerName, latitude, longitude) VALUES (?, ?, ?)')
 insert_pay_prepared = session.prepare('INSERT INTO payments (paymentToken, method) VALUES (?, ?)')
 insert_pizzas_prepared = session.prepare('INSERT INTO pizzas (pizzaID, toppings, cost) VALUES (?, ?, ?)')
-insert_order_prepared = session.prepare('INSERT INTO orderTable (orderID, orderedFrom, orderedBy, delivieredBy, containsPizzas, containsItems, paymentID, placedAt, active, estimatedDeliveryTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-item_price_prepared = session.prepare('SELECT * FROM items WHERE name=?')
+insert_order_prepared = session.prepare('INSERT INTO orderTable (orderID, orderedFrom, orderedBy, deliveredBy, containsPizzas, containsItems, paymentID, placedAt, active, estimatedDeliveryTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+insert_order_by_store_prepared = session.prepare('INSERT INTO orderByStore (orderedFrom, placedAt, orderID) VALUES (?, ?, ?)')
+insert_order_by_cust_prepared = session.prepare('INSERT INTO orderByCustomer (orderedBy, placedAt, orderID) VALUES (?, ?, ?)')
 
 with open("src/schema.json", "r") as schema:
     schema = json.loads(schema.read())
@@ -107,20 +109,29 @@ def insert_pizzas(pizza_list):
 
 
 def insert_order(order_id, order_dict):
+    order_uuid = uuid.UUID(order_id)
+    store_uuid = uuid.UUID(order_dict[order_id]["storeId"])
+    pay_uuid = uuid.UUID(order_dict[order_id]["paymentToken"])
+    cust_name = order_dict[order_id]["custName"]
+    placed_at = datetime.now()
+
     # Insert customer information into 'customers' table
-    session.execute(insert_cust_prepared, (order_dict[order_id]["custName"], order_dict[order_id]["custLocation"]["lat"], order_dict[order_id]["custLocation"]["lon"]))
+    session.execute(insert_cust_prepared, (cust_name, order_dict[order_id]["custLocation"]["lat"], order_dict[order_id]["custLocation"]["lon"]))
     
     # Insert payment information into 'payments' table
-    session.execute(insert_pay_prepared, (uuid.UUID(order_dict[order_id]["paymentToken"]), order_dict[order_id]["paymentTokenType"]))
+    session.execute(insert_pay_prepared, (pay_uuid, order_dict[order_id]["paymentTokenType"]))
     
     # Insert pizzas into 'pizzas' table
     pizza_uuid_set = insert_pizzas(order_dict[order_id]["pizzaList"])
     
-    # Insert order into 'orderTable'
-    order_uuid = uuid.UUID(order_id)
-    store_uuid = uuid.UUID(order_dict[order_id]["storeId"])
-    pay_uuid = uuid.UUID(order_dict[order_id]["paymentToken"])
-    session.execute(insert_order_prepared, (order_uuid, store_uuid, order_dict[order_id]["custName"], "", pizza_uuid_set, None, pay_uuid, datetime.now(), True, -1))
+    # Insert order into 'orderTable' table
+    session.execute(insert_order_prepared, (order_uuid, store_uuid, cust_name, "", pizza_uuid_set, None, pay_uuid, placed_at, True, -1))
+
+    # Insert order into 'orderByStore' table
+    session.execute(insert_order_by_store_prepared, (store_uuid, placed_at, order_uuid))
+
+    # Insert order into 'orderByCustomer' table
+    session.execute(insert_order_by_cust_prepared, (cust_name, placed_at, order_uuid))
 
 
 def check_stock(order_dict):
