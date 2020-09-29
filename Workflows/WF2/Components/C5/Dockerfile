@@ -2,6 +2,7 @@ FROM python:alpine3.11
 
 ENV PYTHONBUFFERED 1
 ENV PYTHONFAULTHANDLER 1
+ENV CASS_DB=cass
 
 COPY . /app
 WORKDIR /app
@@ -14,4 +15,4 @@ RUN pipenv install --system --deploy
 
 EXPOSE 8000
 
-CMD python3 src/test_cont_attach.py # gunicorn -b 0.0.0.0:8000 --log-level debug src.restocker:app
+CMD gunicorn -b 0.0.0.0:8000 --log-level debug src.restocker:app
