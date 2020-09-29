@@ -10,6 +10,8 @@ docker push trishaire/restocker:tag
 ```
 to create the serve type the following command:
 ```
-docker service create --name restocker --network myNet --publish 8000:8000 trishaire/restocker
-docker service create --name restocker --network myNet --mount 'type=volume,src=/var/run/docker.sock,dest=/var/run/docker.sock' --publish 8000:8000 trishaire/restocker
+docker service create --name restocker --network myNet --publish 8000:8000 --env CASS_DB=$CASS_DB trishaire/restocker
+docker service create --name restocker --network myNet --mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock --publish 8000:8000 trishaire/restocker
 ```
+
+Idea copy config file onto cluster1-2 and cluster1-3

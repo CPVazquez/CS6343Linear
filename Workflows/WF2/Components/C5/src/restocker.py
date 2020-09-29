@@ -7,12 +7,10 @@ import uuid
 import time
 import threading
 import logging
+import os
 
-# os.system("curl --unix-socket /var/run/docker.sock http:/v1.40/services/cass | python  -m json.tool >> /app/src/cassInfo.txt  ")
-
-#cluster = Cluster(["10.0.0.46", "10.0.2.5"])
-cluster = Cluster(["10.176.67.82"])
-#cluster = Cluster(contact_points=["0.0.0.0"], connect_timeout=6000)
+cass_IP = os.environ["CASS_DB"]
+cluster = Cluster([cass_IP])
 session = cluster.connect('pizza_grocery')
 get_quantity = session.prepare('SELECT quantity FROM stock  WHERE storeID = ? AND itemName = ?')
 add_stock_prepared = session.prepare('UPDATE stock SET quantity = ?  WHERE storeID = ? AND itemName = ?')
