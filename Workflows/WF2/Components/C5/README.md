@@ -20,6 +20,15 @@ docker push trishaire/restocker:tag
 ```
 To create the service type the following command:
 ```
-docker service create --name restocker --network myNet --publish port:port --env CASS_DB=VIP_of_Cass_Service trishaire/restocker
+docker service create --name restocker --network myNet --publish port:port --env CASS_DB=VIP_of_Cass_Service trishaire/restocker:tag
 ```
 where the port is 8000 and VIP_of_Cass_Service is retrieved from the docker info command.
+
+## Testing
+
+This component uses pytest to run unit test. you must be connected to a cassandra instance to run the tests correctly. I'm still trying to figure out how to mock cassandra. 
+
+use the following command to run tests:
+```
+pytest --cov=src tests
+```

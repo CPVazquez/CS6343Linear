@@ -60,15 +60,16 @@ with open("src/restock-order.schema.json", "r") as schema:
 def verify_restock_order(order):
     global schema
     valid = True
+    mess = None
     try:
         jsonschema.validate(instance=order, schema=schema)
     except Exception as inst:
-        print(type(inst))    # the exception instance
-        print(inst.args)     # arguments stored in .args
-        print(inst)          # __str__ allows args to be printed directly,
-        print(order)
+        logging.debug(type(inst))    # the exception instance
+        logging.debug(inst.args[0])          # __str__ allows args to be loggin.debuged directly,
+        logging.debug(order)
         valid = False
-    return valid
+        mess = inst.args[0]
+    return valid, mess
 
 # the restock endpoint
 @app.route('/restock', methods=['POST'])
@@ -76,18 +77,25 @@ def restocker():
 
     valid = False
     restock_json = request.get_json(silent=True)
-    response = Response(status=400, response="Restocking order ill formated.\
-        \nRejecting request.\nPlease correct formating")
+    response = Response(status=400, response="Restocking order ill formated.\nRejecting request.\nPlease correct formating.")
 
     if restock_json != None :
-        valid = verify_restock_order(restock_json)
+        valid, mess = verify_restock_order(restock_json)
 
         if valid :
-            storeID = uuid.UUID(restock_json["storeID"])
-            for item_dict in restock_json["restock-list"]:
-                session.execute(add_stock_prepared, (item_dict["quantity"], storeID, item_dict["item-name"]))
-            response = Response(status=200, response="Filled out the following \
-                restock order: \n" + json.dumps(restock_json))
+            try: 
+                storeID = uuid.UUID(restock_json["storeID"])
+                for item_dict in restock_json["restock-list"]:
+                    session.execute(add_stock_prepared, (item_dict["quantity"],
+                        storeID, item_dict["item-name"]))
+                response = Response(status=200, response="Filled out the following \
+                    restock order: \n" + json.dumps(restock_json))
+            except ValueError:
+                logging.debug("Exception: badly formed hexadecimal UUID\
+                    string")
+                response = Response(status=400, response="Restocking order ill formated.\n'storeID' is not in valid UUID format")
+        else:
+            response = Response(status=400, response="Restocking order ill formated.\n"+mess)
 
     logging.debug(response)
     return response
@@ -119,7 +127,8 @@ def scan_out_of_stock():
                     session.execute(add_stock_prepared, ( quantity_row.quantity + 20, store.storeid, item.name))
                     logging.debug(str(store.storeid) + ", " + item.name +
                         " has " + str(quantity_row.quantity + 20.0))
-    threading.Timer(300, scan_out_of_stock).start()
+    if app.config["ENV"] == "production": 
+        threading.Timer(300, scan_out_of_stock).start()
 
 # calls the scan_out_of stock function for the first time
 scan_out_of_stock()

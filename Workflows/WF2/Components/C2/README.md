@@ -17,15 +17,15 @@ docker push trishaire/cass:tag
 ```
 To Create cassandra service:
 ```
-docker service create --name cassandra --network myNet --publish port:port image_name
+docker service create --name cass --network myNet --publish port:port trishaire/cass:tag
 ```
-keep port as 9042 
+where port is 9042
 
 ## Connecting to Cass from a python component
 
 For connecting to cassandra:
 ```
-docker service inspect cassandra
+docker service inspect cass
 Copy the virtual ip of the cassandra service
 ```
 
