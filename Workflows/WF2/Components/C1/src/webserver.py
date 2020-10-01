@@ -6,12 +6,11 @@ import json
 import logging
 import time
 import uuid
+import os
 
-#logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
-app = Flask(__name__)
-
-cluster = Cluster()     # Add Cassandra VIPs here
+cass_IP = os.environ["CASS_DB"]
+cluster = Cluster([cass_IP])
+#cluster = Cluster()
 session = cluster.connect('pizza_grocery')
 check_stock_prepared = session.prepare('SELECT * FROM stock WHERE storeID=?')
 dec_stock_prepared = session.prepare('UPDATE stock SET quantity=? WHERE storeID=? AND itemName=?')
@@ -23,38 +22,43 @@ insert_order_prepared = session.prepare('INSERT INTO orderTable (orderID, ordere
 insert_order_by_store_prepared = session.prepare('INSERT INTO orderByStore (orderedFrom, placedAt, orderID) VALUES (?, ?, ?)')
 insert_order_by_cust_prepared = session.prepare('INSERT INTO orderByCustomer (orderedBy, placedAt, orderID) VALUES (?, ?, ?)')
 
+app = Flask(__name__)
+
 with open("src/schema.json", "r") as schema:
     schema = json.loads(schema.read())
 
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def aggregate_supplies(pizza_list):
-    supplies = {'Dough': 0,         'SpicySauce': 0,        'TraditionalSauce': 0,  'Cheese': 0,
-                'Pepperoni': 0,     'Sausage': 0,           'Beef': 0,              'Onion': 0,
-                'Chicken': 0,       'Peppers': 0,           'Olives': 0,            'Bacon': 0,
-                'Pineapple': 0,     'Mushrooms': 0}
 
+def aggregate_ingredients(pizza_list):
+    ingredients = { 'Dough': 0,         'SpicySauce': 0,        'TraditionalSauce': 0,  'Cheese': 0,
+                    'Pepperoni': 0,     'Sausage': 0,           'Beef': 0,              'Onion': 0,
+                    'Chicken': 0,       'Peppers': 0,           'Olives': 0,            'Bacon': 0,
+                    'Pineapple': 0,     'Mushrooms': 0 }
+
+    # Loop through each pizza in pizza_list and aggregate the required ingredients to fill order
     for pizza in pizza_list:
         if pizza['crustType'] == 'Thin':
-            supplies['Dough'] += 1
+            ingredients['Dough'] += 1
         elif pizza['crustType'] == 'Traditional':
-            supplies['Dough'] += 2
+            ingredients['Dough'] += 2
 
         if pizza['sauceType'] == 'Spicy':
-            supplies['SpicySauce'] += 1
+            ingredients['SpicySauce'] += 1
         elif pizza['sauceType'] == 'Traditional':
-            supplies['TraditionalSauce'] += 1
+            ingredients['TraditionalSauce'] += 1
 
         if pizza['cheeseAmt'] == 'Light':
-            supplies['Cheese'] += 1
+            ingredients['Cheese'] += 1
         elif pizza['cheeseAmt'] == 'Normal':
-            supplies['Cheese'] += 2
+            ingredients['Cheese'] += 2
         elif pizza['cheeseAmt'] == 'Extra':
-            supplies['Cheese'] += 3
+            ingredients['Cheese'] += 3
 
         for topping in pizza["toppingList"]:
-            supplies[topping] += 1
+            ingredients[topping] += 1
 
-    return supplies
+    return ingredients
 
 
 def decrement_stock(store_id, instock_dict, required_dict):
@@ -65,12 +69,10 @@ def decrement_stock(store_id, instock_dict, required_dict):
 
 def calc_pizza_cost(topping_set):
     cost = 0.0
-
     for topping in topping_set:
         result = session.execute(item_price_prepared, (topping[0],))
         for (name, price) in result:
             cost += price * topping[1] 
-
     return cost
 
 
@@ -117,19 +119,14 @@ def insert_order(order_id, order_dict):
 
     # Insert customer information into 'customers' table
     session.execute(insert_cust_prepared, (cust_name, order_dict[order_id]["custLocation"]["lat"], order_dict[order_id]["custLocation"]["lon"]))
-    
-    # Insert payment information into 'payments' table
-    session.execute(insert_pay_prepared, (pay_uuid, order_dict[order_id]["paymentTokenType"]))
-    
-    # Insert pizzas into 'pizzas' table
+    # Insert order payment information into 'payments' table
+    session.execute(insert_pay_prepared, (pay_uuid, order_dict[order_id]["paymentTokenType"]))  
+    # Insert the ordered pizzas into 'pizzas' table
     pizza_uuid_set = insert_pizzas(order_dict[order_id]["pizzaList"])
-    
     # Insert order into 'orderTable' table
     session.execute(insert_order_prepared, (order_uuid, store_uuid, cust_name, "", pizza_uuid_set, None, pay_uuid, placed_at, True, -1))
-
     # Insert order into 'orderByStore' table
     session.execute(insert_order_by_store_prepared, (store_uuid, placed_at, order_uuid))
-
     # Insert order into 'orderByCustomer' table
     session.execute(insert_order_by_cust_prepared, (cust_name, placed_at, order_uuid))
 
@@ -142,14 +139,14 @@ def check_stock(order_dict):
                     'Pineapple': 0,     'Mushrooms': 0}
     for order_id in order_dict:
         store_id = uuid.UUID(order_dict[order_id]["storeId"])
-    required_dict = aggregate_supplies(order_dict[order_id]["pizzaList"])
+    required_dict = aggregate_ingredients(order_dict[order_id]["pizzaList"])
     restock_list = []
 
     rows = session.execute(check_stock_prepared, (store_id,))
     for row in rows:
         if row.quantity < required_dict[row.itemname]:
             in_stock = False
-            restock_list.append({"item-name": row.itemname, "quantity": row.quantity})
+            restock_list.append({"item-name": row.itemname, "quantity": required_dict[row.itemname]})
         else:
             instock_dict[row.itemname] = row.quantity
 
@@ -160,37 +157,39 @@ def check_stock(order_dict):
     return restock_list
 
 
-def verify_order(order_dict):
+def order_manager(order_dict):
     global schema
     try:
         for order_id in order_dict:
             jsonschema.validate(instance=order_dict[order_id], schema=schema)
     except:
-        return Response(response="JSON failed validation",
+        return Response(response="Order JSON failed validation.\n",
                 status=400,
                 mimetype='application/json')
 
     restock_list = check_stock(order_dict)
-    if not restock_list:    # If restock_list is empty
-        return Response(response="Order accepted, sufficient supplies",
-            status=200,
-            mimetype='application/json')
+    if not restock_list:    
+        # If restock_list is empty, then the order was accepted
+        return Response(status=200, mimetype='application/json', response="Pizza Order Accepted:\n" + json.dumps(order_dict))
     else:
+        # Else, need to restock item(s) contained in restock_list.
+        # Form restock_json with store_id and restock_list, then send it to WFM
         for order_id in order_dict:
             store_id = order_dict[order_id]["storeId"]
         restock_dict = {"storeID": store_id, "restock-list": restock_list}
-        return Response(response=json.dumps(restock_dict),
-            status=400,
-            mimetype='application/json')
+        restock_json = json.dumps(restock_dict)
+        logging.debug(restock_json)
+        #response = requests.post(wfm_url, json=restock_json)
+        return Response(status=400, mimetype='application/json', response="Pizza Order Rejected - Insufficient Stock:\n" + json.dumps(order_dict))
 
 
 @app.route('/order', methods=['POST'])
 def order_funct():
     data = request.get_json()
     order_dict = json.loads(data)
-    return verify_order(order_dict)
+    return order_manager(order_dict)
 
 
 @app.route('/health', methods=['POST'])
 def health_check():
-    return Response(status=200,response="healthy")
+    return Response(status=200,response="healthy\n")

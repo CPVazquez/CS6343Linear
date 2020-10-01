@@ -77,10 +77,9 @@ def post_order(q):
     while True:
         order = q.get()
         order_dict = order.generate_order()
-        print(json.dumps(order_dict, indent=4))
         json_obj = json.dumps(order_dict)
         response = requests.post(url, json=json_obj)
-        print("Order " + order.order_id + ": Status " + str(response.status_code) + " - " + response.text)
+        print(response.text + "\n")
         q.task_done()
 
 
