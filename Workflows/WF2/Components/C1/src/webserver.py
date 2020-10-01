@@ -201,16 +201,16 @@ def order_manager(order_dict):
     if not restock_list:    
         # If restock_list is empty, then the order was accepted
         logging.debug('Pizza order accepted: ' + order_json)
-        return Response(status=200, mimetype='application/json', response=order_json)
+        return Response(status=200, response="Pizza order accepted: " + order_id)
     else:
         # Else, need to restock item(s) contained in restock_list.
         # Form restock_json with store_id and restock_list, then send it to WFM
         store_id = order_dict[order_id]["storeId"]
         restock_dict = {"storeID": store_id, "restock-list": restock_list}
         restock_json = json.dumps(restock_dict)
-        logging.debug('Pizza order rejected: ' + order_json)
-        logging.debug('Order <' + order_id + '> requires restock: ' + restock_json)
-        return Response(status=400, mimetype='application/json', response=restock_json)
+        logging.debug('Pizza order rejected:\n' + order_json)
+        logging.debug('Order ' + order_id + ' rejected due to insufficient stock.\nRestock Order:\n' + restock_json)
+        return Response(status=403, mimetype='application/json', response=restock_json)
 
 
 # Pizza order endpoint
