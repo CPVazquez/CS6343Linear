@@ -8,35 +8,41 @@ import time
 import uuid
 import os
 
+# Connect to Cassandra service
 cass_IP = os.environ["CASS_DB"]
 cluster = Cluster([cass_IP])
-#cluster = Cluster()
 session = cluster.connect('pizza_grocery')
+
+# Cassandra prepared statements
 check_stock_prepared = session.prepare('SELECT * FROM stock WHERE storeID=?')
 dec_stock_prepared = session.prepare('UPDATE stock SET quantity=? WHERE storeID=? AND itemName=?')
 item_price_prepared = session.prepare('SELECT * FROM items WHERE name=?')
 insert_cust_prepared = session.prepare('INSERT INTO customers (customerName, latitude, longitude) VALUES (?, ?, ?)')
 insert_pay_prepared = session.prepare('INSERT INTO payments (paymentToken, method) VALUES (?, ?)')
 insert_pizzas_prepared = session.prepare('INSERT INTO pizzas (pizzaID, toppings, cost) VALUES (?, ?, ?)')
-insert_order_prepared = session.prepare('INSERT INTO orderTable (orderID, orderedFrom, orderedBy, deliveredBy, containsPizzas, containsItems, paymentID, placedAt, active, estimatedDeliveryTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+insert_order_prepared = session.prepare('\
+    INSERT INTO orderTable \
+        (orderID, orderedFrom, orderedBy, deliveredBy, containsPizzas, containsItems, paymentID, placedAt, active, estimatedDeliveryTime) \
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\
+')
 insert_order_by_store_prepared = session.prepare('INSERT INTO orderByStore (orderedFrom, placedAt, orderID) VALUES (?, ?, ?)')
 insert_order_by_cust_prepared = session.prepare('INSERT INTO orderByCustomer (orderedBy, placedAt, orderID) VALUES (?, ?, ?)')
 
-app = Flask(__name__)
-
+# Open jsonschema for pizza orders
 with open("src/schema.json", "r") as schema:
     schema = json.loads(schema.read())
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-
+# Aggregate all ingredients for a given order
 def aggregate_ingredients(pizza_list):
-    ingredients = { 'Dough': 0,         'SpicySauce': 0,        'TraditionalSauce': 0,  'Cheese': 0,
-                    'Pepperoni': 0,     'Sausage': 0,           'Beef': 0,              'Onion': 0,
-                    'Chicken': 0,       'Peppers': 0,           'Olives': 0,            'Bacon': 0,
-                    'Pineapple': 0,     'Mushrooms': 0 }
+    ingredients = {
+        'Dough': 0,         'SpicySauce': 0,        'TraditionalSauce': 0,  'Cheese': 0,
+        'Pepperoni': 0,     'Sausage': 0,           'Beef': 0,              'Onion': 0,
+        'Chicken': 0,       'Peppers': 0,           'Olives': 0,            'Bacon': 0,
+        'Pineapple': 0,     'Mushrooms': 0
+    }
 
-    # Loop through each pizza in pizza_list and aggregate the required ingredients to fill order
+    # Loop through each pizza in pizza_list and aggregate the required ingredients
     for pizza in pizza_list:
         if pizza['crustType'] == 'Thin':
             ingredients['Dough'] += 1
@@ -61,13 +67,17 @@ def aggregate_ingredients(pizza_list):
     return ingredients
 
 
-def decrement_stock(store_id, instock_dict, required_dict):
+# Decrement a store's stock for the order about to be placed
+def decrement_stock(store_id, in_stock_dict, required_dict):
     for item_name in required_dict:
-        new_quantity = instock_dict[item_name] - required_dict[item_name]
+        new_quantity = in_stock_dict[item_name] - required_dict[item_name]
         session.execute(dec_stock_prepared, (new_quantity, store_id, item_name))
 
 
+# Calculate pizza price
 def calc_pizza_cost(topping_set):
+    # Note: topping_set also contains dough amount, sauce type, and cheese amount,
+    # in addition to the toppings. Name was selected to be consistent with DB naming
     cost = 0.0
     for topping in topping_set:
         result = session.execute(item_price_prepared, (topping[0],))
@@ -76,6 +86,7 @@ def calc_pizza_cost(topping_set):
     return cost
 
 
+# Insert an order's pizza(s) into 'pizzas' table
 def insert_pizzas(pizza_list):
     uuid_set = set()
     
@@ -110,6 +121,7 @@ def insert_pizzas(pizza_list):
     return uuid_set
 
 
+# Insert order info into DB
 def insert_order(order_id, order_dict):
     order_uuid = uuid.UUID(order_id)
     store_uuid = uuid.UUID(order_dict[order_id]["storeId"])
@@ -131,33 +143,41 @@ def insert_order(order_id, order_dict):
     session.execute(insert_order_by_cust_prepared, (cust_name, placed_at, order_uuid))
 
 
-def check_stock(order_dict):
+# Check stock at a given store to determine if order can be filled
+def check_stock_then_insert(order_dict):
     in_stock = True
-    instock_dict = {'Dough': 0,         'SpicySauce': 0,        'TraditionalSauce': 0,  'Cheese': 0,
-                    'Pepperoni': 0,     'Sausage': 0,           'Beef': 0,              'Onion': 0,
-                    'Chicken': 0,       'Peppers': 0,           'Olives': 0,            'Bacon': 0,
-                    'Pineapple': 0,     'Mushrooms': 0}
+    in_stock_dict = {
+        'Dough': 0,         'SpicySauce': 0,        'TraditionalSauce': 0,      'Cheese': 0,
+        'Pepperoni': 0,     'Sausage': 0,           'Beef': 0,                  'Onion': 0,
+        'Chicken': 0,       'Peppers': 0,           'Olives': 0,                'Bacon': 0,
+        'Pineapple': 0,     'Mushrooms': 0
+    }
     for order_id in order_dict:
         store_id = uuid.UUID(order_dict[order_id]["storeId"])
     required_dict = aggregate_ingredients(order_dict[order_id]["pizzaList"])
     restock_list = []
 
+    # If the order cannot be filled, restock_list contains items for restock
+    # Otherwise, restock_list is an empty list
     rows = session.execute(check_stock_prepared, (store_id,))
     for row in rows:
         if row.quantity < required_dict[row.itemname]:
             in_stock = False
             restock_list.append({"item-name": row.itemname, "quantity": required_dict[row.itemname]})
         else:
-            instock_dict[row.itemname] = row.quantity
+            in_stock_dict[row.itemname] = row.quantity
 
+    # If no restock required, decrement stock and insert order into DB
     if in_stock:
-        decrement_stock(store_id, instock_dict, required_dict)
+        decrement_stock(store_id, in_stock_dict, required_dict)
         insert_order(order_id, order_dict)
 
     return restock_list
 
 
+# Manages order placement or restock, if needed
 def order_manager(order_dict):
+    # Validate order json against jsonschema
     global schema
     try:
         for order_id in order_dict:
@@ -167,7 +187,8 @@ def order_manager(order_dict):
                 status=400,
                 mimetype='application/json')
 
-    restock_list = check_stock(order_dict)
+    # Check the stock to see if order can be placed
+    restock_list = check_stock_then_insert(order_dict)
     if not restock_list:    
         # If restock_list is empty, then the order was accepted
         return Response(status=200, mimetype='application/json', response="Pizza Order Accepted:\n" + json.dumps(order_dict))
@@ -183,6 +204,7 @@ def order_manager(order_dict):
         return Response(status=400, mimetype='application/json', response="Pizza Order Rejected - Insufficient Stock:\n" + json.dumps(order_dict))
 
 
+# Pizza order endpoint
 @app.route('/order', methods=['POST'])
 def order_funct():
     data = request.get_json()
@@ -190,6 +212,7 @@ def order_funct():
     return order_manager(order_dict)
 
 
+# Health check endpoint
 @app.route('/health', methods=['POST'])
 def health_check():
     return Response(status=200,response="healthy\n")
