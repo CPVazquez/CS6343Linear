@@ -15,11 +15,10 @@ To update the repository:
 sudo docker login
 docker push trishaire/cass:tag
 ```
-To Create cassandra service:
+To create cassandra service:
 ```
-docker service create --name cass --network myNet --publish port:port trishaire/cass:tag
+docker service create --name cass --network myNet --publish 9042:9042 trishaire/cass
 ```
-where port is 9042
 
 ## Connecting to Cass from a python component
 
