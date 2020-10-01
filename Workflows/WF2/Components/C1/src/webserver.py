@@ -10,7 +10,7 @@ import os
 
 # Connect to Cassandra service
 cass_IP = os.environ["CASS_DB"]
-cluster = Cluster([cass_IP])
+cluster = Cluster([cass_IP])  #[cass_IP]
 session = cluster.connect('pizza_grocery')
 
 # Cassandra prepared statements
@@ -28,9 +28,15 @@ insert_order_prepared = session.prepare('\
 insert_order_by_store_prepared = session.prepare('INSERT INTO orderByStore (orderedFrom, placedAt, orderID) VALUES (?, ?, ?)')
 insert_order_by_cust_prepared = session.prepare('INSERT INTO orderByCustomer (orderedBy, placedAt, orderID) VALUES (?, ?, ?)')
 
+# Create Flask app
+app = Flask(__name__)
+
 # Open jsonschema for pizza orders
 with open("src/schema.json", "r") as schema:
     schema = json.loads(schema.read())
+
+# Logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 # Aggregate all ingredients for a given order
@@ -127,16 +133,20 @@ def insert_order(order_id, order_dict):
     store_uuid = uuid.UUID(order_dict[order_id]["storeId"])
     pay_uuid = uuid.UUID(order_dict[order_id]["paymentToken"])
     cust_name = order_dict[order_id]["custName"]
+    cust_lat = order_dict[order_id]["custLocation"]["lat"]
+    cust_lon = order_dict[order_id]["custLocation"]["lon"]
     placed_at = datetime.now()
 
     # Insert customer information into 'customers' table
-    session.execute(insert_cust_prepared, (cust_name, order_dict[order_id]["custLocation"]["lat"], order_dict[order_id]["custLocation"]["lon"]))
+    session.execute(insert_cust_prepared, (cust_name, cust_lat, cust_lon))
     # Insert order payment information into 'payments' table
     session.execute(insert_pay_prepared, (pay_uuid, order_dict[order_id]["paymentTokenType"]))  
     # Insert the ordered pizzas into 'pizzas' table
     pizza_uuid_set = insert_pizzas(order_dict[order_id]["pizzaList"])
     # Insert order into 'orderTable' table
-    session.execute(insert_order_prepared, (order_uuid, store_uuid, cust_name, "", pizza_uuid_set, None, pay_uuid, placed_at, True, -1))
+    session.execute(insert_order_prepared, 
+        (order_uuid, store_uuid, cust_name, "", pizza_uuid_set, None, pay_uuid, placed_at, True, -1)
+    )
     # Insert order into 'orderByStore' table
     session.execute(insert_order_by_store_prepared, (store_uuid, placed_at, order_uuid))
     # Insert order into 'orderByCustomer' table
@@ -183,25 +193,24 @@ def order_manager(order_dict):
         for order_id in order_dict:
             jsonschema.validate(instance=order_dict[order_id], schema=schema)
     except:
-        return Response(response="Order JSON failed validation.\n",
-                status=400,
-                mimetype='application/json')
+        return Response(status=400, response="Pizza order failed validation. Rejecting request.\n")
 
     # Check the stock to see if order can be placed
     restock_list = check_stock_then_insert(order_dict)
+    order_json = json.dumps(order_dict)
     if not restock_list:    
         # If restock_list is empty, then the order was accepted
-        return Response(status=200, mimetype='application/json', response="Pizza Order Accepted:\n" + json.dumps(order_dict))
+        logging.debug('Pizza order accepted: ' + order_json)
+        return Response(status=200, mimetype='application/json', response=order_json)
     else:
         # Else, need to restock item(s) contained in restock_list.
         # Form restock_json with store_id and restock_list, then send it to WFM
-        for order_id in order_dict:
-            store_id = order_dict[order_id]["storeId"]
+        store_id = order_dict[order_id]["storeId"]
         restock_dict = {"storeID": store_id, "restock-list": restock_list}
         restock_json = json.dumps(restock_dict)
-        logging.debug(restock_json)
-        #response = requests.post(wfm_url, json=restock_json)
-        return Response(status=400, mimetype='application/json', response="Pizza Order Rejected - Insufficient Stock:\n" + json.dumps(order_dict))
+        logging.debug('Pizza order rejected: ' + order_json)
+        logging.debug('Order <' + order_id + '> requires restock: ' + restock_json)
+        return Response(status=400, mimetype='application/json', response=restock_json)
 
 
 # Pizza order endpoint

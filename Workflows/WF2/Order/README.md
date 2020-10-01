@@ -20,4 +20,5 @@
 ## Commands
   `python3 generate_order.py url num_threads max_orders max_pizzas_per_order`
   
+  Example:
   `python3 generate_order.py http://0.0.0.0:8080/order 1 10 20`
