@@ -32,7 +32,7 @@ insert_order_by_cust_prepared = session.prepare('INSERT INTO orderByCustomer (or
 app = Flask(__name__)
 
 # Open jsonschema for pizza orders
-with open("src/schema.json", "r") as schema:
+with open("src/pizza-order.schema.json", "r") as schema:
     schema = json.loads(schema.read())
 
 # Logging

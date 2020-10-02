@@ -14,11 +14,10 @@
     * Arbitrary max is 20. 
   * The user specifies how many pizza orders to create via command line argument (max_orders).
   * This program has threading functionality, but it may not be of any significant use. The number of threads is specified via command line argument (num_threads).
-  * URL for posting order requests is also specified via command line
-    argument (url).
+  * URL for posting order requests is also specified via command line argument (url).
 
 ## Commands
   `python3 generate_order.py url num_threads max_orders max_pizzas_per_order`
   
   Example:
-  `python3 generate_order.py http://0.0.0.0:8080/order 1 10 20`
+  `python3 generate_order.py http://0.0.0.0:8080/order 1 1 1`
