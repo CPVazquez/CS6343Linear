@@ -12,7 +12,6 @@ class TestServer(unittest.TestCase):
     def setUp(self):
         self.max_requests = 10
 
-
     def test_correct_order(self):
         with app.test_client() as client:
             q = Queue(len(os.listdir("tests/valid")))
