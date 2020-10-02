@@ -10,4 +10,4 @@ RUN pip install pipenv
 RUN echo python3 --version
 RUN pipenv install --system --deploy
 
-CMD python3 test_cassanadra.py
+CMD python3 src/get_delivery_time.py

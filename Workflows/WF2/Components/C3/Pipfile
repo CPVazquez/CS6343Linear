@@ -5,6 +5,7 @@ verify_ssl = true
 
 [packages]
 cassandra-driver = "*"
+requests = "*"
 
 [requires]
 python_version = "3.8"
