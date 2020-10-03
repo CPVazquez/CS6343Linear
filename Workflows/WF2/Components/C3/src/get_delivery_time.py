@@ -64,6 +64,16 @@ order_info_query = session.prepare("Select orderedFrom, orderedBy from orderTabl
 entity_query = session.prepare("Select name, latitude, longitude from deliveryEntitiesByStore where storeID=? and onDelivery=False ALLOW FILTERING")
 store_info_query = session.prepare("Select latitude, longitude from stores where storeID=?")
 customer_info_query = session.prepare("Select latitude, longitude from customers where customerName=?")
+verify_order_query = session.prepare("Select * from orderTable where orderID=?")
+update_order_query = session.prepare("Update orderTable set deliveredBy=?, estimatedDeliveryTime=? where orderID=?")
+
+
+def verify_order(order_id):
+    row = session.execute(verify_order_query, (order_id,)).one()
+    logger.info("Updated Order :: {}".format(row))
+
+def update_order(order_id, entity, time):
+    session.execute(update_order_query, (entity, time, order_id))
 
 def get_entities(store_id):
     entities = []
@@ -92,7 +102,6 @@ def test():
     entities = get_entities(order_info['orderedfrom'])    
     customer_info = get_customer_info(order_info['orderedby'])
     logger.info('Entities :: {}'.format(entities))
-
     logger.info('Order Info :: {}'.format(order_info))
     logger.info('Store info :: {}'.format(store_info))		
     logger.info('Customer Info :: {}'.format(customer_info))
@@ -100,6 +109,8 @@ def test():
     time, entity = get_delivery_time(entities, customer_info, store_info)
     logger.info('Best Time ::{}'.format(time))
     logger.info('Best Entity::{}'.format(entity))	
+    update_order(order_id, entity, time)
+    verify_order(order_id)
 
 if __name__ == "__main__":
     #store = {'latitude':32.984363, 'longitude':-96.749689) #utd
