@@ -10,4 +10,5 @@ RUN pip install pipenv
 RUN echo python3 --version
 RUN pipenv install --system --deploy
 
-CMD python3 src/get_delivery_time.py
+CMD gunicorn -w 4 -b 0.0.0.0:3000 --log-level info src.delivery_assigner:app
+ 
