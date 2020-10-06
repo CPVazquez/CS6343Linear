@@ -11,6 +11,6 @@ RUN echo python3 --version
 #RUN pipenv install --system --deploy
 RUN pipenv install --deploy
 
-EXPOSE 8080
+EXPOSE 5000 
 
-CMD gunicorn -w 4 -b 0.0.0.0:8080 --log-level debug src.webserver:app
+CMD gunicorn -w 4 -b 0.0.0.0:5000 --log-level debug src.wkf-manager:app
