@@ -9,7 +9,12 @@ verify_ssl = true
 flask = "*"
 gunicorn = "*"
 jsonschema = "*"
+uuid = "*"
 cassandra-driver = "*"
+docker = "*"
+pytest = "*"
+mockito = "*"
+pytest-cov = "*"
 
 [requires]
 python_version = "3.8"

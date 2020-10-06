@@ -1,0 +1,15 @@
+{
+    "order1": {
+        "storeId": "asdf1234",
+        "custName": "pierre gasly",
+        "paymentToken": "noU1234",
+        "paymentTokenType": "paypal",
+        "custLocation": { "lat": 0, "lon": 0 },
+        "pizzaList": [{
+            "crustType": "Thin",
+            "sauceType": "Spicy",
+            "cheeseAmt": "Extra",
+            "toppingList": [ "Onion" ]
+        }]
+    }
+}

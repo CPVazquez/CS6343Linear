@@ -139,7 +139,7 @@ CREATE TABLE orderTable (
   orderID UUID,
   orderedFrom UUID,
   orderedBy TEXT,
-  delivieredBy TEXT,
+  deliveredBy TEXT,
   containsPizzas SET<UUID>,
   containsItems SET<TUPLE<TEXT, INT>>,
   paymentID UUID,
