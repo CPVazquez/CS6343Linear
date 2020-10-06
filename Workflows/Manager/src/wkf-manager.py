@@ -10,8 +10,7 @@ logging.basicConfig(level=logging.DEBUG,
     format='%(asctime)s - %(levelname)s - %(message)s')
 
 # global reference to the overlay network
-#overlay_network = (client.networks.list(names=['myNet']))[0]
-logging.debug(client.networks.list())
+overlay_network = (client.networks.list(names=['myNet']))[0]
 
 # pull the flask library and initialize
 from flask import Flask, request, Response
