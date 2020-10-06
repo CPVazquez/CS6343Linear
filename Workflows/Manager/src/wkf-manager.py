@@ -1,12 +1,17 @@
 # be able to make HTTP requests
 import requests
-
+import logging
 # pull the docker sdk library and setup
 import docker
 client = docker.from_env()
 
+# set up logging
+logging.basicConfig(level=logging.DEBUG, 
+    format='%(asctime)s - %(levelname)s - %(message)s')
+
 # global reference to the overlay network
-overlay_network = (client.networks.list(names=['myNet']))[0]
+#overlay_network = (client.networks.list(names=['myNet']))[0]
+logging.debug(client.networks.list())
 
 # pull the flask library and initialize
 from flask import Flask, request, Response
