@@ -20,4 +20,4 @@
 
     ```docker service create --name order-verifier --network myNet --publish port:port --env CASS_DB=cass_service_vip trishaire/order-verifier```
 
-    * Where `port` is `8080` for order-verifier and `cass_service_vip` is the VIP of `myNet` overlay network.
+    * Where `port` is `1000` for order-verifier and `cass_service_vip` is the VIP of `myNet` overlay network.

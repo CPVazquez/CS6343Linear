@@ -43,7 +43,7 @@ with open("src/pizza-order.schema.json", "r") as schema:
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Flag for stock_tracker_test() - dumby inserts for Randeep C4 testing
-stock_tracker_test_flag = True
+stock_tracker_test_flag = False
 
 
 # Aggregate all ingredients for a given order
