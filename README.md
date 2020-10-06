@@ -17,9 +17,8 @@ On all nodes that will be in the swarm, regardless of Manager or Worker, the fol
 
 In addition to the ports required above, we need to open the ports used by the containers on our swarm:
 
-* `8080/tcp` - for Workflow 2, Component 1
+* `8080/tcp` - for wkf-mangaer
 * `9042/tcp` - for the Database Component
-* `8000/tcp` - for the Restocking Component
 
 To open these ports the following command may prove useful:
 ```

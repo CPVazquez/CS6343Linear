@@ -7,6 +7,7 @@ Christopher Michael Scott
   * Python 3.8
   * Install Faker Python package (https://pypi.org/project/Faker/)
     * This program uses Faker to randomly generate customer names.
+  * Install Requests Python package (https://pypi.org/project/requests/2.7.0/)
 
 ## Description
   * This program generates fake pizza orders for Workflow 2.
