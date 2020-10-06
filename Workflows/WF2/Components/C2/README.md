@@ -8,7 +8,7 @@ This is the database component for both workflow mangers. It gets cql requests f
 To build the image:
 
 ```
-docker build --rm -t trishare/cass:tag path_to_c2_dockerfile
+docker build --rm -t trishaire/cass:tag path_to_c2_dockerfile
 ```
 To update the repository:
 ```

@@ -1,5 +1,6 @@
 from flask import Flask, request, Response
 from cassandra.cluster import Cluster
+from datetime import date
 from datetime import datetime
 import jsonschema
 import json
@@ -27,6 +28,9 @@ insert_order_prepared = session.prepare('\
 ')
 insert_order_by_store_prepared = session.prepare('INSERT INTO orderByStore (orderedFrom, placedAt, orderID) VALUES (?, ?, ?)')
 insert_order_by_cust_prepared = session.prepare('INSERT INTO orderByCustomer (orderedBy, placedAt, orderID) VALUES (?, ?, ?)')
+select_tracker_prepared = session.prepare('SELECT * FROM stockTracker WHERE storeID=? AND itemName=? AND dateSold=?')
+insert_tracker_prepared = session.prepare('INSERT INTO stockTracker (storeID, itemName, quantitySold, dateSold) VALUES (?, ?, ?, ?)')
+update_tracker_prepared = session.prepare('UPDATE stockTracker SET quantitySold=? WHERE storeID=? AND itemName=? AND dateSold=?')
 
 # Create Flask app
 app = Flask(__name__)
@@ -37,6 +41,9 @@ with open("src/pizza-order.schema.json", "r") as schema:
 
 # Logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Flag for stock_tracker_test() - dumby inserts for Randeep C4 testing
+stock_tracker_test_flag = True
 
 
 # Aggregate all ingredients for a given order
@@ -74,9 +81,9 @@ def aggregate_ingredients(pizza_list):
 
 
 # Decrement a store's stock for the order about to be placed
-def decrement_stock(store_id, in_stock_dict, required_dict):
-    for item_name in required_dict:
-        new_quantity = in_stock_dict[item_name] - required_dict[item_name]
+def decrement_stock(store_id, in_stock_dict, req_item_dict):
+    for item_name in req_item_dict:
+        new_quantity = in_stock_dict[item_name] - req_item_dict[item_name]
         session.execute(dec_stock_prepared, (new_quantity, store_id, item_name))
 
 
@@ -127,8 +134,33 @@ def insert_pizzas(pizza_list):
     return uuid_set
 
 
+# TODO: Remove after Randeep's C4 testing
+def stock_tracker_test():
+    global stock_tracker_test_flag
+    store_uuid = uuid.UUID("7098813e-4624-462a-81a1-7e0e4e67631d")
+    for offset in range(5):
+        date_sold = datetime.combine(datetime(2020, 10, (1 + offset)), datetime.min.time())
+        quantity = 5 * offset + 10
+        session.execute(insert_tracker_prepared, (store_uuid, "Dough", quantity, date_sold))
+        logging.debug("C4 TESTING - StoreID 7098813e-4624-462a-81a1-7e0e4e67631d: itemName = Dough, Quantity = " + str(quantity))
+    stock_tracker_test_flag = False
+
+
+# Insert or update stockTracker table for items sold per day
+def stock_tracker_mgr(store_uuid, req_item_dict):
+    date_sold = datetime.combine(date.today(), datetime.min.time())
+    for item_name in req_item_dict:
+        rows = session.execute(select_tracker_prepared, (store_uuid, item_name, date_sold))
+        if not rows:
+            session.execute(insert_tracker_prepared, (store_uuid, item_name, req_item_dict[item_name], date_sold))
+        else:
+            for row in rows:
+                quantity = row.quantitysold + req_item_dict[item_name]
+                session.execute(update_tracker_prepared, (quantity, store_uuid, item_name, date_sold))
+
+
 # Insert order info into DB
-def insert_order(order_id, order_dict):
+def insert_order(order_id, order_dict, req_item_dict):
     order_uuid = uuid.UUID(order_id)
     store_uuid = uuid.UUID(order_dict[order_id]["storeId"])
     pay_uuid = uuid.UUID(order_dict[order_id]["paymentToken"])
@@ -151,6 +183,12 @@ def insert_order(order_id, order_dict):
     session.execute(insert_order_by_store_prepared, (store_uuid, placed_at, order_uuid))
     # Insert order into 'orderByCustomer' table
     session.execute(insert_order_by_cust_prepared, (cust_name, placed_at, order_uuid))
+    # Insert or update 'stockTracker' table
+    stock_tracker_mgr(store_uuid, req_item_dict)
+    # Only used for Randeep's C4 testing
+    # TODO: Remove after Randeep has completed C4 testing
+    if stock_tracker_test_flag:
+        stock_tracker_test()
 
 
 # Check stock at a given store to determine if order can be filled
@@ -164,23 +202,23 @@ def check_stock_then_insert(order_dict):
     }
     for order_id in order_dict:
         store_id = uuid.UUID(order_dict[order_id]["storeId"])
-    required_dict = aggregate_ingredients(order_dict[order_id]["pizzaList"])
+    req_item_dict = aggregate_ingredients(order_dict[order_id]["pizzaList"])
     restock_list = []
 
     # If the order cannot be filled, restock_list contains items for restock
     # Otherwise, restock_list is an empty list
     rows = session.execute(check_stock_prepared, (store_id,))
     for row in rows:
-        if row.quantity < required_dict[row.itemname]:
+        if row.quantity < req_item_dict[row.itemname]:
             in_stock = False
-            restock_list.append({"item-name": row.itemname, "quantity": required_dict[row.itemname]})
+            restock_list.append({"item-name": row.itemname, "quantity": req_item_dict[row.itemname]})
         else:
             in_stock_dict[row.itemname] = row.quantity
 
     # If no restock required, decrement stock and insert order into DB
     if in_stock:
-        decrement_stock(store_id, in_stock_dict, required_dict)
-        insert_order(order_id, order_dict)
+        decrement_stock(store_id, in_stock_dict, req_item_dict)
+        insert_order(order_id, order_dict, req_item_dict)
 
     return restock_list
 
