@@ -1,5 +1,8 @@
 # Generate Order Script
 
+## Written By
+Christopher Michael Scott
+
 ## Requirements:
   * Python 3.8
   * Install Faker Python package (https://pypi.org/project/Faker/)
@@ -21,3 +24,5 @@
   
   Example:
   `python3 generate_order.py http://0.0.0.0:8080/order 1 1 1`
+
+[Main README](https://github.com/CPVazquez/CS6343)

@@ -70,14 +70,36 @@ for example:
 docker push trishaire/restocker:1.0
 ```
 
-## Links to Component REAMDMEs
+## Pipenv
+
+This project is written in python3.8, thus you will need python 3.8 installed on your machine. Since we are working with many components, each with different package enviornments, we use virtual environments to keep track of which packages are installed on which components. We used the tool `pipenv` to create our virtual enviornments. You will need `pipenv` installed on your machine to explore our code. 
+```
+pip3 install pipenv
+```
+If you want to test a component locally and do not want to spin up a container/service you will have to enter the virtual enviornment to make sure you have the necessary packages. To enter the virtual environment of a component, make sure you are in the root folder of the component and enter the following command:
+```
+pipenv shell
+```
+To exit the virtual environment, simply type `exit` as you would when leaving the terminal.
+
+
+## Workflows
 
 ### Workflow 2
+
+Workflow 2 is the workflow of a pizza resturant that takes online orders. It validates the order and creates the pizza order then assigns an entity to deliver the pizza. It scans periodically to check if it needs to restock. It also does analysis as to what the stock should be for each item at the start of the day.
+
 [OrderVerifier](https://github.com/CPVazquez/CS6343/tree/master/Workflows/WF2/Components/C1)
 
 [Cass](https://github.com/CPVazquez/CS6343/tree/master/Workflows/WF2/Components/C2)
 
+[DeliveryAssigner](https://github.com/CPVazquez/CS6343/tree/master/Workflows/WF2/Components/C3)
+
 [Restocker](https://github.com/CPVazquez/CS6343/tree/master/Workflows/WF2/Components/C5)
 
+### Pizza Order Generator
+
+[OrderGenerator](https://github.com/CPVazquez/CS6343/tree/master/Workflows/WF2/Order)
 
 <sub><a name="repositoryFootnote">1</a> an image is a single image, and a repository is a collection of images. On Dockerhub we can use a repository to hold multiple images with different tags as long as they have the same name.</sub>
+

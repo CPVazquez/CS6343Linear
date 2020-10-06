@@ -1,12 +1,31 @@
 # Restocker
 
-## Description
+## Written By
+Carla Patricia Vazquez
 
+## Description
 This component recieves restocking orders sent to the workflow manager. The restock orders follow the format of the restock-order.shema.json file in the shema folder. The component also scans the database every 5 minutes to check for items that might need to be restocked.
 
-To run localy make sure you have environment variables `CASS_DB=0.0.0.0` and `FLASK_ENV=development` set
+## Setup
+Machine requirements:
+* Python 3.8
+* Docker
 
-## Docker Commands
+Package requirements:
+* pipenv
+
+Packages installed on pipenv virtual environment:
+* flask
+* gunicorn
+* jsonschema
+* uuid
+* cassandra-driver
+* docker
+* pytest
+* mockito
+* pytest-cov
+
+## Commands
 
 To build the image:
 
@@ -22,14 +41,9 @@ To create the service type the following command:
 ```
 docker service create --name restocker --network myNet --publish 8000:8000 --env CASS_DB=VIP_of_Cass_Service trishaire/restocker:tag
 ```
-where VIP_of_Cass_Service is retrieved from the `docker inspect cass` command.
+where `VIP_of_Cass_Service` is the VIP of `myNet` overlay network
 
-To run the container:
-```
-docker run -dp 8000:8000 --env CASS_DB=IP_of_Cass_Container trishaire/restocker 
-```
-where IP_of_Cass_Container is retrieved from the `docker inspect cass_contianer_name`
-
+To run localy make sure you have environment variables `CASS_DB=0.0.0.0` and `FLASK_ENV=development` set
 ## Testing
 
 This component uses pytest to run unit test. you must be connected to a cassandra instance to run the tests correctly. I'm still trying to figure out how to mock cassandra. 
@@ -38,3 +52,4 @@ use the following command to run tests:
 ```
 pytest --cov=src tests
 ```
+[Main README](https://github.com/CPVazquez/CS6343)

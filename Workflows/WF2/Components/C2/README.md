@@ -1,9 +1,23 @@
 # Cass
 
+## Written By
+Carla Patricia Vazquez
+
 ## Description
 This is the database component for both workflow mangers. It gets cql requests from several other components. It uses the offical docker image for Cassandra as a base and loads our keyspace (database) on to it.
 
-## Docker Commands
+## Setup
+Machine requirements:
+* Python 3.8
+* Docker
+
+Package requirements:
+* pipenv
+
+Packages installed on pipenv virtual environment:
+* cassandra-driver
+
+## Commands
 
 To build the image:
 
@@ -38,3 +52,5 @@ cluster = Cluster{['vip of cassandra'])
 session = cluster.connect()
 session.execute(query)
 ```
+
+[Main README](https://github.com/CPVazquez/CS6343)
