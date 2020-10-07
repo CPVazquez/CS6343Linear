@@ -19,11 +19,4 @@ RUN pip install cassandra-driver
 RUN pip install gunicorn
 RUN pip install flask
 
-
-#RUN pip install pipenv
-#RUN echo python3 --version
-#RUN pipenv install --system --deploy
-
-
-CMD python3 src/auto_restocker.py
- 
+CMD gunicorn -w 4 -b 0.0.0.0:4000 --log-level info src.auto_restocker:app 
