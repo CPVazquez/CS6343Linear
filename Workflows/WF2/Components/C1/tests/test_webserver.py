@@ -4,7 +4,7 @@ import os
 
 from queue import Queue
 from threading import Thread
-from src.webserver import app
+from src.order-verifier import app
 
 app.testing = True
 
