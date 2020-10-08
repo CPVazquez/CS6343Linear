@@ -28,8 +28,8 @@ logger = logging.getLogger(__name__)
 URL = "https://maps.googleapis.com/maps/api/directions/json?origin={}, {}&destination={},{}&key={}"
 
 #Connecting to Cassandra Cluster
-ip = os.environ.get('CASSANDRA_IP')    
-cluster = Cluster([ip])
+    
+cluster = Cluster(['cass'])
 session = cluster.connect('pizza_grocery')
 session.row_factory = dict_factory   
 
@@ -148,8 +148,8 @@ def assign():
     '''REST API for assigning best delivery entity.'''
 
     data = request.get_json()
-    order_id = json.loads(data)['order_id']
-    return assign_entity(uuid.UUID(order_id, version=4))
+    order_id = uuid.UUID(json.loads(data)['order_id'])
+    return assign_entity(order_id)
 
 
 @app.route('/health', methods=['GET'])
