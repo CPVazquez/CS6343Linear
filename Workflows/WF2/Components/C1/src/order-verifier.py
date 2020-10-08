@@ -1,3 +1,8 @@
+"""Order Verifier Component
+
+Upon receiving an order from the Workflow Manager (WFM), this component validates the order, checks if sufficient stock exists, and if the stock exists, then it creates the order. If sufficient stock is not available, this component recreates a restock order and provides it as a response to the WFM.
+"""
+
 from flask import Flask, request, Response
 from cassandra.cluster import Cluster
 from datetime import date
@@ -9,9 +14,15 @@ import time
 import uuid
 import os
 
+__author__ = "Chris Scott"
+__version__ = "1.0.0"
+__maintainer__ = "Chris Scott"
+__email__ = "christopher.scott@utdallas.edu"
+__status__ = "Development"
+
 # Connect to Cassandra service
-cass_IP = os.environ["CASS_DB"]
-cluster = Cluster([cass_IP])
+#cass_IP = os.environ["CASS_DB"]
+cluster = Cluster() #[cass_IP]
 session = cluster.connect('pizza_grocery')
 
 # Cassandra prepared statements
@@ -211,7 +222,7 @@ def order_manager(order):
     try:
         jsonschema.validate(instance=order, schema=schema)
     except:
-        logging.debug('Pizza order rejected:\n' + order)
+        logging.debug('Pizza order rejected:\n' + json.dumps(order))
         logging.debug('Order rejected due to failed validation.')
         return Response(status=400, response="Pizza order failed validation. Rejecting request.\n")
 
@@ -225,7 +236,8 @@ def order_manager(order):
     if not restock_list:    
         # If restock_list is empty, then the order was accepted
         logging.debug('Pizza order accepted:\n' + order_json)
-        return Response(status=200, response="Pizza order accepted: " + order_id)
+        response_json = json.dumps({"order_id": order_id})
+        return Response(status=200, mimetype='application/json', response=response_json)
     else:
         # Else, need to restock item(s) contained in restock_list.
         # Form restock_json with store_id and restock_list, then send it to WFM
@@ -246,6 +258,6 @@ def order_funct():
 
 
 # Health check endpoint
-@app.route('/health', methods=['POST'])
+@app.route('/health', methods=['GET'])
 def health_check():
     return Response(status=200,response="healthy\n")

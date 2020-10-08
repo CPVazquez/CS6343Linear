@@ -163,6 +163,14 @@ CREATE TABLE orderByDeliveryEntity (
   PRIMARY KEY (deliveredBy, placedAt)
 );
 
+CREATE TABLE stockTracker (
+  storeID UUID,
+  itemName TEXT,
+  quantitySold FLOAT,
+  dateSold TIMESTAMP,
+  PRIMARY KEY (storeID, itemName, dateSold)
+);
+
 CREATE TABLE orderByCustomer (
   orderedBy TEXT,
   placedAT TIMESTAMP,

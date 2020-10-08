@@ -7,6 +7,12 @@ import requests
 import sys
 import uuid
 
+__author__ = "Chris Scott"
+__version__ = "1.0.0"
+__maintainer__ = "Chris Scott"
+__email__ = "christopher.scott@utdallas.edu"
+__status__ = "Development"
+
 fake = Faker('en_US')
 
 class PizzaOrder:
@@ -75,9 +81,9 @@ def post_order(q):
         order = q.get()
         order_dict = order.generate_order()
         json_obj = json.dumps(order_dict)
-        print(json.dumps(order_dict, indent=4))
+        print("Pizza Order Request:\n" + json_obj)
         response = requests.post(url, json=json_obj)
-        print(response.text + "\n")
+        print("Response Status Code: " + str(response.status_code) + "\nResponse Text: " + response.text + "\n")
         q.task_done()
 
 
