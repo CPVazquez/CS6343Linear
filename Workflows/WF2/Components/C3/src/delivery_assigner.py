@@ -148,8 +148,8 @@ def assign():
     '''REST API for assigning best delivery entity.'''
 
     data = request.get_json()
-    order_id = json.loads(data)['order_id']
-    return assign_entity(uuid.UUID(order_id, version=4))
+    order_id = uuid.UUID(json.loads(data)['order_id'])
+    return assign_entity(order_id)
 
 
 @app.route('/health', methods=['GET'])
