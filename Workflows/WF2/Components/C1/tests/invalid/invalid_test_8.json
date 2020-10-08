@@ -1,15 +1,13 @@
 {
-    "order8": {
-        "storeId": "xyz5678",
-        "custName": "Master Chief",
-        "paymentToken": "mmbr987",
-        "paymentTokenType": "amex",
-        "custLocation": { "lat": 0, "lon": 0 },
-        "pizzaList": [{
-            "crustType": "Traditional",
-            "sauceType": "Alfredo",
-            "cheeseAmt": "Normal",
-            "toppingList": [ "Chicken", "Bacon", "Peppers" ]
-        }]
-    }
+    "storeId": "xyz5678",
+    "custName": "Master Chief",
+    "paymentToken": "mmbr987",
+    "paymentTokenType": "amex",
+    "custLocation": { "lat": 0, "lon": 0 },
+    "pizzaList": [{
+        "crustType": "Traditional",
+        "sauceType": "Alfredo",
+        "cheeseAmt": "Normal",
+        "toppingList": [ "Chicken", "Bacon", "Peppers" ]
+    }]
 }

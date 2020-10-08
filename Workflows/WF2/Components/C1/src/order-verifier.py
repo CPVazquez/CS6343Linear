@@ -1,5 +1,11 @@
+"""Order Verifier Component
+
+Upon receiving an order from the Workflow Manager (WFM), this component validates the order, checks if sufficient stock exists, and if the stock exists, then it creates the order. If sufficient stock is not available, this component recreates a restock order and provides it as a response to the WFM.
+"""
+
 from flask import Flask, request, Response
 from cassandra.cluster import Cluster
+from datetime import date
 from datetime import datetime
 import jsonschema
 import json
@@ -8,9 +14,15 @@ import time
 import uuid
 import os
 
+__author__ = "Chris Scott"
+__version__ = "1.0.0"
+__maintainer__ = "Chris Scott"
+__email__ = "christopher.scott@utdallas.edu"
+__status__ = "Development"
+
 # Connect to Cassandra service
 cass_IP = os.environ["CASS_DB"]
-cluster = Cluster([cass_IP])  #[cass_IP]
+cluster = Cluster([cass_IP])
 session = cluster.connect('pizza_grocery')
 
 # Cassandra prepared statements
@@ -27,6 +39,9 @@ insert_order_prepared = session.prepare('\
 ')
 insert_order_by_store_prepared = session.prepare('INSERT INTO orderByStore (orderedFrom, placedAt, orderID) VALUES (?, ?, ?)')
 insert_order_by_cust_prepared = session.prepare('INSERT INTO orderByCustomer (orderedBy, placedAt, orderID) VALUES (?, ?, ?)')
+select_tracker_prepared = session.prepare('SELECT * FROM stockTracker WHERE storeID=? AND itemName=? AND dateSold=?')
+insert_tracker_prepared = session.prepare('INSERT INTO stockTracker (storeID, itemName, quantitySold, dateSold) VALUES (?, ?, ?, ?)')
+update_tracker_prepared = session.prepare('UPDATE stockTracker SET quantitySold=? WHERE storeID=? AND itemName=? AND dateSold=?')
 
 # Create Flask app
 app = Flask(__name__)
@@ -74,9 +89,9 @@ def aggregate_ingredients(pizza_list):
 
 
 # Decrement a store's stock for the order about to be placed
-def decrement_stock(store_id, in_stock_dict, required_dict):
-    for item_name in required_dict:
-        new_quantity = in_stock_dict[item_name] - required_dict[item_name]
+def decrement_stock(store_id, in_stock_dict, req_item_dict):
+    for item_name in req_item_dict:
+        new_quantity = in_stock_dict[item_name] - req_item_dict[item_name]
         session.execute(dec_stock_prepared, (new_quantity, store_id, item_name))
 
 
@@ -127,8 +142,21 @@ def insert_pizzas(pizza_list):
     return uuid_set
 
 
+# Insert or update stockTracker table for items sold per day
+def stock_tracker_mgr(store_uuid, req_item_dict):
+    date_sold = datetime.combine(date.today(), datetime.min.time())
+    for item_name in req_item_dict:
+        rows = session.execute(select_tracker_prepared, (store_uuid, item_name, date_sold))
+        if not rows:
+            session.execute(insert_tracker_prepared, (store_uuid, item_name, req_item_dict[item_name], date_sold))
+        else:
+            for row in rows:
+                quantity = row.quantitysold + req_item_dict[item_name]
+                session.execute(update_tracker_prepared, (quantity, store_uuid, item_name, date_sold))
+
+
 # Insert order info into DB
-def insert_order(order_id, order_dict):
+def insert_order(order_id, order_dict, req_item_dict):
     order_uuid = uuid.UUID(order_id)
     store_uuid = uuid.UUID(order_dict[order_id]["storeId"])
     pay_uuid = uuid.UUID(order_dict[order_id]["paymentToken"])
@@ -151,7 +179,9 @@ def insert_order(order_id, order_dict):
     session.execute(insert_order_by_store_prepared, (store_uuid, placed_at, order_uuid))
     # Insert order into 'orderByCustomer' table
     session.execute(insert_order_by_cust_prepared, (cust_name, placed_at, order_uuid))
-
+    # Insert or update 'stockTracker' table
+    stock_tracker_mgr(store_uuid, req_item_dict)
+ 
 
 # Check stock at a given store to determine if order can be filled
 def check_stock_then_insert(order_dict):
@@ -164,44 +194,50 @@ def check_stock_then_insert(order_dict):
     }
     for order_id in order_dict:
         store_id = uuid.UUID(order_dict[order_id]["storeId"])
-    required_dict = aggregate_ingredients(order_dict[order_id]["pizzaList"])
+    req_item_dict = aggregate_ingredients(order_dict[order_id]["pizzaList"])
     restock_list = []
 
     # If the order cannot be filled, restock_list contains items for restock
     # Otherwise, restock_list is an empty list
     rows = session.execute(check_stock_prepared, (store_id,))
     for row in rows:
-        if row.quantity < required_dict[row.itemname]:
+        if row.quantity < req_item_dict[row.itemname]:
             in_stock = False
-            restock_list.append({"item-name": row.itemname, "quantity": required_dict[row.itemname]})
+            restock_list.append({"item-name": row.itemname, "quantity": req_item_dict[row.itemname]})
         else:
             in_stock_dict[row.itemname] = row.quantity
 
     # If no restock required, decrement stock and insert order into DB
     if in_stock:
-        decrement_stock(store_id, in_stock_dict, required_dict)
-        insert_order(order_id, order_dict)
+        decrement_stock(store_id, in_stock_dict, req_item_dict)
+        insert_order(order_id, order_dict, req_item_dict)
 
     return restock_list
 
 
 # Manages order placement or restock, if needed
-def order_manager(order_dict):
+def order_manager(order):
     # Validate order json against jsonschema
     global schema
     try:
-        for order_id in order_dict:
-            jsonschema.validate(instance=order_dict[order_id], schema=schema)
+        jsonschema.validate(instance=order, schema=schema)
     except:
+        logging.debug('Pizza order rejected:\n' + json.dumps(order))
+        logging.debug('Order rejected due to failed validation.')
         return Response(status=400, response="Pizza order failed validation. Rejecting request.\n")
+
+    # Wrap order in dict with order_id
+    order_id = str(uuid.uuid4())
+    order_dict = {order_id: order}
 
     # Check the stock to see if order can be placed
     restock_list = check_stock_then_insert(order_dict)
     order_json = json.dumps(order_dict)
     if not restock_list:    
         # If restock_list is empty, then the order was accepted
-        logging.debug('Pizza order accepted: ' + order_json)
-        return Response(status=200, response="Pizza order accepted: " + order_id)
+        logging.debug('Pizza order accepted:\n' + order_json)
+        response_json = json.dumps({"order_id": order_id})
+        return Response(status=200, mimetype='application/json', response=response_json)
     else:
         # Else, need to restock item(s) contained in restock_list.
         # Form restock_json with store_id and restock_list, then send it to WFM
@@ -222,6 +258,6 @@ def order_funct():
 
 
 # Health check endpoint
-@app.route('/health', methods=['POST'])
+@app.route('/health', methods=['GET'])
 def health_check():
     return Response(status=200,response="healthy\n")
