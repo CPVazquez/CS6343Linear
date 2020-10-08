@@ -13,4 +13,4 @@ RUN pipenv install --system --deploy
 
 EXPOSE 8080 
 
-CMD gunicorn -b 0.0.0.0:8080 --log-level debug src.wkf-manager:app
+CMD gunicorn -b 0.0.0.0:8080 --timeout=300 --graceful-timeout=300 --log-level debug src.wkf-manager:app

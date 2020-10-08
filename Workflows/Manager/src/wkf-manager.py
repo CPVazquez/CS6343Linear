@@ -1,7 +1,7 @@
 # be able to make HTTP requests
 import requests
 import logging
-import time
+from time import sleep
 # pull the docker sdk library and setup
 import docker
 client = docker.from_env()
@@ -9,9 +9,6 @@ client = docker.from_env()
 # set up logging
 logging.basicConfig(level=logging.DEBUG, 
     format='%(asctime)s - %(levelname)s - %(message)s')
-
-# global reference to the overlay network
-overlay_network = (client.networks.list(names=['myNet']))[0]
 
 # pull the flask library and initialize
 from flask import Flask, request, Response
@@ -35,6 +32,25 @@ def get_or_launch_db():
     else:
         logging.debug("the database exists")
         database_service = running_database_services[0]
+        
+    APIclient = docker.APIClient(base_url='unix://var/run/docker.sock')
+
+    healthy = False
+
+    while not healthy : 
+        tasks = client.services.get("cass").tasks()
+
+        for task in tasks:
+            tID = task['ID']
+            result = APIclient.inspect_task(tID)['Status']['Message']
+            if result == 'started':
+                healthy = True    
+        
+        if not healthy:
+            logging.debug("Cass failed health check")
+            sleep(5)
+
+    logging.debug('Cass is healthy!')
 
     return database_service
 
@@ -73,15 +89,9 @@ def dockerize_function():
     logging.debug("*** DELIVERY SERVICE ***")
     logging.debug(delivery_service)
 
-    is_up = False
-    delivery_response = None
-    while not is_up:
-        try:
-            time.sleep(3)
-            delivery_response = requests.get("http://delivery-assigner:3000/health")
-            is_up = True
-        except:
-            is_up = False
+    sleep(10)
+
+    delivery_response = requests.get("http://delivery-assigner:3000/health")
 
     logging.debug("*** THE RESPONSE ***")
     logging.debug(delivery_response)
@@ -108,14 +118,9 @@ def dockerize_function():
     logging.debug("*** AUTO RESTOCKER SERVICE ***")
     logging.debug(auto_restocker_service)
 
-    is_up = False
-    auto_restocker_response = None
-    while not is_up:
-        try:
-            auto_restocker_response = requests.get("http://auto-restocker:4000/health")
-            is_up = True
-        except:
-            is_up = False
+    sleep(10)
+
+    auto_restocker_response = requests.get("http://auto-restocker:4000/health")
 
     logging.debug("*** THE RESPONSE ***")
     logging.debug(auto_restocker_response)
@@ -143,19 +148,16 @@ def dockerize_function():
     logging.debug("*** RESTOCKER SERVICE ***")
     logging.debug(restocker_service)
 
-    is_up = False
-    restocker_response = None
-    while not is_up:
-        try:
-            restocker_response = requests.get("http://restocker:5000/health")
-            is_up = True
-        except:
-            is_up = False
+    sleep(10)
+
+    restocker_response = requests.get("http://restocker:5000/health")
 
     logging.debug("*** THE RESPONSE ***")
     logging.debug(restocker_response)
 
-    return Response(status=200,response="success")
+    to_return = "success" + delivery_response.text + auto_restocker_response.text + restocker_response.text
+
+    return Response(status=200,response=to_return)
 
 @app.route('/orders', methods=['POST'])
 def pass_on_order():
