@@ -199,7 +199,7 @@ def pass_on_order():
 
 
     order_response = requests.post("http://order-verifier:1000/order",
-            json=request.json())
+            json=request.json)
 
     logging.debug("*** THE RESPONSE ***")
     logging.debug(order_response)
