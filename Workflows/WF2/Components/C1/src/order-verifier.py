@@ -21,8 +21,8 @@ __email__ = "christopher.scott@utdallas.edu"
 __status__ = "Development"
 
 # Connect to Cassandra service
-#cass_IP = os.environ["CASS_DB"]
-cluster = Cluster() #[cass_IP]
+cass_IP = os.environ["CASS_DB"]
+cluster = Cluster([cass_IP])
 session = cluster.connect('pizza_grocery')
 
 # Cassandra prepared statements
