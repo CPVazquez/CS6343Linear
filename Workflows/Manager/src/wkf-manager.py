@@ -6,6 +6,8 @@ from time import sleep
 import docker
 client = docker.from_env()
 
+has_dockerized = False
+
 # set up logging
 logging.basicConfig(level=logging.DEBUG, 
     format='%(asctime)s - %(levelname)s - %(message)s')
@@ -59,15 +61,41 @@ def get_or_launch_db():
 
     #return db_virtualip
 
-# get the name of the network
-@app.route('/dockerize/networks', methods=['GET'])
-def dockerize_networks_function():
-    return Response(status=200,response=overlay_network.name)
-
 @app.route('/dockerize', methods=['GET'])
 def dockerize_function():
     #launch the db
     get_or_launch_db()
+
+    # Launch component 1
+
+    running_order_services = client.services.list(filters={'name' : 'order-verifier'})
+   
+    # the reference to the Service
+    order_service = None
+
+    if len(running_order_services) == 0: 
+        logging.debug("the order service doesn't exist, spin it up")
+        order_service = client.services.create(
+            "trishaire/order-verifier",  # the name of the image
+            name="order-verifier",
+            endpoint_spec=docker.types.EndpointSpec(mode="vip", ports={ 1000 : 1000 }),
+            env=["CASS_DB=cass"],
+            networks=['myNet'])
+    else: 
+        logging.debug("the order service exists")
+        order_service = running_order_services[0]
+
+    logging.debug("*** ORDER SERVICE ***")
+    logging.debug(order_service)
+
+    sleep(10)
+
+    order_response = requests.get("http://order-verifier:1000/health")
+
+    logging.debug("*** THE RESPONSE ***")
+    logging.debug(order_response)
+
+    # launch component 3
 
     running_delivery_services = client.services.list(filters={'name' : 'delivery-assigner'})
    
@@ -155,38 +183,23 @@ def dockerize_function():
     logging.debug("*** THE RESPONSE ***")
     logging.debug(restocker_response)
 
-    to_return = "success" + delivery_response.text + auto_restocker_response.text + restocker_response.text
+    to_return = "success" + order_response.text + delivery_response.text + auto_restocker_response.text + restocker_response.text
+
+    has_dockerized = True
 
     return Response(status=200,response=to_return)
 
-@app.route('/orders', methods=['POST'])
+@app.route('/order', methods=['POST'])
 def pass_on_order():
     #launch the db
     get_or_launch_db()
 
-    running_order_services = client.services.list(filters={'name' : 'order-verifier'})
-   
-    # the reference to the Service
-    order_service = None
+    if has_dockerized == False:
+        dockerize_function()
 
-    if len(running_order_services) == 0: 
-        logging.debug("the order service doesn't exist, spin it up")
-        order_service = client.services.create(
-            "trishaire/order-verifier",  # the name of the image
-            name="order-verifier",
-            endpoint_spec=docker.types.EndpointSpec(mode="vip", ports={ 1000 : 1000 }),
-            env=["CASS_DB=cass"],
-            networks=['myNet'])
-    else: 
-        logging.debug("the order service exists")
-        order_service = running_order_services[0]
-
-    logging.debug("*** ORDER SERVICE ***")
-    logging.debug(order_service)
 
     order_response = requests.post("http://order-verifier:1000/order",
-        json="{}")
-    #    json=request.get_json())
+            json=request.json())
 
     logging.debug("*** THE RESPONSE ***")
     logging.debug(order_response)
