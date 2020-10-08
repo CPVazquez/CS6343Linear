@@ -1,39 +1,37 @@
 {
-    "83c60a96-0887-4444-830a-28483395a713": {
-        "storeId": "5a2bb99f-88d2-4612-ac60-774aea9b8de4",
-        "custName": "Sherri Jackson",
-        "paymentToken": "627919e5-2d6d-4353-b3b5-1698f1cd63b4",
-        "paymentTokenType": "Discover",
-        "custLocation": {
-            "lat": 30.298671,
-            "lon": -97.705078
+    "storeId": "5a2bb99f-88d2-4612-ac60-774aea9b8de4",
+    "custName": "Sherri Jackson",
+    "paymentToken": "627919e5-2d6d-4353-b3b5-1698f1cd63b4",
+    "paymentTokenType": "Discover",
+    "custLocation": {
+        "lat": 30.298671,
+        "lon": -97.705078
+    },
+    "pizzaList": [
+        {
+            "crustType": "Thin",
+            "sauceType": "Spicy",
+            "cheeseAmt": "Light",
+            "toppingList": [
+                "Bacon",
+                "Beef",
+                "Onion",
+                "Mushrooms",
+                "Pineapple"
+            ]
         },
-        "pizzaList": [
-            {
-                "crustType": "Thin",
-                "sauceType": "Spicy",
-                "cheeseAmt": "Light",
-                "toppingList": [
-                    "Bacon",
-                    "Beef",
-                    "Onion",
-                    "Mushrooms",
-                    "Pineapple"
-                ]
-            },
-            {
-                "crustType": "Thin",
-                "sauceType": "Traditional",
-                "cheeseAmt": "Extra",
-                "toppingList": [
-                    "Pineapple",
-                    "Beef",
-                    "Pepperoni",
-                    "Bacon",
-                    "Olives",
-                    "Mushrooms"
-                ]
-            }
-        ]
-    }
+        {
+            "crustType": "Thin",
+            "sauceType": "Traditional",
+            "cheeseAmt": "Extra",
+            "toppingList": [
+                "Pineapple",
+                "Beef",
+                "Pepperoni",
+                "Bacon",
+                "Olives",
+                "Mushrooms"
+            ]
+        }
+    ]
 }

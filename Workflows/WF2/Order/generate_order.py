@@ -7,6 +7,12 @@ import requests
 import sys
 import uuid
 
+__author__ = "Chris Scott"
+__version__ = "1.0.0"
+__maintainer__ = "Chris Scott"
+__email__ = "christopher.scott@utdallas.edu"
+__status__ = "Development"
+
 fake = Faker('en_US')
 
 class PizzaOrder:
@@ -18,7 +24,6 @@ class PizzaOrder:
     topping_types = ['Pepperoni','Sausage','Beef','Onion','Chicken','Peppers','Olives','Bacon','Pineapple','Mushrooms']
 
     def __init__(self):
-        self.order_id = str(uuid.uuid4())
         self.store_id = ""
         self.store_lat = 0
         self.store_lon = 0
@@ -44,14 +49,13 @@ class PizzaOrder:
                 "cheeseAmt": self.cheese_amts[random.randint(0, 3)],
                 "toppingList": random.sample(self.topping_types, random.randint(0, 9))
             }
-            order_dict[self.order_id]["pizzaList"].append(new_pizza)
+            order_dict["pizzaList"].append(new_pizza)
         return order_dict
 
     def generate_order(self):
         self.choose_store()
         # Construct the pizza order dict, with a single pizza in pizzaList
         order_dict = {
-            self.order_id: {
                 "storeId": self.store_id,
                 "custName": fake.name(),
                 "paymentToken": str(uuid.uuid4()),
@@ -66,7 +70,6 @@ class PizzaOrder:
                     "cheeseAmt": self.cheese_amts[random.randint(0, 3)],
                     "toppingList": random.sample(self.topping_types, random.randint(0, 9))
                 }]
-            }
         }
         # Call add_more_pizzas(..) in return statement to randomly add additional pizzas
         # Upon return from add_more_pizzas(..), order_dict could contain up to max_pizzas
@@ -78,8 +81,9 @@ def post_order(q):
         order = q.get()
         order_dict = order.generate_order()
         json_obj = json.dumps(order_dict)
+        print("Pizza Order Request:\n" + json_obj)
         response = requests.post(url, json=json_obj)
-        print(response.text + "\n")
+        print("Response Status Code: " + str(response.status_code) + "\nResponse Text: " + response.text + "\n")
         q.task_done()
 
 

@@ -1,15 +1,13 @@
 {
-    "order9": {
-        "storeId": "xyz2020",
-        "custName": "Ella Mae",
-        "paymentToken": "fgd1234",
-        "paymentTokenType": "discover",
-        "custLocation": { "lat": -90, "lon": -180 },
-        "pizzaList": [{
-            "crustType": "Traditional",
-            "sauceType": "Traditional",
-            "cheeseAmt": "Super",
-            "toppingList": [ "Pineapple", "Chicken", "Bacon", "Peppers" ]
-        }]
-    }
+    "storeId": "xyz2020",
+    "custName": "Ella Mae",
+    "paymentToken": "fgd1234",
+    "paymentTokenType": "discover",
+    "custLocation": { "lat": -90, "lon": -180 },
+    "pizzaList": [{
+        "crustType": "Traditional",
+        "sauceType": "Traditional",
+        "cheeseAmt": "Super",
+        "toppingList": [ "Pineapple", "Chicken", "Bacon", "Peppers" ]
+    }]
 }
