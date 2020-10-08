@@ -25,14 +25,14 @@ def get_or_launch_db():
     database_service = None
 
     if len(running_database_services) == 0:
-        print("the database doesn't exist, spin it up")
+        logging.debug("the database doesn't exist, spin it up")
         database_service = client.services.create(
             "trishaire/cass", # the name of the image
             name="cass",
             endpoint_spec=docker.types.EndpointSpec(mode="vip", ports={ 9042 : 9042 }),
             networks=['myNet'])
     else:
-        print("the database exists")
+        logging.debug("the database exists")
         database_service = running_database_services[0]
 
     return database_service
@@ -68,25 +68,25 @@ def pass_on_order():
     order_service = None
 
     if len(running_order_services) == 0: 
-        print("the order service doesn't exist, spin it up")
+        logging.debug("the order service doesn't exist, spin it up")
         order_service = client.services.create(
             "trishaire/order-verifier",  # the name of the image
             name="order-verifier",
-            endpoint_spec=docker.types.EndpointSpec(mode="vip", ports={ 8080 : 8080 }),
+            endpoint_spec=docker.types.EndpointSpec(mode="vip", ports={ 1000 : 1000 }),
             env=["CASS_DB=cass"],
             networks=['myNet'])
     else: 
-        print("the order service exists")
+        logging.debug("the order service exists")
         order_service = running_order_services[0]
 
-    print("*** ORDER SERVICE ***")
-    print(order_service)
+    logging.debug("*** ORDER SERVICE ***")
+    logging.debug(order_service)
 
-    order_response = requests.post("http://localhost:8080/orders",
+    order_response = requests.post("http://order-verifier:1000/orders",
         json=request.get_json())
 
-    print("*** THE RESPONSE ***")
-    print(order_response)
+    logging.debug("*** THE RESPONSE ***")
+    logging.debug(order_response)
 
     return Response(status=200, response="no u")
 
