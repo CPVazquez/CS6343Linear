@@ -11,7 +11,7 @@ import os
 
 # Connect to Cassandra service
 cass_IP = os.environ["CASS_DB"]
-cluster = Cluster([cass_IP])  #[cass_IP]
+cluster = Cluster([cass_IP])
 session = cluster.connect('pizza_grocery')
 
 # Cassandra prepared statements
