@@ -1,15 +1,13 @@
 {
-    "order5": {
-        "storeId": "qwe1234",
-        "custName": "Alex Mason",
-        "paymentToken": "fub4774",
-        "paymentTokenType": "amex",
-        "custLocation": { "lat": 0, "lon": -181 },
-        "pizzaList": [{
-            "crustType": "Traditional",
-            "sauceType": "Traditional",
-            "cheeseAmt": "Light",
-            "toppingList": [ "Pineapple", "Chicken" ]
-        }]
-    }
+    "storeId": "qwe1234",
+    "custName": "Alex Mason",
+    "paymentToken": "fub4774",
+    "paymentTokenType": "amex",
+    "custLocation": { "lat": 0, "lon": -181 },
+    "pizzaList": [{
+        "crustType": "Traditional",
+        "sauceType": "Traditional",
+        "cheeseAmt": "Light",
+        "toppingList": [ "Pineapple", "Chicken" ]
+    }]
 }
