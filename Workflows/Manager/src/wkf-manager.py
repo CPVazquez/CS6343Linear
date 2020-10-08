@@ -1,6 +1,7 @@
 # be able to make HTTP requests
 import requests
 import logging
+import time
 # pull the docker sdk library and setup
 import docker
 client = docker.from_env()
@@ -49,13 +50,112 @@ def dockerize_networks_function():
 
 @app.route('/dockerize', methods=['GET'])
 def dockerize_function():
-    containers_list = client.containers.list()
-    to_sendback = "["
-    for i in containers_list: 
-        to_sendback += i.name 
-        to_sendback += " " 
-    to_sendback += "]"
-    return Response(status=200,response=to_sendback)
+    #launch the db
+    get_or_launch_db()
+
+    running_delivery_services = client.services.list(filters={'name' : 'delivery-assigner'})
+   
+    # the reference to the Service
+    delivery_service = None
+
+    if len(running_delivery_services) == 0: 
+        logging.debug("the delivery service doesn't exist, spin it up")
+        delivery_service = client.services.create(
+            "trishaire/delivery-assigner",  # the name of the image
+            name="delivery-assigner",
+            endpoint_spec=docker.types.EndpointSpec(mode="vip", ports={ 3000 : 3000 }),
+            env=["CASS_DB=cass"],
+            networks=['myNet'])
+    else: 
+        logging.debug("the delivery service exists")
+        delivery_service = running_delivery_services[0]
+
+    logging.debug("*** DELIVERY SERVICE ***")
+    logging.debug(delivery_service)
+
+    is_up = False
+    delivery_response = None
+    while not is_up:
+        try:
+            time.sleep(3)
+            delivery_response = requests.get("http://delivery-assigner:3000/health")
+            is_up = True
+        except:
+            is_up = False
+
+    logging.debug("*** THE RESPONSE ***")
+    logging.debug(delivery_response)
+
+    # Launch component 4
+
+    running_auto_restocker_services = client.services.list(filters={'name' : 'auto-restocker'})
+   
+    # the reference to the Service
+    auto_restocker_service = None
+
+    if len(running_auto_restocker_services) == 0: 
+        logging.debug("the auto restocker service doesn't exist, spin it up")
+        restocker_service = client.services.create(
+            "trishaire/auto-restocker",  # the name of the image
+            name="auto-restocker",
+            endpoint_spec=docker.types.EndpointSpec(mode="vip", ports={ 4000 : 4000 }),
+            env=["CASS_DB=cass"],
+            networks=['myNet'])
+    else: 
+        logging.debug("the auto restocker service exists")
+        auto_restocker_service = running_auto_restocker_services[0]
+
+    logging.debug("*** AUTO RESTOCKER SERVICE ***")
+    logging.debug(auto_restocker_service)
+
+    is_up = False
+    auto_restocker_response = None
+    while not is_up:
+        try:
+            auto_restocker_response = requests.get("http://auto-restocker:4000/health")
+            is_up = True
+        except:
+            is_up = False
+
+    logging.debug("*** THE RESPONSE ***")
+    logging.debug(auto_restocker_response)
+
+
+    # Launch component 5
+
+    running_restocker_services = client.services.list(filters={'name' : 'restocker'})
+   
+    # the reference to the Service
+    restocker_service = None
+
+    if len(running_restocker_services) == 0: 
+        logging.debug("the restocker service doesn't exist, spin it up")
+        restocker_service = client.services.create(
+            "trishaire/restocker",  # the name of the image
+            name="restocker",
+            endpoint_spec=docker.types.EndpointSpec(mode="vip", ports={ 5000 : 5000 }),
+            env=["CASS_DB=cass"],
+            networks=['myNet'])
+    else: 
+        logging.debug("the restocker service exists")
+        restocker_service = running_restocker_services[0]
+
+    logging.debug("*** RESTOCKER SERVICE ***")
+    logging.debug(restocker_service)
+
+    is_up = False
+    restocker_response = None
+    while not is_up:
+        try:
+            restocker_response = requests.get("http://restocker:5000/health")
+            is_up = True
+        except:
+            is_up = False
+
+    logging.debug("*** THE RESPONSE ***")
+    logging.debug(restocker_response)
+
+    return Response(status=200,response="success")
 
 @app.route('/orders', methods=['POST'])
 def pass_on_order():
@@ -82,16 +182,17 @@ def pass_on_order():
     logging.debug("*** ORDER SERVICE ***")
     logging.debug(order_service)
 
-    order_response = requests.post("http://order-verifier:1000/orders",
-        json=request.get_json())
+    order_response = requests.post("http://order-verifier:1000/order",
+        json="{}")
+    #    json=request.get_json())
 
     logging.debug("*** THE RESPONSE ***")
     logging.debug(order_response)
 
-    return Response(status=200, response="no u")
+    return Response(status=200, response=order_response)
 
 # Health check endpoint
-@app.route('/health', methods=['POST'])
+@app.route('/health', methods=['GET', 'POST'])
 def health_check():
     return Response(status=200,response="healthy\n")
 
