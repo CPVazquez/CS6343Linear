@@ -12,6 +12,6 @@ RUN pip install pipenv
 RUN echo python3 --version
 RUN pipenv install --system --deploy
 
-EXPOSE 8000
+EXPOSE 5000
 
-CMD gunicorn -b 0.0.0.0:8000 --log-level debug src.restocker:app
+CMD gunicorn -b 0.0.0.0:5000 --log-level debug src.restocker:app

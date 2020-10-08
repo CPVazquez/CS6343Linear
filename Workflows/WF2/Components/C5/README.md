@@ -39,7 +39,7 @@ docker push trishaire/restocker:tag
 ```
 To create the service type the following command:
 ```
-docker service create --name restocker --network myNet --publish 8000:8000 --env CASS_DB=VIP_of_Cass_Service trishaire/restocker:tag
+docker service create --name restocker --network myNet --publish 5000:5000 --env CASS_DB=VIP_of_Cass_Service trishaire/restocker:tag
 ```
 where `VIP_of_Cass_Service` is the VIP of `myNet` overlay network
 
