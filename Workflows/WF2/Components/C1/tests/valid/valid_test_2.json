@@ -1,13 +1,15 @@
 {
-    "storeId": "qwe1234",
-    "custName": "Banana Slam Jama",
-    "paymentToken": "fgdg123",
-    "paymentTokenType": "visa",
-    "custLocation": { "lat": 12, "lon": 15 },
-    "pizzaList": [{
-        "crustType": "Traditional",
-        "sauceType": "Traditional",
-        "cheeseAmt": "Light",
-        "toppingList": [ "Pineapple", "Chicken" ]
-    }]
+    "order2": {
+        "storeId": "qwe1234",
+        "custName": "Banana Slam Jama",
+        "paymentToken": "fgdg123",
+        "paymentTokenType": "visa",
+        "custLocation": { "lat": 12, "lon": 15 },
+        "pizzaList": [{
+            "crustType": "Traditional",
+            "sauceType": "Traditional",
+            "cheeseAmt": "Light",
+            "toppingList": [ "Pineapple", "Chicken" ]
+        }]
+    }
 }
