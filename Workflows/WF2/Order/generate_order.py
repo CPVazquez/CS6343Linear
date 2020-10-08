@@ -18,7 +18,6 @@ class PizzaOrder:
     topping_types = ['Pepperoni','Sausage','Beef','Onion','Chicken','Peppers','Olives','Bacon','Pineapple','Mushrooms']
 
     def __init__(self):
-        self.order_id = str(uuid.uuid4())
         self.store_id = ""
         self.store_lat = 0
         self.store_lon = 0
@@ -44,14 +43,13 @@ class PizzaOrder:
                 "cheeseAmt": self.cheese_amts[random.randint(0, 3)],
                 "toppingList": random.sample(self.topping_types, random.randint(0, 9))
             }
-            order_dict[self.order_id]["pizzaList"].append(new_pizza)
+            order_dict["pizzaList"].append(new_pizza)
         return order_dict
 
     def generate_order(self):
         self.choose_store()
         # Construct the pizza order dict, with a single pizza in pizzaList
         order_dict = {
-            self.order_id: {
                 "storeId": self.store_id,
                 "custName": fake.name(),
                 "paymentToken": str(uuid.uuid4()),
@@ -66,7 +64,6 @@ class PizzaOrder:
                     "cheeseAmt": self.cheese_amts[random.randint(0, 3)],
                     "toppingList": random.sample(self.topping_types, random.randint(0, 9))
                 }]
-            }
         }
         # Call add_more_pizzas(..) in return statement to randomly add additional pizzas
         # Upon return from add_more_pizzas(..), order_dict could contain up to max_pizzas
@@ -78,6 +75,7 @@ def post_order(q):
         order = q.get()
         order_dict = order.generate_order()
         json_obj = json.dumps(order_dict)
+        print(json.dumps(order_dict, indent=4))
         response = requests.post(url, json=json_obj)
         print(response.text + "\n")
         q.task_done()

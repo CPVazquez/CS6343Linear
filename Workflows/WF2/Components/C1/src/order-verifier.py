@@ -224,21 +224,26 @@ def check_stock_then_insert(order_dict):
 
 
 # Manages order placement or restock, if needed
-def order_manager(order_dict):
+def order_manager(order):
     # Validate order json against jsonschema
     global schema
     try:
-        for order_id in order_dict:
-            jsonschema.validate(instance=order_dict[order_id], schema=schema)
+        jsonschema.validate(instance=order, schema=schema)
     except:
+        logging.debug('Pizza order rejected:\n' + order)
+        logging.debug('Order rejected due to failed validation.')
         return Response(status=400, response="Pizza order failed validation. Rejecting request.\n")
+
+    # Wrap order in dict with order_id
+    order_id = str(uuid.uuid4())
+    order_dict = {order_id: order}
 
     # Check the stock to see if order can be placed
     restock_list = check_stock_then_insert(order_dict)
     order_json = json.dumps(order_dict)
     if not restock_list:    
         # If restock_list is empty, then the order was accepted
-        logging.debug('Pizza order accepted: ' + order_json)
+        logging.debug('Pizza order accepted:\n' + order_json)
         return Response(status=200, response="Pizza order accepted: " + order_id)
     else:
         # Else, need to restock item(s) contained in restock_list.
