@@ -4,7 +4,7 @@
 Carla Patricia Vazquez
 
 ## Description
-This component recieves restocking orders sent to the workflow manager. The restock orders follow the format of the restock-order.shema.json file in the shema folder. The component also scans the database every 5 minutes to check for items that might need to be restocked.
+This component receives restocking orders sent to the workflow manager. The restock orders follow the format of the restock-order.shema.json file in the schema folder. The component also scans the database every 5 minutes to check for items that might need to be restocked.
 
 ## Setup
 Machine requirements:
@@ -30,7 +30,7 @@ Packages installed on pipenv virtual environment:
 To build the image:
 
 ```
-docker build --rm -t trishare/restocker:tag path_to_c5_dockerfile
+docker build --rm -t trishaire/restocker:tag path_to_c5_dockerfile
 ```
 To update the repository:
 ```
@@ -43,10 +43,35 @@ docker service create --name restocker --network myNet --publish 5000:5000 --env
 ```
 where `VIP_of_Cass_Service` is the VIP of `myNet` overlay network
 
-To run localy make sure you have environment variables `CASS_DB=0.0.0.0` and `FLASK_ENV=development` set
+To run locally make sure you have environment variables `CASS_DB=0.0.0.0` and `FLASK_ENV=development` set
+
+## Endpoints
+
+### `POST /restock`
+
+requires a [`restock-order`](https://github.com/CPVazquez/CS6343/blob/master/Workflows/WF2/Components/C5/src/restock-order.schema.json) json object
+ 
+
+`restock-order` 
+
+| field | type | required | description |
+|-------|------|-----------|---|
+| storeID|string - format uuid|true|the store that needs restocking|
+|restock-list| `restock-item` array|true| A list of items to restock and their quantities|
+
+`restock-item` 
+| field | type | required| description |
+|-------|------|----------|---|
+| item-name | string | true |the item that needs restocking|
+| quantity | integer | true |the number of the item we want restocked |
+
+### `GET /health`
+
+returns string `healthy` if the service is healthy
+
 ## Testing
 
-This component uses pytest to run unit test. you must be connected to a cassandra instance to run the tests correctly. I'm still trying to figure out how to mock cassandra. 
+This component uses pytest to run unit test. you must be connected to a Cassandra instance to run the tests correctly. I'm still trying to figure out how to mock Cassandra. 
 
 use the following command to run tests:
 ```

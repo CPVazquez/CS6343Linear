@@ -1,6 +1,8 @@
 import os
 import logging
 import uuid
+import json
+import requests
 
 from cassandra.query import dict_factory
 from cassandra.cluster import Cluster
@@ -29,7 +31,8 @@ URL = "https://maps.googleapis.com/maps/api/directions/json?origin={}, {}&destin
 
 #Connecting to Cassandra Cluster
     
-cluster = Cluster(['cass'])
+cass_IP = os.environ["CASS_DB"]
+cluster = Cluster([cass_IP])
 session = cluster.connect('pizza_grocery')
 session.row_factory = dict_factory   
 
@@ -41,14 +44,6 @@ customer_info_query = session.prepare("Select latitude, longitude from customers
 verify_order_query = session.prepare("Select * from orderTable where orderID=?")
 update_order_query = session.prepare("Update orderTable set deliveredBy=?, estimatedDeliveryTime=? where orderID=?")
 
-
-def _get_order_ids():
-    rows = session.execute("Select orderID from orderTable")
-    for row in rows:
-        logger.info("Order ID::{}".format(row['orderid']))
-
-if __name__ == "__main__":
-    _get_order_ids()
 
 def _convert_time_str(time):
     time = time.split()        
@@ -90,29 +85,35 @@ def _get_delivery_time(delivery_entities, customer, store):
     
 
 def _verify_order(order_id):
-    row = session.execute(verify_order_query, (order_id,)).one()
-    logger.info("Updated Order :: {}".format(row))
+    row = session.execute(verify_order_query, (order_id,)).one()    
+
 
 def _update_order(order_id, entity, time):
     session.execute(update_order_query, (entity, time, order_id))
+
 
 def _get_entities(store_id):
     entities = []
     rows = session.execute(entity_query, (store_id,))
     for row in rows:
         entities.append(row)
+    logger.info("in entities:{}\n".format(entities))
     return entities
 
+
 def _get_order_info(order_id):
-    row = session.execute(order_info_query, (order_id,)).one()
+    row = session.execute(order_info_query, (order_id,)).one()    
     return row
 
-def _get_store_info(store_id):
+
+def _get_store_info(store_id):    
     row = session.execute(store_info_query, (store_id,)).one()
     return row
 
+
 def _get_customer_info(customer_name):
-    row = session.execute(customer_info_query, (customer_name,)).one()
+    
+    row = session.execute(customer_info_query, (customer_name,)).one()    
     return row
 
 
@@ -126,20 +127,34 @@ def assign_entity(order_id):
     '''
 
     try:
-        order_info = get_order_info(order_id)  
-        store_info = get_store_info(order_info['orderedfrom'])
-        entities = get_entities(order_info['orderedfrom'])    
-        customer_info = get_customer_info(order_info['orderedby'])
+        order_info = _get_order_info(order_id)  
     except:
-        return Response(status=400, response="Wrong order ID inputted")
+        return Response(status=400, response="Invalid Order ID")
     try:
-        time, entity = get_delivery_time(entities, customer_info, store_info)
+        store_info = _get_store_info(order_info['orderedfrom'])
     except:
-        return Response(status=500, reponse="Google API unresponsive")
-
-    logger.info('Best Time ::{}'.format(time))
-    logger.info('Best Entity::{}'.format(entity))	
-    update_order(order_id, entity, time)
+        return Response(status=400, response="Invalid Store ID")
+    try:	
+        entities = _get_entities(order_info['orderedfrom'])    
+        if len(entities) == 0:
+            return Response(status=400, response="No Avaiblabe entities")
+    except:
+        return Response(status=400, response="Entities Corrupted")
+    try:
+        customer_info = _get_customer_info(order_info['orderedby'])
+    except:
+        return Response(status=400, response="Invalid Customer info")
+   
+    try:
+        time, entity = _get_delivery_time(entities, customer_info, store_info)
+    except:
+        return Response(status=500, response="Error in Google API")
+    
+    try:    	
+        _update_order(order_id, entity, time)
+    except:
+        return Response(status=500, response="Unable to Update DB")
+    
     return Response(status=200, response="For Order ID: {}, Selected Entity: {}, Estimated Time: {}".format(order_id, entity, time))
 
 

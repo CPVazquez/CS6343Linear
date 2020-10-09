@@ -109,6 +109,7 @@ def health_check():
 
 #scan the database for items that are out of stock or close to it
 def scan_out_of_stock():
+    logging.debug("testing scanner")
     # gets a list of all stores
     stores = session.execute(get_stores)
     # loops through said stores
@@ -127,8 +128,8 @@ def scan_out_of_stock():
                     session.execute(add_stock_prepared, ( quantity_row.quantity + 20, store.storeid, item.name))
                     logging.debug(str(store.storeid) + ", " + item.name +
                         " has " + str(quantity_row.quantity + 20.0))
-    if app.config["ENV"] == "production": 
-        threading.Timer(300, scan_out_of_stock).start()
+    #if app.config["ENV"] == "production": 
+    threading.Timer(300, scan_out_of_stock).start()
 
 # calls the scan_out_of stock function for the first time
 scan_out_of_stock()

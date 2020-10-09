@@ -3,16 +3,17 @@
 Upon receiving an order from the Workflow Manager (WFM), this component validates the order, checks if sufficient stock exists, and if the stock exists, then it creates the order. If sufficient stock is not available, this component recreates a restock order and provides it as a response to the WFM.
 """
 
-from flask import Flask, request, Response
-from cassandra.cluster import Cluster
 from datetime import date
 from datetime import datetime
-import jsonschema
 import json
 import logging
 import time
 import uuid
 import os
+
+from flask import Flask, request, Response
+from cassandra.cluster import Cluster
+import jsonschema
 
 __author__ = "Chris Scott"
 __version__ = "1.0.0"
