@@ -1,6 +1,7 @@
 import os
 import logging
 import uuid
+import json
 
 from cassandra.query import dict_factory
 from cassandra.cluster import Cluster
@@ -152,7 +153,7 @@ def assign():
     return assign_entity(order_id)
 
 
-@app.route('/health', methods=['GET'])
+@app.route('/health', methods=['POST'])
 def health_check():
     '''REST API for checking health of task.'''
 
