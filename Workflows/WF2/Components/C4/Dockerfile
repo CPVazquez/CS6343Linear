@@ -19,4 +19,4 @@ RUN pip install cassandra-driver
 RUN pip install gunicorn
 RUN pip install flask
 
-CMD gunicorn -w 4 -b 0.0.0.0:4000 --log-level info src.auto_restocker:app 
+CMD gunicorn -w 4 -b 0.0.0.0:4000 --log-level info src.auto_restocker:app

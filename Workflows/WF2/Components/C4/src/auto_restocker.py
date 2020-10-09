@@ -50,7 +50,6 @@ def _get_current_stock(store_id, item_name):
 	return row['quantity']
 	
 
-
 def _update_stock(store_id, item_name, quantity):
 	session.execute(update_stock_query, (quantity, store_id, item_name))
 
@@ -105,7 +104,7 @@ def auto_restock(store_id, item_name, history, days):
 def restock():
 	'''REST API for auto-restocking an item in a store.'''
 
-	data = json.loads(request.get_json())
+	data = request.get_json()
 	store_id = uuid.UUID(data['store_id'])
 	item_name = data['item_name']
 	history = data['history']
