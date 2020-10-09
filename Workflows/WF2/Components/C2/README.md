@@ -4,7 +4,7 @@
 Carla Patricia Vazquez
 
 ## Description
-This is the database component for both workflow mangers. It gets cql requests from several other components. It uses the offical docker image for Cassandra as a base and loads our keyspace (database) on to it.
+This is the database component for both workflow mangers. It gets cql requests from several other components. It uses the official docker image for Cassandra as a base and loads our keyspace (database) on to it.
 
 ## Setup
 Machine requirements:
