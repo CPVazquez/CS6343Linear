@@ -1,4 +1,3 @@
-# be able to make HTTP requests
 import requests
 import logging
 import json
@@ -18,13 +17,12 @@ logging.basicConfig(level=logging.DEBUG,
 from flask import Flask, request, Response
 app = Flask(__name__)
 
-
 def initiate_auto_restocker():
     Timer(60.0, initiate_auto_restocker).start()
     items = ['Dough']
-    Stores = []
-    history = 7
-    days 1
+    Stores = ['b18b3932-a4ef-485c-a182-8e67b04c208c']
+    history = 1
+    days = 1
     for store in stores:
         for item in items:
             response = requests.post("http://auto-restocker:4000/auto-restock",
