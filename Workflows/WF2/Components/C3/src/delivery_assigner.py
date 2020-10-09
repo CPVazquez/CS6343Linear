@@ -164,7 +164,6 @@ def assign():
 
     data = request.get_json()
     order_id = uuid.UUID(data['order_id'])
-    
     return assign_entity(order_id)
 
 
