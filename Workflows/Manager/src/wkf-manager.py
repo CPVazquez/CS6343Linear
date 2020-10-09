@@ -207,11 +207,11 @@ def pass_on_order():
     # this means the order is correct, pass to component 3
     if order_response.status_code == 200:
         del_response = requests.post("http://delivery-assigner:3000/assign-entity",
-            data=order_response.text, headers={'Content-type': 'application/json'})
+            json=order_response.json(), headers={'Content-type': 'application/json'})
         full_response = full_response + " delivered " + del_response.text
     elif order_response.status_code == 403:
         rest_response = requests.post("http://restocker:5000/restock",
-            data=order_response.json())
+            json=order_response.json())
         full_response = full_response + " restocked " + rest_response.text
         
 
