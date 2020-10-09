@@ -22,7 +22,7 @@ Packages installed on pipenv virtual environment:
 To build the image:
 
 ```
-docker build --rm -t trishare/cass:tag path_to_c2_dockerfile
+docker build --rm -t trishaire/cass:tag path_to_c2_dockerfile
 ```
 To update the repository:
 ```

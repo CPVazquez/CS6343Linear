@@ -102,7 +102,7 @@ def restocker():
 
 # the health endpoint, so that users can verify that the server
 # is up and running
-@app.route('/health', methods=['POST'])
+@app.route('/health', methods=['GET'])
 def health_check():
     return Response(status=200,response="healthy\n")
 

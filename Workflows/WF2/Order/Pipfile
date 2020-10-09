@@ -6,8 +6,8 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-cassandra-driver = "*"
-docker = "*"
+requests = "*"
+faker = "*"
 
 [requires]
 python_version = "3.8"
