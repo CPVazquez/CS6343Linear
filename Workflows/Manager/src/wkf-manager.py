@@ -203,7 +203,11 @@ def pass_on_order():
     order_response = requests.post("http://order-verifier:1000/order",
             json=request.json)
     logging.debug("Request json::{}".format(request.json))
+<<<<<<< HEAD
     logging.debug("Response json::{}".format(order_response.json()))
+=======
+    logging.debug("Response json::{}".format(order_response.json())
+>>>>>>> 45b7eecd15a537354b569f5d24dd38594bbce408
     full_response = order_response.text + " *** " 
     # this means the order is correct, pass to component 3
     if order_response.status_code == 200:
