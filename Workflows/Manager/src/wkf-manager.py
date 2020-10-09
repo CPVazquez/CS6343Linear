@@ -28,7 +28,7 @@ def initiate_auto_restocker():
             response = requests.post("http://auto-restocker:4000/auto-restock",
                 json={"store_id": store,
                     "item_name": item,
-                    "history": history
+                    "history": history,
                     "days": days},
                 headers={'Content-type': 'application/json'})
             logging.debug("Store:{}, Item:{}, Auto-Restock:{}".format(sore, item, response.status_code))
