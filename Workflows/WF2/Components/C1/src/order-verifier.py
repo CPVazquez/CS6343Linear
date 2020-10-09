@@ -5,11 +5,11 @@ Upon receiving an order from the Workflow Manager (WFM), this component validate
 
 from flask import Flask, request, Response
 from cassandra.cluster import Cluster
-from datetime import date
-from datetime import datetime
+from datetime import datetime, timedelta, date
 import jsonschema
 import json
 import logging
+import threading
 import time
 import uuid
 import os
@@ -21,8 +21,8 @@ __email__ = "christopher.scott@utdallas.edu"
 __status__ = "Development"
 
 # Connect to Cassandra service
-cass_IP = os.environ["CASS_DB"]
-cluster = Cluster([cass_IP])
+#cass_IP = os.environ["CASS_DB"]
+cluster = Cluster()  #[cass_IP]
 session = cluster.connect('pizza_grocery')
 
 # Cassandra prepared statements
@@ -52,6 +52,10 @@ with open("src/pizza-order.schema.json", "r") as schema:
 
 # Logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Global variable stock_tracker_offset is used to artificially accelerate timestamps in stockTracker table
+# The purpose of this is to provide sufficient data for Component 4
+stock_tracker_offset = -10
 
 
 # Aggregate all ingredients for a given order
@@ -142,9 +146,18 @@ def insert_pizzas(pizza_list):
     return uuid_set
 
 
+# Function to periodically increment the global variable stock_tracker_offset
+def inc_stock_tracker_offset():
+    global stock_tracker_offset
+    stock_tracker_offset += 1
+    threading.Timer(900, inc_stock_tracker_offset).start()  # 900 seconds = 15 minutes
+
+
 # Insert or update stockTracker table for items sold per day
 def stock_tracker_mgr(store_uuid, req_item_dict):
-    date_sold = datetime.combine(date.today(), datetime.min.time())
+    #date_sold = datetime.combine(date.today(), datetime.min.time())
+    offset_date = date.today() + timedelta(days=stock_tracker_offset)
+    date_sold = datetime.combine(offset_date, datetime.min.time())
     for item_name in req_item_dict:
         rows = session.execute(select_tracker_prepared, (store_uuid, item_name, date_sold))
         if not rows:
@@ -261,3 +274,7 @@ def order_funct():
 @app.route('/health', methods=['GET'])
 def health_check():
     return Response(status=200,response="healthy\n")
+
+
+# First call to inc_stock_tracker_day function
+inc_stock_tracker_offset()
