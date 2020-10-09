@@ -46,7 +46,7 @@ def _get_current_stock(store_id, item_name):
 	session.row_factory = dict_factory
 	row = session.execute(get_current_stock_query, (store_id, item_name)).one()
 	session.row_factory = pandas_factory
-	logger.info('Currect Stock:::{}'.format(row['quantity']))
+	logger.info('Auto Restock - Currect Stock:::{}'.format(row['quantity']))
 	return row['quantity']
 	
 
@@ -66,7 +66,7 @@ def _predict_item_stocks(store_id, item_name, history, days):
 	future = m.make_future_dataframe(periods=days, freq='d', include_history=False)
 	forecast = m.predict(future)
 	prediction = forecast['yhat'].tolist()	
-	logger.info('Precdiction:: Date: {}, Quantity: {}'.format(forecast['ds'],sum(prediction)))
+	logger.info('Auto Restock - Precdiction:: Date: {}, Quantity: {}'.format(forecast['ds'],sum(prediction)))
 	return prediction
 
 
@@ -81,7 +81,7 @@ def auto_restock(store_id, item_name, history, days):
 		Returns:
 			Response (object): Response object for POST request
 	'''
-
+	logger.info("Starting Auto-Restock Store:{}, Item:{}, History:{}, Days:{}\n".format(store_id, item_name, history, days))
 	try:
 		stock = _get_current_stock(store_id, item_name)
 	except:
