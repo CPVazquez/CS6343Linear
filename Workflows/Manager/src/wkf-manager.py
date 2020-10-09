@@ -1,6 +1,7 @@
 # be able to make HTTP requests
 import requests
 import logging
+import json
 from time import sleep
 # pull the docker sdk library and setup
 import docker
