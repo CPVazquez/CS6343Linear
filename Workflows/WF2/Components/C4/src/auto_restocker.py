@@ -1,5 +1,6 @@
 import logging
 import uuid
+import json
 
 from cassandra.query import dict_factory
 from cassandra.cluster import Cluster
