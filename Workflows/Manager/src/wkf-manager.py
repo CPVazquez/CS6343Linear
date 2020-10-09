@@ -19,10 +19,10 @@ app = Flask(__name__)
 
 def initiate_auto_restocker():
     logging.debug("*****************Initiating Auto Restocker******************************\n")
-    #Timer(60.0, initiate_auto_restocker).start()
-    items = ['Dough']
+    Timer(60.0, initiate_auto_restocker).start()
+    items = ['Cheese']
     stores = ['b18b3932-a4ef-485c-a182-8e67b04c208c']
-    history = 1
+    history = 5
     days = 1
     for store in stores:
         for item in items:
@@ -109,10 +109,15 @@ def dockerize_function():
 
     logging.debug("*** ORDER SERVICE ***")
     logging.debug(order_service)
-
-    sleep(10)
-
-    order_response = requests.get("http://order-verifier:1000/health")
+           
+           
+    while True:
+        try:
+            order_response = requests.get("http://order-verifier:1000/health")
+        except:
+            continue
+        else:
+            break
 
     logging.debug("*** THE RESPONSE ***")
     logging.debug(order_response)
@@ -141,7 +146,13 @@ def dockerize_function():
 
     sleep(10)
 
-    delivery_response = requests.get("http://delivery-assigner:3000/health")
+    while True:
+        try:            
+            delivery_response = requests.get("http://delivery-assigner:3000/health")
+        except:
+            continue
+        else:
+            break
 
     logging.debug("*** THE RESPONSE ***")
     logging.debug(delivery_response)
@@ -168,8 +179,14 @@ def dockerize_function():
     logging.debug("*** AUTO RESTOCKER SERVICE ***")
     logging.debug(auto_restocker_service)
 
-    sleep(30)    
-    auto_restocker_response = requests.get("http://auto-restocker:4000/health")
+    
+    while True:
+        try:      
+            auto_restocker_response = requests.get("http://auto-restocker:4000/health")
+        except:
+            continue
+        else:
+            break
 
     logging.debug("*** THE RESPONSE ***")
     logging.debug(auto_restocker_response)
@@ -198,9 +215,15 @@ def dockerize_function():
     logging.debug("*** RESTOCKER SERVICE ***")
     logging.debug(restocker_service)
 
-    sleep(10)
+    
+    while True:
+        try:            
+            restocker_response = requests.get("http://restocker:5000/health")
+        except:
+            continue
+        else:
+            break
 
-    restocker_response = requests.get("http://restocker:5000/health")
 
     logging.debug("*** THE RESPONSE ***")
     logging.debug(restocker_response)
@@ -226,7 +249,7 @@ def pass_on_order():
             json=request.json)
 
     order_dict = order_response.json() 
-     
+    full_response = order_response.text 
     # this means the order is correct, pass to component 3
     if order_response.status_code == 200:
         del_response = requests.post("http://delivery-assigner:3000/assign-entity",

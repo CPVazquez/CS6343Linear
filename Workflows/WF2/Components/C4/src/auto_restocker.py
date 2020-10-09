@@ -99,7 +99,7 @@ def auto_restock(store_id, item_name, history, days):
 	else:
 		logger.info('Stock Surplus of {} available for Item: {} in Store: {}'.format(stock,
 			item_name, store_id))
-
+	return Response(status=200, response="Item auto restocked")
 
 @app.route('/auto-restock', methods=['POST'])
 def restock():
