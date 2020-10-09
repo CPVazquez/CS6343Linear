@@ -21,8 +21,8 @@ __email__ = "christopher.scott@utdallas.edu"
 __status__ = "Development"
 
 # Connect to Cassandra service
-#cass_IP = os.environ["CASS_DB"]
-cluster = Cluster()  #[cass_IP]
+cass_IP = os.environ["CASS_DB"]
+cluster = Cluster([cass_IP])
 session = cluster.connect('pizza_grocery')
 
 # Cassandra prepared statements
@@ -55,7 +55,7 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 
 # Global variable stock_tracker_offset is used to artificially accelerate timestamps in stockTracker table
 # The purpose of this is to provide sufficient data for Component 4
-stock_tracker_offset = -10
+stock_tracker_offset = -7
 
 
 # Aggregate all ingredients for a given order
