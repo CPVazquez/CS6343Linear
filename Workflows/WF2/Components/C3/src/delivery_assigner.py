@@ -128,14 +128,14 @@ def assign_entity(order_id):
     '''
 
     try:
-        order_info = get_order_info(order_id)  
-        store_info = get_store_info(order_info['orderedfrom'])
-        entities = get_entities(order_info['orderedfrom'])    
-        customer_info = get_customer_info(order_info['orderedby'])
+        order_info = _get_order_info(order_id)  
+        store_info = _get_store_info(order_info['orderedfrom'])
+        entities = _get_entities(order_info['orderedfrom'])    
+        customer_info = _get_customer_info(order_info['orderedby'])
     except:
         return Response(status=400, response="Wrong order ID inputted")
     try:
-        time, entity = get_delivery_time(entities, customer_info, store_info)
+        time, entity = _get_delivery_time(entities, customer_info, store_info)
     except:
         return Response(status=500, reponse="Google API unresponsive")
 
