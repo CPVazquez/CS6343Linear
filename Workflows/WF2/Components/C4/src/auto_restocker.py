@@ -89,7 +89,7 @@ def auto_restock(store_id, item_name, history, days):
 	try:
 		predictions = _predict_item_stocks(store_id, item_name, history, days)
 	except:
-		 return Response(status=500, reponse="Facebook Prophet error")
+		return Response(status=500, response="Facebook Prophet error")
 
 	total_stock = sum(predictions)
 	if stock < total_stock:
