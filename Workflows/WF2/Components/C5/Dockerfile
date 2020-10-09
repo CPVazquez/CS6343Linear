@@ -1,5 +1,10 @@
-# https://github.com/docker-library/cassandra/issues/94
 FROM python:alpine3.11
+
+LABEL author="Carla Patricia Vazquez"
+LABEL version="1.0.0"
+LABEL maintainer="Carla Patricia Vazquez"
+LABEL emai="cpv150030@utdallas.edu"
+LABEL status="Development"
 
 ENV PYTHONBUFFERED 1
 ENV PYTHONFAULTHANDLER 1

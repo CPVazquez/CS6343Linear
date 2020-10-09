@@ -3,12 +3,6 @@
 ## Written By
 Christopher Michael Scott
 
-## Requirements:
-  * Python 3.8
-  * Install Faker Python package (https://pypi.org/project/Faker/)
-    * This program uses Faker to randomly generate customer names.
-  * Install Requests Python package (https://pypi.org/project/requests/2.7.0/)
-
 ## Description
   * This program generates fake pizza orders for Workflow 2.
   * Randomly select a pizza store location from the 3 preset locations.
@@ -20,10 +14,26 @@ Christopher Michael Scott
   * This program has threading functionality, but it may not be of any significant use. The number of threads is specified via command line argument (num_threads).
   * URL for posting order requests is also specified via command line argument (url).
 
+## Setup
+Machine requirements:
+* Python 3.8
+
+Package requirements:
+* pipenv
+
+Packages installed on pipenv virtual environment:
+  * Install Faker Python package (https://pypi.org/project/Faker/)
+    * This program uses Faker to randomly generate customer names.
+  * Install Requests Python package (https://pypi.org/project/requests/2.7.0/)
+
+
 ## Commands
-  `python3 generate_order.py url num_threads max_orders max_pizzas_per_order`
-  
-  Example:
-  `python3 generate_order.py http://0.0.0.0:8080/order 1 1 1`
+```
+python3 generate_order.py url num_threads max_orders max_pizzas_per_order
+```
+Example:
+```
+python3 generate_order.py http://0.0.0.0:8080/order 1 1 1
+```
 
 [Main README](https://github.com/CPVazquez/CS6343)

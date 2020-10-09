@@ -1,5 +1,11 @@
 FROM python:alpine3.11
 
+LABEL author="Randeep Ahlawat"
+LABEL version="1.0.0"
+LABEL maintainer="Randeep Ahlawat"
+LABEL email="randeep.ahalwat@utdallas.edu"
+LABEL status="Development"
+
 ENV PYTHONBUFFERED 1
 ENV PYTHONFAULTHANDLER 1
 
