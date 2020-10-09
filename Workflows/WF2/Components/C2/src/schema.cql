@@ -1,3 +1,11 @@
+/**********************************************************************
+author = "Carla Patricia Vazquez"
+version = "1.0.0"
+maintainer = "Carla Vazquez"
+email = "cpv150030@utdallas.edu"
+status = "Development"
+***********************************************************************/
+
 CREATE KEYSPACE IF NOT EXISTS pizza_grocery WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };
 
 USE pizza_grocery;

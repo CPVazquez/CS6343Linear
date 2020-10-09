@@ -36,4 +36,17 @@ docker service create --name delivery-assigner --network myNet --publish 3000:30
 ```
 where `VIP_of_Cass_Service` is the VIP of `myNet` overlay network
 
+## Endpoints
+
+### `POST /assign-entity`
+
+requires a json object with order_id
+
+| field | type | Description |
+|-------|------|-------------|
+| order_id |string - format uuid|the id of the order that we are assigning an entity to|
+
+### `GET /health`
+returns string `healthy` if the service is healthy
+
 [Main README](https://github.com/CPVazquez/CS6343)

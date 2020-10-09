@@ -44,6 +44,31 @@ docker service create --name restocker --network myNet --publish 5000:5000 --env
 where `VIP_of_Cass_Service` is the VIP of `myNet` overlay network
 
 To run localy make sure you have environment variables `CASS_DB=0.0.0.0` and `FLASK_ENV=development` set
+
+## Endpoints
+
+### `POST /restock`
+
+requires a [`restock-order`](https://github.com/CPVazquez/CS6343/blob/master/Workflows/WF2/Components/C5/src/restock-order.schema.json) json object
+ 
+
+`restock-order` 
+
+| field | type | Description |
+|-------|------|-------------|
+| storeID|string - format uuid|the store that needs restocking|
+|restock-list| `restock-item` array| A list of items to restock and their quantities|
+
+`restock-item` 
+| field | type | Description |
+|-------|------|-------------|
+| item-name | string |the item that needs restocking|
+| quantity | integer | the number of the item we want restocked |
+
+### `GET /health`
+
+returns string `healthy` if the service is healthy
+
 ## Testing
 
 This component uses pytest to run unit test. you must be connected to a cassandra instance to run the tests correctly. I'm still trying to figure out how to mock cassandra. 
