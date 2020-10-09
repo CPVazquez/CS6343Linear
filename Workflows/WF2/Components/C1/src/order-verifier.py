@@ -150,7 +150,7 @@ def insert_pizzas(pizza_list):
 def inc_stock_tracker_offset():
     global stock_tracker_offset
     stock_tracker_offset += 1
-    threading.Timer(900, inc_stock_tracker_offset).start()  # 900 seconds = 15 minutes
+    threading.Timer(60, inc_stock_tracker_offset).start()  # 60 seconds for prepop image
 
 
 # Insert or update stockTracker table for items sold per day
@@ -240,7 +240,7 @@ def order_manager(order):
         logging.debug('Order rejected due to failed validation.')
         return Response(status=400, response="Pizza order failed validation. Rejecting request.\n")
 
-    # Wrap order in dict with order_id
+    # Wrapper dict with key "order_id" and value "order"
     order_id = str(uuid.uuid4())
     order_dict = {order_id: order}
 
