@@ -153,7 +153,7 @@ def assign():
     return assign_entity(order_id)
 
 
-@app.route('/health', methods=['POST'])
+@app.route('/health', methods=['GET'])
 def health_check():
     '''REST API for checking health of task.'''
 
