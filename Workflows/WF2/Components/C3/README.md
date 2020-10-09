@@ -23,7 +23,7 @@ Packages installed on pipenv virtual environment:
 To build the image:
 
 ```
-docker build --rm -t trishare/delivery-assigner:tag path_to_c3_dockerfile
+docker build --rm -t trishaire/delivery-assigner:tag path_to_c3_dockerfile
 ```
 To update the repository:
 ```
