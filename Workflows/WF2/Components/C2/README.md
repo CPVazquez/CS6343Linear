@@ -48,7 +48,7 @@ python code to connect -
 ```
 from cassandra.cluster import Cluster
 
-cluster = Cluster{['vip of cassandra'])
+cluster = Cluster(['vip of cassandra'])
 session = cluster.connect()
 session.execute(query)
 ```
