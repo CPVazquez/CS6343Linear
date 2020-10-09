@@ -18,9 +18,10 @@ from flask import Flask, request, Response
 app = Flask(__name__)
 
 def initiate_auto_restocker():
-    Timer(60.0, initiate_auto_restocker).start()
+    logging.debug("*****************Initiating Auto Restocker******************************\n")
+    #Timer(60.0, initiate_auto_restocker).start()
     items = ['Dough']
-    Stores = ['b18b3932-a4ef-485c-a182-8e67b04c208c']
+    stores = ['b18b3932-a4ef-485c-a182-8e67b04c208c']
     history = 1
     days = 1
     for store in stores:
@@ -31,7 +32,7 @@ def initiate_auto_restocker():
                     "history": history,
                     "days": days},
                 headers={'Content-type': 'application/json'})
-            logging.debug("Store:{}, Item:{}, Auto-Restock:{}".format(sore, item, response.status_code))
+            logging.debug("Store:{}, Item:{}, Auto-Restock:{}".format(store, item, response.status_code))
 	
 	
 
@@ -168,14 +169,12 @@ def dockerize_function():
     logging.debug(auto_restocker_service)
 
     sleep(10)
-
+    logging.debug("initiaing,...\n")
     auto_restocker_response = requests.get("http://auto-restocker:4000/health")
 
     logging.debug("*** THE RESPONSE ***")
     logging.debug(auto_restocker_response)
 
-    t = Timer(60.0, initiate_auto_restocker)
-    t.start()
     # Launch component 5
 
     running_restocker_services = client.services.list(filters={'name' : 'restocker'})
@@ -210,7 +209,9 @@ def dockerize_function():
     to_return = "success" + order_response.text + delivery_response.text + auto_restocker_response.text + restocker_response.text
 
     has_dockerized = True
-
+    
+    t = Timer(60.0, initiate_auto_restocker)
+    t.start()
     return Response(status=200,response=to_return)
 
 @app.route('/order', methods=['POST'])
