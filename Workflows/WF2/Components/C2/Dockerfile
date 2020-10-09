@@ -8,7 +8,7 @@ LABEL maintainer="Carla Patricia Vazquez"
 LABEL emai="cpv150030@utdallas.edu"
 LABEL status="Development"
 
-COPY ./src/schema.cql /opt/data/schema.cql
+COPY ./src/pizza.cql /opt/data/pizza.cql
 
 COPY ./src/entry-wrap.sh /entry-wrap.sh
 RUN chmod a+x /entry-wrap.sh
