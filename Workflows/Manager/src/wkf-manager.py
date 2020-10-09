@@ -3,6 +3,7 @@ import requests
 import logging
 import json
 from time import sleep
+from threading import Timer
 # pull the docker sdk library and setup
 import docker
 client = docker.from_env()
@@ -16,6 +17,25 @@ logging.basicConfig(level=logging.DEBUG,
 # pull the flask library and initialize
 from flask import Flask, request, Response
 app = Flask(__name__)
+
+
+def initiate_auto_restocker():
+    Timer(60.0, initiate_auto_restocker).start()
+    items = ['Dough']
+    Stores = []
+    history = 7
+    days 1
+    for store in stores:
+        for item in items:
+            response = requests.post("http://auto-restocker:4000/auto-restock",
+                json={"store_id": store,
+                    "item_name": item,
+                    "history": history
+                    "days": days},
+                headers={'Content-type': 'application/json'})
+            logging.debug("Store:{}, Item:{}, Auto-Restock:{}".format(sore, item, response.status_code))
+	
+	
 
 # function to see if there is a database running, start it if it isn't, and then return the virtual IP
 def get_or_launch_db():
@@ -156,7 +176,8 @@ def dockerize_function():
     logging.debug("*** THE RESPONSE ***")
     logging.debug(auto_restocker_response)
 
-
+    t = Timer(60.0, initiate_auto_restocker)
+    t.start()
     # Launch component 5
 
     running_restocker_services = client.services.list(filters={'name' : 'restocker'})
@@ -175,6 +196,8 @@ def dockerize_function():
     else: 
         logging.debug("the restocker service exists")
         restocker_service = running_restocker_services[0]
+    
+    
 
     logging.debug("*** RESTOCKER SERVICE ***")
     logging.debug(restocker_service)
