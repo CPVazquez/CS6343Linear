@@ -30,7 +30,8 @@ URL = "https://maps.googleapis.com/maps/api/directions/json?origin={}, {}&destin
 
 #Connecting to Cassandra Cluster
     
-cluster = Cluster(['cass'])
+cass_IP = os.environ["CASS_DB"]
+cluster = Cluster([cass_IP])
 session = cluster.connect('pizza_grocery')
 session.row_factory = dict_factory   
 
