@@ -168,8 +168,7 @@ def dockerize_function():
     logging.debug("*** AUTO RESTOCKER SERVICE ***")
     logging.debug(auto_restocker_service)
 
-    sleep(10)
-    logging.debug("initiaing,...\n")
+    sleep(30)    
     auto_restocker_response = requests.get("http://auto-restocker:4000/health")
 
     logging.debug("*** THE RESPONSE ***")
