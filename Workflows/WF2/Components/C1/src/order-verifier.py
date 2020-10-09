@@ -55,7 +55,7 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 
 # Global variable stock_tracker_offset is used to artificially accelerate timestamps in stockTracker table
 # The purpose of this is to provide sufficient data for Component 4
-stock_tracker_offset = -7
+stock_tracker_offset = -10
 
 
 # Aggregate all ingredients for a given order
@@ -158,6 +158,7 @@ def stock_tracker_mgr(store_uuid, req_item_dict):
     #date_sold = datetime.combine(date.today(), datetime.min.time())
     offset_date = date.today() + timedelta(days=stock_tracker_offset)
     date_sold = datetime.combine(offset_date, datetime.min.time())
+    logging.debug("Inserting in stockTracker for Date: " + str(date_sold))
     for item_name in req_item_dict:
         rows = session.execute(select_tracker_prepared, (store_uuid, item_name, date_sold))
         if not rows:
