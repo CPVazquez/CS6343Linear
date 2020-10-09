@@ -55,6 +55,7 @@ def _update_stock(store_id, item_name, quantity):
 
 
 def _predict_item_stocks(store_id, item_name, history, days):
+	logger.info("prediction stocks *****")
 	today = date.today()
 	rows = session.execute(get_item_stock_query, (store_id, item_name, today))
 	df = rows._current_rows
@@ -82,14 +83,14 @@ def auto_restock(store_id, item_name, history, days):
 			Response (object): Response object for POST request
 	'''
 	logger.info("Starting Auto-Restock Store:{}, Item:{}, History:{}, Days:{}\n".format(store_id, item_name, history, days))
-	try:
-		stock = _get_current_stock(store_id, item_name)
-	except:
-		return Response(status=400, response="Invalid store id or item id")
-	try:
-		predictions = _predict_item_stocks(store_id, item_name, history, days)
-	except:
-		return Response(status=500, response="Facebook Prophet error")
+	
+	stock = _get_current_stock(store_id, item_name)
+	
+	#return Response(status=400, response="Invalid store id or item id")
+	
+	predictions = _predict_item_stocks(store_id, item_name, history, days)
+	
+	#return Response(status=500, response="Facebook Prophet error")
 
 	total_stock = sum(predictions)
 	if stock < total_stock:
