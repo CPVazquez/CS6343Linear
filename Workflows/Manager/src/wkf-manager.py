@@ -65,6 +65,8 @@ def get_or_launch_db():
 def dockerize_function():
     #launch the db
     get_or_launch_db()
+    
+    sleep(10)
 
     # Launch component 1
 
@@ -133,7 +135,7 @@ def dockerize_function():
 
     if len(running_auto_restocker_services) == 0: 
         logging.debug("the auto restocker service doesn't exist, spin it up")
-        restocker_service = client.services.create(
+        auto_restocker_service = client.services.create(
             "trishaire/auto-restocker",  # the name of the image
             name="auto-restocker",
             endpoint_spec=docker.types.EndpointSpec(mode="vip", ports={ 4000 : 4000 }),
@@ -201,10 +203,24 @@ def pass_on_order():
     order_response = requests.post("http://order-verifier:1000/order",
             json=request.json)
 
+    full_response = order_response.text + " *** " 
+    # this means the order is correct, pass to component 3
+    if order_response.status_code == 200:
+        del_response = requests.post("http://delivery-assigner:3000/assign-entity",
+            data=order_response.text, headers={'Content-type': 'application/json'})
+        full_response = full_response + " delivered " + del_response.text
+    elif order_response.status_code == 403:
+        rest_response = requests.post("http://restocker:5000/restock",
+            data=order_response.json())
+        full_response = full_response + " restocked " + rest_response.text
+        
+
     logging.debug("*** THE RESPONSE ***")
     logging.debug(order_response)
+    logging.debug("*** FULL RESPONSE ***")
+    logging.debug(full_response)
 
-    return Response(status=200, response=order_response)
+    return Response(status=200, response=full_response)
 
 # Health check endpoint
 @app.route('/health', methods=['GET', 'POST'])
