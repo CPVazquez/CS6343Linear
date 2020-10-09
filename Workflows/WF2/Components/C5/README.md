@@ -30,7 +30,7 @@ Packages installed on pipenv virtual environment:
 To build the image:
 
 ```
-docker build --rm -t trishare/restocker:tag path_to_c5_dockerfile
+docker build --rm -t trishaire/restocker:tag path_to_c5_dockerfile
 ```
 To update the repository:
 ```
