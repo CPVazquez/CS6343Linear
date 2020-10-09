@@ -148,7 +148,7 @@ def assign():
     '''REST API for assigning best delivery entity.'''
 
     data = request.get_json()
-    order_id = uuid.UUID(json.loads(data)['order_id'])
+    order_id = uuid.UUID(data['order_id'])
     return assign_entity(order_id)
 
 
