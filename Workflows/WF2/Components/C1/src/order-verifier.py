@@ -131,8 +131,8 @@ def aggregate_ingredients(pizza_list):
 # Decrement a store's stock for the order about to be placed
 def decrement_stock(store_uuid, in_stock_dict, req_item_dict):
     for item_name in req_item_dict:
-        new_quantity = in_stock_dict[item_name] - req_item_dict[item_name]
-        session.execute(update_stock_prepared, (new_quantity, store_uuid, item_name))
+        quantity = in_stock_dict[item_name] - req_item_dict[item_name]
+        session.execute(update_stock_prepared, (quantity, store_uuid, item_name))
 
 
 # Calculate pizza price based on ingredients
@@ -234,7 +234,7 @@ def create_order(order_id, order_dict, req_item_dict):
  
 
 # Check stock at a given store to determine if order can be filled
-def check_stock(order_id, order_dict):
+def check_stock(order_dict):
     in_stock_dict = copy.deepcopy(items_dict)
     store_id = uuid.UUID(order_dict["storeId"])
     req_item_dict = aggregate_ingredients(order_dict["pizzaList"])
@@ -246,8 +246,7 @@ def check_stock(order_id, order_dict):
     for row in rows:
         if row.quantity < req_item_dict[row.itemname]:
             restock_list.append({"item-name": row.itemname, "quantity": req_item_dict[row.itemname]})
-        else:
-            in_stock_dict[row.itemname] = row.quantity
+        in_stock_dict[row.itemname] = row.quantity
 
     return in_stock_dict, req_item_dict, restock_list
 
@@ -263,37 +262,32 @@ def order_manager(order_dict):
         return Response(status=400, response="Request rejected, failed validation")
 
     order_id = str(uuid.uuid4())  # Assign order_id to order_dict
-    logging.debug('Order request received: ' + order_id)
+    logging.debug('Request received and assigned Order ID ' + order_id)
 
-    # Check the stock to see if order can be placed
-    in_stock_dict, req_item_dict, restock_list = check_stock(order_id, order_dict)
-
-    if restock_list:    
-        # Restock item(s) contained in restock_list before creating order
-        restock_dict = {"storeID": order_dict["storeId"], "restock-list": restock_list}
-        logging.debug('Order ' + order_id + ' requires restock')
-        #response = requests.post("http://restocker:5000/restock", json=restock_dict)
-        response = requests.post("http://0.0.0.0:5000/restock", json=restock_dict)
-        logging.debug(response.text)
-        if response.status_code != 200:
-            # Restock was unsuccesful, must reject order request
-            return Response(status=response.status_code, response=response.text)
+    # Check the stock to see if order can be placed, if not restock and check again
+    while True:
+        in_stock_dict, req_item_dict, restock_list = check_stock(order_dict)
+        if restock_list:    
+            restock_dict = {"storeID": order_dict["storeId"], "restock-list": restock_list}
+            response = requests.post("http://restocker:5000/restock", json=restock_dict)
+            logging.debug(response.text)
+            if response.status_code != 200:
+                # Restock was unsuccesful, must reject order request
+                return Response(status=response.status_code, response=response.text)
+        else:
+            break
 
     # Decrement stock and create the order
     decrement_stock(uuid.UUID(order_dict["storeId"]), in_stock_dict, req_item_dict)
     create_order(order_id, order_dict, req_item_dict)
 
     # Assign delivery entity
-    logging.debug('Assigning delivery entity for Order ' + order_id)
-    #response = requests.post("http://delivery-assigner:3000/assign-entity", json={"order_id":order_id})
-    response = requests.post("http://0.0.0.0:3000/assign-entity", json={"order_id":order_id})
+    response = requests.post("http://delivery-assigner:3000/assign-entity", json={"order_id":order_id})
     logging.debug(response.text)
     if response.status_code != 200:
         # Could not assign delivery entity, but order has been created
         return Response(status=response.status_code, response=response.text)
 
-    # The order has now been created
-    logging.debug('Pizza Order ' + order_id + ' has been placed.')
     return Response(status=200, response=response.text)
 
 

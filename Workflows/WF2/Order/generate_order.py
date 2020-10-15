@@ -69,7 +69,7 @@ def post_order(q, url):
     while True:
         order = q.get()
         order_dict = order.generate_order()
-        print("Pizza Order Request:\n" + json.dumps(order_dict, indent=4))
+        print("\nPizza Order Request:\n" + json.dumps(order_dict, indent=4))
         response = requests.post(url, json=json.dumps(order_dict))
         if response.status_code == 200:
             print("Request accepted - " + response.text)
@@ -129,6 +129,6 @@ if __name__ == "__main__":
     for _ in range(max_orders):
         pizza_order = PizzaOrder(store)
         q.put(pizza_order)
-        time.sleep(5)  # 5 second delay
+        time.sleep(3)
 
     q.join()    # Wait for all PizzaOrder objects to be processed from the queue

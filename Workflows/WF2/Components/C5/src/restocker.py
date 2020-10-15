@@ -88,8 +88,7 @@ def restocker():
                 for item_dict in restock_json["restock-list"]:
                     session.execute(add_stock_prepared, (item_dict["quantity"],
                         storeID, item_dict["item-name"]))
-                response = Response(status=200, response="Filled out the following \
-                    restock order: \n" + json.dumps(restock_json))
+                response = Response(status=200, response="Filled out the following restock order:\n" + json.dumps(restock_json))
             except ValueError:
                 logging.debug("Exception: badly formed hexadecimal UUID\
                     string")
