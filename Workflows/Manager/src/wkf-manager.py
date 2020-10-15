@@ -2,63 +2,83 @@ import requests
 import logging
 import json
 from time import sleep
-from threading import Timer
-# pull the docker sdk library and setup
-import docker
-client = docker.from_env()
+import threading
 
-has_dockerized = False
+import docker
+import jsonschema
+from flask import Flask, request, Response
+
+__author__ = "Carla Vazquez"
+__version__ = "2.0.0"
+__maintainer__ = "Carla Vazquez"
+__email__ = "cpv150030@utdallas.edu"
+__status__ = "Development"
+
+# set up necessary docker clients
+client = docker.from_env()
+APIclient = docker.APIClient(base_url='unix://var/run/docker.sock')
 
 # set up logging
 logging.basicConfig(level=logging.DEBUG, 
-    format='%(asctime)s - %(levelname)s - %(message)s')
+    format="%(asctime)s - %(levelname)s - %(message)s")
 
-# pull the flask library and initialize
-from flask import Flask, request, Response
+# set up flask app
 app = Flask(__name__)
 
-def initiate_auto_restocker():
-    logging.debug("*****************Initiating Auto Restocker******************************\n")
-    Timer(60.0, initiate_auto_restocker).start()
-    items = ['Cheese']
-    stores = ['b18b3932-a4ef-485c-a182-8e67b04c208c']
-    history = 5
-    days = 1
-    for store in stores:
-        for item in items:
-            response = requests.post("http://auto-restocker:4000/auto-restock",
-                json={"store_id": store,
-                    "item_name": item,
-                    "history": history,
-                    "days": days},
-                headers={'Content-type': 'application/json'})
-            logging.debug("Store:{}, Item:{}, Auto-Restock:{}".format(store, item, response.status_code))
-	
-	
+# set up component port dictionary
+portDict  = {
+    "order-verifier" : 1000,
+    "delivery-assigner": 3000,
+    "auto-restocker": 4000,
+    "restocker": 5000
+}
 
-# function to see if there is a database running, start it if it isn't, and then return the virtual IP
-def get_or_launch_db():
-    # check if database is running, and spin it up if it isn't
-    running_database_services = client.services.list(filters={'name': 'cass'})
-    
-    # the reference to the Service
-    database_service = None
+# set up thread lock
+thread_lock = threading.Lock()
 
-    if len(running_database_services) == 0:
-        logging.debug("the database doesn't exist, spin it up")
+# set up workflow dict
+workflows = dict()
+
+# open workflow-request specification
+with open("src/workflow-request.schema.json", "r") as schema:
+    schema = json.loads(schema.read())
+
+# 
+def verify_workflow(data):
+    global schema
+    valid = True
+    mess = None
+    try:
+        jsonschema.validate(instance=data, schema=schema)
+    except Exception as inst:
+        valid = False
+        logging.debug("workflow-request rejected:\n" + json.dumps(data))
+        logging.debug("Request rejected due to failed validation.")
+        valid = False
+        mess = inst.args[0]
+    return valid, mess
+
+
+def start_cass():
+    # look for cass service
+    cass_filter = client.services.list(filters={'name': 'cass'})
+
+    # if cass service not found
+    if len(cass_filter) == 0:
+
+        logging.debug("{:*^60}".format(" cass doesn't exist "))
+        logging.debug("{:*^60}".format(" Spinning up cass "))
+
+        # create cass service
         database_service = client.services.create(
             "trishaire/cass", # the name of the image
-            name="cass",
+            name="cass", # name of the service
             endpoint_spec=docker.types.EndpointSpec(mode="vip", ports={ 9042 : 9042 }),
-            networks=['myNet'])
-    else:
-        logging.debug("the database exists")
-        database_service = running_database_services[0]
+            networks=['myNet']) #network
         
-    APIclient = docker.APIClient(base_url='unix://var/run/docker.sock')
-
     healthy = False
 
+    # keep pinging the service
     while not healthy : 
         tasks = client.services.get("cass").tasks()
 
@@ -69,207 +89,92 @@ def get_or_launch_db():
                 healthy = True    
         
         if not healthy:
-            logging.debug("Cass failed health check")
+            logging.debug("cass is not ready")
             sleep(5)
 
-    logging.debug('Cass is healthy!')
+    logging.debug("{:*^60}".format(" cass is ready for connections "))
 
-    return database_service
 
-    # get the virtual IP of the database service, to pass to 
-    #db_virtualip = database_service.attrs['Endpoint']['VirtualIPs'][1]['Addr']
+def start_components(component, workflow_json, response_list):
 
-    #return db_virtualip
+    # check if service exists
+    service_filter = client.services.list(filters={'name': component})
 
-@app.route('/dockerize', methods=['GET'])
-def dockerize_function():
-    #launch the db
-    get_or_launch_db()
-    
-    sleep(10)
+    # if not exists
+    if len(service_filter) == 0: 
+        logging.debug("{:*^60}".format(" " + component + " doesn't exist "))
+        logging.debug("{:*^60}".format(" Spinning up " + component + " "))
 
-    # Launch component 1
+        # create the service
+        service = client.services.create(
+                "trishaire/" + component+":latest",  # the name of the image
+            name=component,  # name of service
+            endpoint_spec=docker.types.EndpointSpec(mode="vip", ports={ portDict[component] : portDict[component] }),
+            env=["CASS_DB=cass"], # set environment var
+            networks=['myNet']) # set network
 
-    running_order_services = client.services.list(filters={'name' : 'order-verifier'})
-   
-    # the reference to the Service
-    order_service = None
-
-    if len(running_order_services) == 0: 
-        logging.debug("the order service doesn't exist, spin it up")
-        order_service = client.services.create(
-            "trishaire/order-verifier",  # the name of the image
-            name="order-verifier",
-            endpoint_spec=docker.types.EndpointSpec(mode="vip", ports={ 1000 : 1000 }),
-            env=["CASS_DB=cass"],
-            networks=['myNet'])
-    else: 
-        logging.debug("the order service exists")
-        order_service = running_order_services[0]
-
-    logging.debug("*** ORDER SERVICE ***")
-    logging.debug(order_service)
-           
-           
+    # wait for component to spin up
     while True:
         try:
-            order_response = requests.get("http://order-verifier:1000/health")
+            service_response = requests.get("http://"+component+":"+str(portDict[component])+"/health")
         except:
-            continue
+            sleep(1)
         else:
             break
-
-    logging.debug("*** THE RESPONSE ***")
-    logging.debug(order_response)
-
-    # launch component 3
-
-    running_delivery_services = client.services.list(filters={'name' : 'delivery-assigner'})
-   
-    # the reference to the Service
-    delivery_service = None
-
-    if len(running_delivery_services) == 0: 
-        logging.debug("the delivery service doesn't exist, spin it up")
-        delivery_service = client.services.create(
-            "trishaire/delivery-assigner",  # the name of the image
-            name="delivery-assigner",
-            endpoint_spec=docker.types.EndpointSpec(mode="vip", ports={ 3000 : 3000 }),
-            env=["CASS_DB=cass"],
-            networks=['myNet'])
-    else: 
-        logging.debug("the delivery service exists")
-        delivery_service = running_delivery_services[0]
-
-    logging.debug("*** DELIVERY SERVICE ***")
-    logging.debug(delivery_service)
-
-    sleep(10)
-
-    while True:
-        try:            
-            delivery_response = requests.get("http://delivery-assigner:3000/health")
-        except:
-            continue
-        else:
-            break
-
-    logging.debug("*** THE RESPONSE ***")
-    logging.debug(delivery_response)
-
-    # Launch component 4
-
-    running_auto_restocker_services = client.services.list(filters={'name' : 'auto-restocker'})
-   
-    # the reference to the Service
-    auto_restocker_service = None
-
-    if len(running_auto_restocker_services) == 0: 
-        logging.debug("the auto restocker service doesn't exist, spin it up")
-        auto_restocker_service = client.services.create(
-            "trishaire/auto-restocker",  # the name of the image
-            name="auto-restocker",
-            endpoint_spec=docker.types.EndpointSpec(mode="vip", ports={ 4000 : 4000 }),
-            env=["CASS_DB=cass"],
-            networks=['myNet'])
-    else: 
-        logging.debug("the auto restocker service exists")
-        auto_restocker_service = running_auto_restocker_services[0]
-
-    logging.debug("*** AUTO RESTOCKER SERVICE ***")
-    logging.debug(auto_restocker_service)
-
     
-    while True:
-        try:      
-            auto_restocker_response = requests.get("http://auto-restocker:4000/health")
-        except:
-            continue
-        else:
-            break
+    logging.debug("{:*^60}".format(" " + component + " is healthy "))
+    # send workflow_request to component
+    # service_response = requests.post("http://"+component+":"+portDict[component]+"/workflow-setup", json=json.dumps(workflow_json))
+    # thread_lock.acquire(blocking=True)
+    # response_list.append(comp_response)
+    # thread_lock.release()
+    # logging.debug("{:*^60}".format(" sent " + component + " workflow specification for " + workflow_json["storeId"]+ " "))
 
-    logging.debug("*** THE RESPONSE ***")
-    logging.debug(auto_restocker_response)
 
-    # Launch component 5
 
-    running_restocker_services = client.services.list(filters={'name' : 'restocker'})
-   
-    # the reference to the Service
-    restocker_service = None
+@app.route("/workflow-request", methods=["POST"])
+def setup_workflow():
+    logging.debug("In the workflow request")
+    # get the data from the request
+    data = json.loads(request.get_json())
+    # verify the request is valid
+    valid, mess = verify_workflow(data)
 
-    if len(running_restocker_services) == 0: 
-        logging.debug("the restocker service doesn't exist, spin it up")
-        restocker_service = client.services.create(
-            "trishaire/restocker",  # the name of the image
-            name="restocker",
-            endpoint_spec=docker.types.EndpointSpec(mode="vip", ports={ 5000 : 5000 }),
-            env=["CASS_DB=cass"],
-            networks=['myNet'])
-    else: 
-        logging.debug("the restocker service exists")
-        restocker_service = running_restocker_services[0]
+    # if invalid workflow request send back a 400 response
+    if not valid:
+        return Response(status=400, response="workflow-request ill formated\n" + mess)
+
+    # get the list of components for the workflow
+    component_list = data["component-list"].copy()
     
-    
+    # check if the workflow request specifies cass
+    has_cass = True
+    try:
+        component_list.remove("cass")
+    except ValueError:
+        has_cass = False
 
-    logging.debug("*** RESTOCKER SERVICE ***")
-    logging.debug(restocker_service)
+    # startup cass first and formost
+    if has_cass :
+        start_cass()
 
-    
-    while True:
-        try:            
-            restocker_response = requests.get("http://restocker:5000/health")
-        except:
-            continue
-        else:
-            break
+    thread_list = []
+    response_list = []
+    # start up the rest of the components
+    for comp in component_list:
+        x = threading.Thread(target=start_components, args=(comp, data, response_list))
+        x.start()
+        thread_list.append(x)
 
+    # wait for all the threads to terminate
+    for x in thread_list :
+        x.join()
 
-    logging.debug("*** THE RESPONSE ***")
-    logging.debug(restocker_response)
-
-    to_return = "success" + order_response.text + delivery_response.text + auto_restocker_response.text + restocker_response.text
-
-    has_dockerized = True
-    
-    t = Timer(60.0, initiate_auto_restocker)
-    t.start()
-    return Response(status=200,response=to_return)
-
-@app.route('/order', methods=['POST'])
-def pass_on_order():
-    #launch the db
-    get_or_launch_db()
-
-    if has_dockerized == False:
-        dockerize_function()
-
-
-    order_response = requests.post("http://order-verifier:1000/order",
-            json=request.json)
-
-    order_dict = order_response.json() 
-    full_response = order_response.text 
-    # this means the order is correct, pass to component 3
-    if order_response.status_code == 200:
-        del_response = requests.post("http://delivery-assigner:3000/assign-entity",
-            json={"order_id":order_dict["order_id"]}, headers={'Content-type': 'application/json'})
-        full_response = full_response + " delivered " + del_response.text
-    elif order_response.status_code == 403:
-        rest_response = requests.post("http://restocker:5000/restock",
-            json=order_response.json())
-        full_response = full_response + " restocked " + rest_response.text
-        
-
-    logging.debug("*** THE RESPONSE ***")
-    logging.debug(order_response)
-    logging.debug("*** FULL RESPONSE ***")
-    logging.debug(full_response)
-
-    return Response(status=200, response=full_response)
+    workflows[data["storeId"]] = data
+    return Response(status=200, response="Workflow deployed!")
 
 # Health check endpoint
-@app.route('/health', methods=['GET', 'POST'])
+@app.route("/health", methods=["GET"])
 def health_check():
     return Response(status=200,response="healthy\n")
 
