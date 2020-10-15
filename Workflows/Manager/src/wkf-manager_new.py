@@ -114,11 +114,10 @@ def start_components(component, workflow_json, response_list):
     # wait for component to spin up
     while True:
         try:
-            #order_response = requests.get("http://"+component+":"+portDict[component]+"/health")
-            order_response = requests.get("http://order-verifier:1000/health")
+            order_response = requests.get("http://"+component+":"+str(portDict[component])+"/health")
+            #order_response = requests.get("http://order-verifier:1000/health")
         except Exception as inst:
-            logging.debug(type(inst))    # the exception instance
-            logging.debug(inst.args[0])      
+            logging.debug(type(inst))
             sleep(1)
         else:
             break
