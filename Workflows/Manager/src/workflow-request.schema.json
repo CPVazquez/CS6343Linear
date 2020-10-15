@@ -1,0 +1,26 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "description": "A workflow request",
+    "properties": {
+        "storeId" : {
+            "type": "string",
+            "format": "uuid",
+            "description": "the restaurant that is setting up this workflow"    
+        },
+        "method": {
+            "type": "string",
+            "enum": ["persistent", "edge"],
+            "description": "deployment method for the workflow"
+        },
+        "component-list": {
+            "type": "array",
+            "description": "A list of components to deploy for this workflow",
+            "items" : {
+                "type": "string",
+                "enum":  ["order-verifier", "delivery-assigner", "auto-restocker", "restocker", "cass"]
+            }
+        }
+    },
+    "required": ["storeId", "method", "component-list"]
+}
