@@ -5,6 +5,7 @@ from time import sleep
 import threading
 
 import docker
+import jsonschema
 from flask import Flask, request, Response
 
 __author__ = "Carla Vazquez"
@@ -106,7 +107,7 @@ def start_components(component, workflow_json, response_list):
 
         # create the order-verifier service
         order_service = client.services.create(
-            "trishaire/" + component,  # the name of the image
+                "trishaire/" + component+":latest",  # the name of the image
             name=component,  # name of service
             endpoint_spec=docker.types.EndpointSpec(mode="vip", ports={ portDict[component] : portDict[component] }),
             env=["CASS_DB=cass"], # set environment var
@@ -131,18 +132,20 @@ def start_components(component, workflow_json, response_list):
 
 
 
-@app.route("/workflow-request", methods=["GET"])
+@app.route("/workflow-request", methods=["POST"])
 def setup_workflow():
-
+    logging.debug("In the workflow request")
     # get the data from the request
-    data = request.get_json()
+    data = json.loads(request.get_json())
     # verify the request is valid
     valid, mess = verify_workflow(data)
 
+    logging.debug("validating")
     # if invalid workflow request send back a 400 response
     if not valid:
         return Response(status=400, response="workflow-request ill formated\n" + mess)
 
+    logging.debug("validated")
     # get the list of components for the workflow
     component_list = data["component-list"].copy()
     

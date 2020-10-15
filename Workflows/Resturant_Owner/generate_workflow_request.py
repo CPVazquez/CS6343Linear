@@ -74,7 +74,7 @@ if __name__ == "__main__":
 
     workflow_json = json.dumps(workflow_dict)
     print("\nWorkflow Request Generated:\n"+ json.dumps(workflow_dict, sort_keys=True, indent=4))
-    response = requests.post(url, json=json_obj)
+    response = requests.post(url, json=workflow_json)
     
     if response.status_code == 200 :
         print("Workflow successfully deployed!")   

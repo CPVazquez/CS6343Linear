@@ -9,6 +9,7 @@ verify_ssl = true
 gunicorn = "*"
 docker = "*"
 flask = "*"
+jsonschema = "*"
 
 [requires]
 python_version = "3.8"
