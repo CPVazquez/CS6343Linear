@@ -21,8 +21,6 @@ APIclient = docker.APIClient(base_url='unix://var/run/docker.sock')
 # set up logging
 logging.basicConfig(level=logging.DEBUG, 
     format="%(asctime)s - %(levelname)s - %(message)s")
-logging.basicConfig(level=logging.INFO, 
-    format="%(asctime)s - %(levelname)s - %(message)s")
 
 # set up flask app
 app = Flask(__name__)
@@ -94,7 +92,7 @@ def start_cass():
             logging.debug("cass is not ready")
             sleep(5)
 
-    logging.info("{:*^60}".format(" cass is ready for connections "))
+    logging.debug("{:*^60}".format(" cass is ready for connections "))
 
 
 def start_components(component, workflow_json, response_list):
@@ -118,18 +116,20 @@ def start_components(component, workflow_json, response_list):
         try:
             #order_response = requests.get("http://"+component+":"+portDict[component]+"/health")
             order_response = requests.get("http://order-verifier:1000/health")
-        except:
+        except Exception:
+            logging.debug(type(inst))    # the exception instance
+            logging.debug(inst.args[0])      
             sleep(5)
         else:
             break
     
-    logging.info("{:*^60}".format(" " + component + " is healthy "))
+    logging.debug("{:*^60}".format(" " + component + " is healthy "))
     # send workflow_request to component
     # comp_response = requests.post("http://"+component+":"+portDict[component]+"/workflow-setup", json=json.dumps(workflow_json))
     # thread_lock.acquire(blocking=True)
     # response_list.append(comp_response)
     # thread_lock.release()
-    # logging.info("{:*^60}".format(" sent " + component + " workflow specification for " + workflow_json["storeId"]+ " "))
+    # logging.debug("{:*^60}".format(" sent " + component + " workflow specification for " + workflow_json["storeId"]+ " "))
 
 
 
