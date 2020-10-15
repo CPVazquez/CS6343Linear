@@ -116,10 +116,10 @@ def start_components(component, workflow_json, response_list):
         try:
             #order_response = requests.get("http://"+component+":"+portDict[component]+"/health")
             order_response = requests.get("http://order-verifier:1000/health")
-        except Exception:
+        except Exception as inst:
             logging.debug(type(inst))    # the exception instance
             logging.debug(inst.args[0])      
-            sleep(5)
+            sleep(1)
         else:
             break
     
@@ -173,7 +173,7 @@ def setup_workflow():
     for x in thread_list :
         x.join()
 
-    workflows[data["storeID"]] = data
+    workflows[data["storeId"]] = data
     return Response(status=200, response="Workflow deployed!")
 
 # Health check endpoint
