@@ -2,6 +2,12 @@
 # Code for File and entry-wrap inspired by two of the answers in this stack overflow
 FROM cassandra:latest
 
+LABEL author="Carla Patricia Vazquez"
+LABEL version="1.0.0"
+LABEL maintainer="Carla Patricia Vazquez"
+LABEL emai="cpv150030@utdallas.edu"
+LABEL status="Development"
+
 COPY ./src/schema.cql /opt/data/schema.cql
 
 COPY ./src/entry-wrap.sh /entry-wrap.sh

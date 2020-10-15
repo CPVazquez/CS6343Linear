@@ -5,6 +5,7 @@ import json
 import random
 import requests
 import sys
+import time
 import uuid
 
 __author__ = "Chris Scott"
@@ -16,95 +17,118 @@ __status__ = "Development"
 fake = Faker('en_US')
 
 class PizzaOrder:
-    # Pizza Attributes
+    # Order Attribute Lists
+    stores = [("7098813e-4624-462a-81a1-7e0e4e67631d", 32.8456, -96.9172),
+              ("5a2bb99f-88d2-4612-ac60-774aea9b8de4", 30.2672, -97.7431),
+              ("b18b3932-a4ef-485c-a182-8e67b04c208c", 29.7604, -95.3698)]
     payment_types = ['PayPal','Google Pay','Apple Pay','Visa','Mastercard','AMEX','Discover','Gift Card']
     crust_types = ['Thin','Traditional']
     sauce_types = ['Spicy','Traditional']
     cheese_amts = ['None','Light','Normal','Extra']
     topping_types = ['Pepperoni','Sausage','Beef','Onion','Chicken','Peppers','Olives','Bacon','Pineapple','Mushrooms']
 
-    def __init__(self):
-        self.store_id = ""
-        self.store_lat = 0
-        self.store_lon = 0
+    def __init__(self, store):
+        self.store_id = self.stores[store][0]
+        self.cust_name = fake.name()
+        self.pay_token = str(uuid.uuid4())
+        self.pay_type = self.payment_types[random.randint(0, 7)]
+        self.cust_lat = round((self.stores[store][1] + random.uniform(-0.037, 0.037)), 6)
+        self.cust_lon = round((self.stores[store][2] + random.uniform(-0.0432, 0.0432)), 6)
 
-    def choose_store(self):
-        stores = [("7098813e-4624-462a-81a1-7e0e4e67631d", 32.8456, -96.9172),
-                  ("5a2bb99f-88d2-4612-ac60-774aea9b8de4", 30.2672, -97.7431),
-                  ("b18b3932-a4ef-485c-a182-8e67b04c208c", 29.7604, -95.3698)]
-        store = random.randint(0, 2)
-        self.store_id = stores[store][0]
-        self.store_lat = round((stores[store][1] + random.uniform(-0.037, 0.037)), 6)
-        self.store_lon = round((stores[store][2] + random.uniform(-0.0432, 0.0432)), 6)
-
-    def add_more_pizzas(self, order_dict):
-        n = round(random.triangular(1, max_pizzas, 1))  # Random int in range 1 <= n <= max_pizzas [mode is 1]
-        # At this point, there's 1 pizza in pizzaList from generate_order()
-        # Loop adds anywhere from 0 to max_pizzas-1 additional pizzas to pizzaList
-        # (initial pizza) + (up to max_pizzas-1 additional pizzas) = max_pizzas
-        for _ in range(1, n):
-            new_pizza = {
+    def add_pizzas(self):
+        # Generate a list of random pizzas in the range of 1 to max_pizzas
+        pizza_list = []
+        n = round(random.triangular(1, max_pizzas, 1))  # 1 <= n <= max_pizzas (mode is 1)
+        for _ in range(n):
+            pizza = {
                 "crustType": self.crust_types[random.randint(0, 1)],
                 "sauceType": self.sauce_types[random.randint(0, 1)],
                 "cheeseAmt": self.cheese_amts[random.randint(0, 3)],
                 "toppingList": random.sample(self.topping_types, random.randint(0, 9))
             }
-            order_dict["pizzaList"].append(new_pizza)
-        return order_dict
+            pizza_list.append(pizza)
+        return pizza_list
 
     def generate_order(self):
-        self.choose_store()
         # Construct the pizza order dict, with a single pizza in pizzaList
         order_dict = {
-                "storeId": self.store_id,
-                "custName": fake.name(),
-                "paymentToken": str(uuid.uuid4()),
-                "paymentTokenType": self.payment_types[random.randint(0, 7)],
-                "custLocation": {
-                    "lat": self.store_lat,
-                    "lon": self.store_lon
-                },
-                "pizzaList": [{
-                    "crustType": self.crust_types[random.randint(0, 1)],
-                    "sauceType": self.sauce_types[random.randint(0, 1)],
-                    "cheeseAmt": self.cheese_amts[random.randint(0, 3)],
-                    "toppingList": random.sample(self.topping_types, random.randint(0, 9))
-                }]
+            "storeId": self.store_id,
+            "custName": self.cust_name,
+            "paymentToken": self.pay_token,
+            "paymentTokenType": self.pay_type,
+            "custLocation": {
+                "lat": self.cust_lat,
+                "lon": self.cust_lon
+            },
+            "pizzaList": self.add_pizzas()
         }
-        # Call add_more_pizzas(..) in return statement to randomly add additional pizzas
-        # Upon return from add_more_pizzas(..), order_dict could contain up to max_pizzas
-        return self.add_more_pizzas(order_dict)
+        return order_dict
 
 
-def post_order(q):
+def post_order(q, url):
     while True:
         order = q.get()
         order_dict = order.generate_order()
-        json_obj = json.dumps(order_dict)
-        print("Pizza Order Request:\n" + json_obj)
-        response = requests.post(url, json=json_obj)
-        print("Response Status Code: " + str(response.status_code) + "\nResponse Text: " + response.text + "\n")
+        print("Pizza Order Request:\n" + json.dumps(order_dict, indent=4))
+        response = requests.post(url, json=json.dumps(order_dict))
+        if response.status_code == 200:
+            print("Request accepted - " + response.text)
+        else:
+            print("Request rejected - " + response.text)
         q.task_done()
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 5:
-        raise ValueError('Invalid command line arguments provided.')
-
-    url = sys.argv[1]               # URL to send post requests
-    num_threads = int(sys.argv[2])  # Number of threads to be started
-    max_orders = int(sys.argv[3])   # Maximum orders to be generated
-    max_pizzas = int(sys.argv[4])   # Maximum number of pizzas allowed per order
+    print("\n*** Pizza Order Generator Script - User Input Required ***\n")
+    url = input("Enter Order Verifier URL: ")
+    print()
+    while True:
+        try:
+            num_threads = int(input("Enter the number of threads to start (min: 1, max: 10): "))
+        except ValueError:
+            print("Could not convert input data to integer. Please try again.")
+        if (num_threads >= 1) & (num_threads <= 10):
+            print()
+            break
+    print("0 - StoreID 7098813e-4624-462a-81a1-7e0e4e67631d")
+    print("1 - StoreID 5a2bb99f-88d2-4612-ac60-774aea9b8de4")
+    print("2 - StoreID b18b3932-a4ef-485c-a182-8e67b04c208c")
+    while True:
+        try:
+            store = int(input("Select a store from above by entering 0, 1, or 2: "))
+        except ValueError:
+            print("Could not convert input data to integer. Please try again.")
+        if (store >= 0) & (store <= 2):
+            print()
+            break
+    while True:
+        try:
+            max_orders = int(input("Enter the number of pizza orders to generate (min: 1, max: 1000): "))
+        except ValueError:
+            print("Could not convert input data to integer. Please try again.")
+        if (max_orders >= 1) & (max_orders <= 1000):
+            print()
+            break
+    while True:
+        try:
+            max_pizzas = int(input("Enter the maximum number of pizzas per order (min: 1, max: 20): "))
+        except ValueError:
+            print("Could not convert input data to integer. Please try again.")
+        if (max_pizzas >= 1) & (max_pizzas <= 20):
+            print()
+            break
+    print("\n*** Pizza Order Generator Script - Generating Orders ***\n")
 
     q = Queue(max_orders)
 
     for _ in range(num_threads):
-        t = Thread(target=post_order, args=(q,))
+        t = Thread(target=post_order, args=(q,url))
         t.daemon = True
         t.start()
 
     for _ in range(max_orders):
-        pizza_order = PizzaOrder()
+        pizza_order = PizzaOrder(store)
         q.put(pizza_order)
+        time.sleep(5)  # 5 second delay
 
     q.join()    # Wait for all PizzaOrder objects to be processed from the queue
