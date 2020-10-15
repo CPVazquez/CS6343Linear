@@ -116,9 +116,10 @@ def start_components(component, workflow_json, response_list):
     # wait for component to spin up
     while True:
         try:
-            order_response = requests.get("http://"+component+":"+portDict[component]+"/health")
+            #order_response = requests.get("http://"+component+":"+portDict[component]+"/health")
+            order_response = requests.get("http://order-verifier:1000/health")
         except:
-            continue
+            sleep(5)
         else:
             break
     
