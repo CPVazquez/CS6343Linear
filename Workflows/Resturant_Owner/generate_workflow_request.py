@@ -9,11 +9,9 @@ __maintainer__ = "Carla Vazquez"
 __email__ = "cpv150030@utdallas.edu"
 __status__ = "Development"
 
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        raise ValueError('Invalid command line arguments provided.')
+url = "http://10.176.67.82:8080/workflow-request/"
 
-    url = sys.argv[1]
+if __name__ == "__main__":
 
     print("Which store are you generating a workflow for? \n\
         A. 7098813e-4624-462a-81a1-7e0e4e67631d\n\
@@ -67,14 +65,13 @@ if __name__ == "__main__":
             components = input("Invalid component selection. Please enter a space\n\serperated list of valid components: ")
 
     workflow_dict = {
-        "storeId": storeSelect,
         "method": method,
         "component-list": component_list,
     }
 
     workflow_json = json.dumps(workflow_dict)
     print("\nWorkflow Request Generated:\n"+ json.dumps(workflow_dict, sort_keys=True, indent=4))
-    response = requests.post(url, json=workflow_json)
+    response = requests.post(url+storeSelect, json=workflow_json)
     
     if response.status_code == 200 :
         print("Workflow successfully deployed!")   

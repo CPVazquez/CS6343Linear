@@ -80,14 +80,18 @@ def start_cass():
 
     # keep pinging the service
     while not healthy : 
+        # retrieve the tasks of the cass servcie
         tasks = client.services.get("cass").tasks()
 
+        # see if at least one of the tasks is healthy
         for task in tasks:
             tID = task['ID']
             result = APIclient.inspect_task(tID)['Status']['Message']
             if result == 'started':
                 healthy = True    
         
+        # if none of the tasks are healthy, wait a bit before
+        # trying again
         if not healthy:
             logging.debug("cass is not ready")
             sleep(5)
@@ -98,7 +102,8 @@ def start_cass():
 def start_components(component, workflow_json, response_list):
 
     # check if service exists
-    service_filter = client.services.list(filters={'name': component})
+    service_filter = client.services.list(filters={'name':component})
+    service_url = "http://" + component + ":" + str(portDict[component])
 
     # if not exists
     if len(service_filter) == 0: 
@@ -116,7 +121,7 @@ def start_components(component, workflow_json, response_list):
     # wait for component to spin up
     while True:
         try:
-            service_response = requests.get("http://"+component+":"+str(portDict[component])+"/health")
+            service_response = requests.get(service_url+"/health")
         except:
             sleep(1)
         else:
@@ -124,17 +129,18 @@ def start_components(component, workflow_json, response_list):
     
     logging.debug("{:*^60}".format(" " + component + " is healthy "))
     # send workflow_request to component
-    # service_response = requests.post("http://"+component+":"+portDict[component]+"/workflow-setup", json=json.dumps(workflow_json))
+    # logging.debug("{:*^60}".format(" sent " + component + " workflow specification for " + workflow_json["storeId"]+ " "))
+    # service_response = requests.post(service_url+"/workflow-setup", json=json.dumps(workflow_json))
+    # logging.debug("{:*^60}".format(" recieved response from " + component + " for workflow specification " + workflow_json["storeId"]+ " "))
     # thread_lock.acquire(blocking=True)
     # response_list.append(comp_response)
     # thread_lock.release()
-    # logging.debug("{:*^60}".format(" sent " + component + " workflow specification for " + workflow_json["storeId"]+ " "))
+    
 
 
 
 @app.route("/workflow-request", methods=["POST"])
 def setup_workflow():
-    logging.debug("In the workflow request")
     # get the data from the request
     data = json.loads(request.get_json())
     # verify the request is valid
@@ -170,8 +176,18 @@ def setup_workflow():
     for x in thread_list :
         x.join()
 
-    workflows[data["storeId"]] = data
-    return Response(status=200, response="Workflow deployed!")
+    delploy_successful = True
+
+    for resp in response_list:
+        if resp.status_code != 200:
+            delploy_successful = False
+
+    if delploy_successful: 
+        workflows[data["storeId"]] = data
+        return Response(status=200, response="Workflow deployed!")
+    else :
+        return Response(status=404, response="Worflow deployment failed.\nInvalid workflow specification")
+
 
 # Health check endpoint
 @app.route("/health", methods=["GET"])
