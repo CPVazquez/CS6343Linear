@@ -16,7 +16,7 @@ __status__ = "Development"
 
 logging.UPDATE_LEVEL = 25
 logging.addLevelName(logging.UPDATE_LEVEL, "UPDATE")
-logging.basicConfig(level=logging.UPDATE_LEVEL format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(level=logging.UPDATE_LEVEL, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger()
 logger.setLevel(logging.UPDATE_LEVEL)
 
