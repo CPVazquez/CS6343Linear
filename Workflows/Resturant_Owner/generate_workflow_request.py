@@ -10,7 +10,7 @@ __maintainer__ = "Carla Vazquez"
 __email__ = "cpv150030@utdallas.edu"
 __status__ = "Development"
 
-url = "http://10.176.67.82:8080/workflow-request"
+url = "http://cluster1-1.utdallas.edu:8080/workflow-request"
 
 # set up flask app
 app = Flask(__name__)
@@ -24,6 +24,8 @@ def print_results():
 @app.route("/health", methods=["GET"]) 
 def health_check():
     return Response(status=200,response="healthy\n")
+
+
 
 
 def startup():
@@ -86,7 +88,7 @@ def startup():
 
     workflow_json = json.dumps(workflow_dict)
     print("\nWorkflow Request Generated:\n"+ json.dumps(workflow_dict, sort_keys=True, indent=4))
-    response = requests.post(url+storeSelect, json=workflow_json)
+    response = requests.post(url, json=workflow_json)
     
     if response.status_code == 200 :
         print("Workflow successfully deployed!")   
