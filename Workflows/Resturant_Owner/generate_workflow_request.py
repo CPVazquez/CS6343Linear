@@ -25,7 +25,7 @@ app = Flask(__name__)
 @app.route("/results", methods=["PUT"])
 def print_results():
     return Response(status=200)
-    print(request.get_data(as_text=True))
+    print(request)
 
 
 @app.route("/health", methods=["GET"]) 
