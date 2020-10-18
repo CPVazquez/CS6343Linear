@@ -1,5 +1,6 @@
 import json
 import sys
+import threading
 
 import requests
 from flask import Flask, request, Response
@@ -95,7 +96,8 @@ def startup():
         "component-list": component_list,
     }
 
-    app.run(port=8080, host="0.0.0.0")
+    #app.run(port=8080, host="0.0.0.0")
+
 
     workflow_json = json.dumps(workflow_dict)
     logging.debug("\nWorkflow Request Generated:\n"+ json.dumps(workflow_dict, sort_keys=True, indent=4))
@@ -110,6 +112,8 @@ def startup():
     
 
 if __name__ == "__main__" :
+    x = threading.Thread(target=app.run, args=(port=8080, host="0.0.0.0"))
+    x.start()
     startup()
 
 #hello
