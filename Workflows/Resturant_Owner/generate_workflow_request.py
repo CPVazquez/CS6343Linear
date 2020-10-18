@@ -2,6 +2,7 @@ import json
 import sys
 
 import requests
+from flask import Flask, request, Response
 
 __author__ = "Carla Vazquez"
 __version__ = "1.0.0"
@@ -11,7 +12,21 @@ __status__ = "Development"
 
 url = "http://10.176.67.82:8080/workflow-request/"
 
-if __name__ == "__main__":
+# set up flask app
+app = Flask(__name__)
+
+
+@app.route("/results", methods=["PUT"])
+def print_results():
+    print(request.get_data(as_text=True))
+
+
+@app.route("/health", methods=["GET"]) 
+def health_check():
+    return Response(status=200,response="healthy\n")
+
+
+def startup():
 
     print("Which store are you generating a workflow for? \n\
         A. 7098813e-4624-462a-81a1-7e0e4e67631d\n\
@@ -78,3 +93,7 @@ if __name__ == "__main__":
     else:
         print("Workflow deployment failed: " + response.text)
     
+
+if __name__ == "__main__" :
+    startup()
+    app.run(port=80)
