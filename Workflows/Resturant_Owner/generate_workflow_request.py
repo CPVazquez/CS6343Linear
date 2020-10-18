@@ -14,10 +14,25 @@ __maintainer__ = "Carla Vazquez"
 __email__ = "cpv150030@utdallas.edu"
 __status__ = "Development"
 
+create logger
 logging.UPDATE_LEVEL = 25
 logging.addLevelName(logging.UPDATE_LEVEL, "UPDATE")
-logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s")
-logging.setLevel(logging.UPDATE_LEVEL)
+logger = logging.getLogger()
+logger.setLevel(logging.UPDATE_LEVEL)
+
+ch = logging.StreamHandler()
+ch.setLevel(logging.UPDATE_LEVEL)
+
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+# add formatter to ch
+ch.setFormatter(formatter)
+
+# add ch to logger
+logger.addHandler(ch)
+
+
+# logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s")
+# logging.setLevel(logging.UPDATE_LEVEL)
 
 url = "http://cluster1-1.utdallas.edu:8080/workflow-request"
 
@@ -28,7 +43,7 @@ app = Flask(__name__)
 @app.route("/results", methods=["POST"])
 def print_results():
     mess = json.loads(request.get_json())
-    logging.log(logging.UPDATE_LEVEL, mess["message"])
+    logger.log(logging.UPDATE_LEVEL, mess["message"])
     return Response(status=200)
 
 
@@ -108,13 +123,13 @@ def startup():
     }
 
     workflow_json = json.dumps(workflow_dict)
-    logging.log(logging.UPDATE_LEVEL,"\nWorkflow Request Generated:\n"+ json.dumps(workflow_dict, sort_keys=True, indent=4))
+    logger.log(logging.UPDATE_LEVEL,"\nWorkflow Request Generated:\n"+ json.dumps(workflow_dict, sort_keys=True, indent=4))
     response = requests.post(url, json=workflow_json)
     
     if response.status_code == 200 :
-        logging.log(logging.UPDATE_LEVEL,"STATUS UPDATE: Workflow successfully deployed!")   
+        logger.log(logging.UPDATE_LEVEL,"STATUS UPDATE: Workflow successfully deployed!")   
     else:
-        logging.log(logging.UPDATE_LEVEL,"STATUS UPDATE: Workflow deployment failed: " + response.text)
+        logger.log(logging.UPDATE_LEVEL,"STATUS UPDATE: Workflow deployment failed: " + response.text)
         shutdown_server()
 
     
