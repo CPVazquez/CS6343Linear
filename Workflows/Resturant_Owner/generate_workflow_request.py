@@ -26,7 +26,7 @@ app = Flask(__name__)
 @app.route("/results", methods=["POST"])
 def print_results():
     mess = json.loads(request.get_json())
-    logging.debug("STATUS UPDATAE: "mess["message"])
+    logging.debug("STATUS UPDATAE: " + mess["message"])
     return Response(status=200)
 
 
