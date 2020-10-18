@@ -10,7 +10,7 @@ __maintainer__ = "Carla Vazquez"
 __email__ = "cpv150030@utdallas.edu"
 __status__ = "Development"
 
-url = "http://10.176.67.82:8080/workflow-request/"
+url = "http://10.176.67.82:8080/workflow-request"
 
 # set up flask app
 app = Flask(__name__)
