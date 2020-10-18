@@ -129,7 +129,7 @@ def start_components(component, workflow_json, response_list):
     
     logging.debug("{:*^60}".format(" " + component + " is healthy "))
 
-    origin_url = "http://"+workflow_json["origin"]+":8080/result"
+    origin_url = "http://"+workflow_json["origin"]+":8080/results"
 
     requests.post(origin_url, data="Component " + component + " of your workflow has been deployed")
     # send workflow_request to component
