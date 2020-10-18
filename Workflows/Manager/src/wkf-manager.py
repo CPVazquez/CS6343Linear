@@ -131,7 +131,7 @@ def start_components(component, workflow_json, response_list):
 
     origin_url = "http://"+workflow_json["origin"]+":8080/results"
 
-    requests.post(origin_url, data="Component " + component + " of your workflow has been deployed")
+    requests.put(origin_url, data="Component " + component + " of your workflow has been deployed")
     # send workflow_request to component
     # logging.debug("{:*^60}".format(" sent " + component + " workflow specification for " + workflow_json["storeId"]+ " "))
     # service_response = requests.post(service_url+"/workflow-setup", json=json.dumps(workflow_json))
