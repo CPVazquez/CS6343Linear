@@ -113,6 +113,6 @@ def startup():
     
 
 if __name__ == "__main__" :
-    x = threading.Thread(target=app.run, args=(port=8080, host="0.0.0.0"))
+    x = threading.Thread(target=app.run, args=("0.0.0.0",8080))
     x.start()
     startup()
