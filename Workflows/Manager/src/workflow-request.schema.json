@@ -20,6 +20,10 @@
                 "type": "string",
                 "enum":  ["order-verifier", "delivery-assigner", "auto-restocker", "restocker", "cass"]
             }
+        },
+        "orign": {
+            "type":"string",
+            "description":"hostname ip of the origin"
         }
     },
     "required": ["storeId", "method", "component-list"]

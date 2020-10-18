@@ -129,7 +129,7 @@ def start_components(component, workflow_json, response_list):
     
     logging.debug("{:*^60}".format(" " + component + " is healthy "))
 
-    #origin_url = "http://"+workflow_json["origin"]+":8080/result"
+    origin_url = "http://"+workflow_json["origin"]+":8080/result"
 
     requests.post(origin_url, data="Component " + component + " of your workflow has been deployed")
     # send workflow_request to component
@@ -156,9 +156,6 @@ def setup_workflow():
 
     # get the list of components for the workflow
     component_list = data["component-list"].copy()
-    #data["origin"] = request.origin
-    
-    logging.debug("origin is: " + request.origin)
 
     # check if the workflow request specifies cass
     has_cass = True

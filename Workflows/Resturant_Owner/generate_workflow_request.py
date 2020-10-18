@@ -2,6 +2,7 @@ import json
 import sys
 import logging
 import threading
+import socket
 
 import requests
 from flask import Flask, request, Response
@@ -91,10 +92,14 @@ def startup():
         else :
             components = input("Invalid component selection. Please enter a space\n\serperated list of valid components: ")
 
+    hostname = socket.gethostname()
+    ip_address = socket.gethostbyname(hostname)
+
     workflow_dict = {
         "storeId": storeSelect,
         "method": method,
         "component-list": component_list,
+        "origin": ip_address
     }
 
     #app.run(port=8080, host="0.0.0.0")
