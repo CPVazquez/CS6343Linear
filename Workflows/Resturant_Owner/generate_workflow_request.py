@@ -16,22 +16,8 @@ __status__ = "Development"
 
 logging.UPDATE_LEVEL = 25
 logging.addLevelName(logging.UPDATE_LEVEL, "UPDATE")
+logging.basicConfig(level=logging.UPDATE_LEVEL format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger()
-logger.setLevel(logging.UPDATE_LEVEL)
-
-ch = logging.StreamHandler()
-ch.setLevel(logging.UPDATE_LEVEL)
-
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-# add formatter to ch
-ch.setFormatter(formatter)
-
-# add ch to logger
-logger.addHandler(ch)
-
-
-# logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s")
-# logging.setLevel(logging.UPDATE_LEVEL)
 
 url = "http://cluster1-1.utdallas.edu:8080/workflow-request"
 
