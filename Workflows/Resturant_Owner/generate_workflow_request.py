@@ -14,15 +14,8 @@ __maintainer__ = "Carla Vazquez"
 __email__ = "cpv150030@utdallas.edu"
 __status__ = "Development"
 
-
-import logging
 logging.UPDATE_LEVEL = 25
 logging.addLevelName(logging.UPDATE_LEVEL, "UPDATE")
-def update(self, message, *args, **kws):
-    if self.isEnabledFor(logging.UPDATE_LEVEL):
-        # Yes, logger takes its '*args' as 'args'.
-        self._log(logging.UPDATE_LEVEL, message, args, **kws) 
-logging.Logger.update = update
 
 logging.basicConfig(level=logging.UPDATE_LEVEL, 
     format="%(asctime)s - %(levelname)s - %(message)s")
@@ -36,7 +29,7 @@ app = Flask(__name__)
 @app.route("/results", methods=["POST"])
 def print_results():
     mess = json.loads(request.get_json())
-    logging.update(mess["message"])
+    logging.log(loggign.UPDATE_LEVEL, mess["message"])
     return Response(status=200)
 
 
@@ -116,13 +109,13 @@ def startup():
     }
 
     workflow_json = json.dumps(workflow_dict)
-    logging.debug("\nWorkflow Request Generated:\n"+ json.dumps(workflow_dict, sort_keys=True, indent=4))
+    logging.log(loggign.UPDATE_LEVEL,"\nWorkflow Request Generated:\n"+ json.dumps(workflow_dict, sort_keys=True, indent=4))
     response = requests.post(url, json=workflow_json)
     
     if response.status_code == 200 :
-        logging.debug("STATUS UPDATE: Workflow successfully deployed!")   
+        logging.log(loggign.UPDATE_LEVEL,"STATUS UPDATE: Workflow successfully deployed!")   
     else:
-        logging.debug("STATUS UPDATE: Workflow deployment failed: " + response.text)
+        logging.log(loggign.UPDATE_LEVEL,"STATUS UPDATE: Workflow deployment failed: " + response.text)
         shutdown_server()
 
     
