@@ -14,7 +14,7 @@ __maintainer__ = "Carla Vazquez"
 __email__ = "cpv150030@utdallas.edu"
 __status__ = "Development"
 
-logging.basicConfig(level=logging.DEBUG, 
+logging.basicConfig(level=logging.INFO, 
     format="%(asctime)s - %(levelname)s - %(message)s")
 
 url = "http://cluster1-1.utdallas.edu:8080/workflow-request"
@@ -26,7 +26,7 @@ app = Flask(__name__)
 @app.route("/results", methods=["POST"])
 def print_results():
     mess = json.loads(request.get_json())
-    logging.debug("STATUS UPDATAE: " + mess["message"])
+    logging.info("STATUS UPDATAE: " + mess["message"])
     return Response(status=200)
 
 
@@ -106,13 +106,13 @@ def startup():
     }
 
     workflow_json = json.dumps(workflow_dict)
-    logging.debug("\nWorkflow Request Generated:\n"+ json.dumps(workflow_dict, sort_keys=True, indent=4))
+    logging.info("\nWorkflow Request Generated:\n"+ json.dumps(workflow_dict, sort_keys=True, indent=4))
     response = requests.post(url, json=workflow_json)
     
     if response.status_code == 200 :
-        logging.debug("STATUS UPDATE: Workflow successfully deployed!")   
+        logging.info("STATUS UPDATE: Workflow successfully deployed!")   
     else:
-        logging.debug("STATUS UPDATE: Workflow deployment failed: " + response.text)
+        logging.info("STATUS UPDATE: Workflow deployment failed: " + response.text)
         shutdown_server()
 
     
