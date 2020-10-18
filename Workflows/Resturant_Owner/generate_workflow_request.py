@@ -99,4 +99,4 @@ def startup():
 
 if __name__ == "__main__" :
     startup()
-    app.run(port=80)
+    app.run(port=8080, host="0.0.0.0")
