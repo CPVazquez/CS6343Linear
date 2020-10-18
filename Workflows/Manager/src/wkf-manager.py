@@ -102,6 +102,7 @@ def start_cass(workflow_json):
     origin_url = "http://"+workflow_json["origin"]+":8080/results"
     message = "Component cass of your workflow has been deployed"
     message_dict = {"message": message}
+    requests.post(origin_url, json=json.dumps(message_dict))
 
 
 def start_components(component, workflow_json, response_list):
@@ -123,14 +124,33 @@ def start_components(component, workflow_json, response_list):
             env=["CASS_DB=cass"], # set environment var
             networks=['myNet']) # set network
 
-    # wait for component to spin up
-    while True:
-        try:
-            service_response = requests.get(service_url+"/health")
-        except:
+    healthy = False
+
+    # keep pinging the service
+    while not healthy : 
+        # retrieve the tasks of the component servcie
+        tasks = client.services.get(component).tasks()
+
+        # see if at least one of the tasks is healthy
+        for task in tasks:
+            tID = task['ID']
+            result = APIclient.inspect_task(tID)['Status']['Message']
+            if result == 'started':
+                healthy = True    
+        
+        # if none of the tasks are healthy, wait a bit before
+        # trying again
+        if not healthy:
             sleep(1)
-        else:
-            break
+
+    # wait for component to spin up
+    # while True:
+    #     try:
+    #         service_response = requests.get(service_url+"/health")
+    #     except:
+    #         sleep(1)
+    #     else:
+    #         break
     
     logging.debug("{:*^60}".format(" " + component + " is healthy "))
 
@@ -138,7 +158,6 @@ def start_components(component, workflow_json, response_list):
     origin_url = "http://"+workflow_json["origin"]+":8080/results"
     message = "Component " + component + " of your workflow has been deployed"
     message_dict = {"message": message}
-
     requests.post(origin_url, json=json.dumps(message_dict))
     # send workflow_request to component
     # logging.debug("{:*^60}".format(" sent " + component + " workflow specification for " + workflow_json["storeId"]+ " "))
