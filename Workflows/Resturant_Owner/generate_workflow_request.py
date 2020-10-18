@@ -22,7 +22,7 @@ url = "http://cluster1-1.utdallas.edu:8080/workflow-request"
 app = Flask(__name__)
 
 
-@app.route("/results", methods=["PUT"])
+@app.route("/results", methods=["POST"])
 def print_results():
     return Response(status=200)
     print((request.get_json()))
