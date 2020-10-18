@@ -25,7 +25,7 @@ app = Flask(__name__)
 @app.route("/results", methods=["PUT"])
 def print_results():
     return Response(status=200)
-    print(request)
+    print((request.get_json()))
 
 
 @app.route("/health", methods=["GET"]) 
