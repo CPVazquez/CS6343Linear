@@ -29,7 +29,7 @@ app = Flask(__name__)
 @app.route("/results", methods=["POST"])
 def print_results():
     mess = json.loads(request.get_json())
-    logging.log(loggign.UPDATE_LEVEL, mess["message"])
+    logging.log(logging.UPDATE_LEVEL, mess["message"])
     return Response(status=200)
 
 
@@ -109,13 +109,13 @@ def startup():
     }
 
     workflow_json = json.dumps(workflow_dict)
-    logging.log(loggign.UPDATE_LEVEL,"\nWorkflow Request Generated:\n"+ json.dumps(workflow_dict, sort_keys=True, indent=4))
+    logging.log(logging.UPDATE_LEVEL,"\nWorkflow Request Generated:\n"+ json.dumps(workflow_dict, sort_keys=True, indent=4))
     response = requests.post(url, json=workflow_json)
     
     if response.status_code == 200 :
-        logging.log(loggign.UPDATE_LEVEL,"STATUS UPDATE: Workflow successfully deployed!")   
+        logging.log(logging.UPDATE_LEVEL,"STATUS UPDATE: Workflow successfully deployed!")   
     else:
-        logging.log(loggign.UPDATE_LEVEL,"STATUS UPDATE: Workflow deployment failed: " + response.text)
+        logging.log(logging.UPDATE_LEVEL,"STATUS UPDATE: Workflow deployment failed: " + response.text)
         shutdown_server()
 
     
