@@ -16,7 +16,7 @@ __status__ = "Development"
 
 logging.UPDATE_LEVEL = 25
 logging.addLevelName(logging.UPDATE_LEVEL, "UPDATE")
-logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(level=logging.UPDATE_LEVEL, format="%(asctime)s - %(levelname)s - %(message)s")
 
 url = "http://cluster1-1.utdallas.edu:8080/workflow-request"
 
