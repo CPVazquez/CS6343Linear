@@ -59,7 +59,7 @@ def verify_workflow(data):
     return valid, mess
 
 
-def start_cass():
+def start_cass(workflow_json):
     # look for cass service
     cass_filter = client.services.list(filters={'name': 'cass'})
 
@@ -98,6 +98,11 @@ def start_cass():
 
     logging.debug("{:*^60}".format(" cass is ready for connections "))
 
+    #send update to the resturant owner
+    origin_url = "http://"+workflow_json["origin"]+":8080/results"
+    message = "Component cass of your workflow has been deployed"
+    message_dict = {"message": message}
+
 
 def start_components(component, workflow_json, response_list):
 
@@ -129,10 +134,9 @@ def start_components(component, workflow_json, response_list):
     
     logging.debug("{:*^60}".format(" " + component + " is healthy "))
 
+    #send update to the resturant owner
     origin_url = "http://"+workflow_json["origin"]+":8080/results"
-
     message = "Component " + component + " of your workflow has been deployed"
-
     message_dict = {"message": message}
 
     requests.post(origin_url, json=json.dumps(message_dict))
@@ -170,7 +174,7 @@ def setup_workflow():
 
     # startup cass first and formost
     if has_cass :
-        start_cass()
+        start_cass(data)
 
     thread_list = []
     response_list = []
