@@ -10,6 +10,9 @@ __maintainer__ = "Carla Vazquez"
 __email__ = "cpv150030@utdallas.edu"
 __status__ = "Development"
 
+logging.basicConfig(level=logging.DEBUG, 
+    format="%(asctime)s - %(levelname)s - %(message)s")
+
 url = "http://cluster1-1.utdallas.edu:8080/workflow-request"
 
 # set up flask app
@@ -18,6 +21,7 @@ app = Flask(__name__)
 
 @app.route("/results", methods=["PUT"])
 def print_results():
+    return Response(status=200)
     print(request.get_data(as_text=True))
 
 
@@ -26,7 +30,11 @@ def health_check():
     return Response(status=200,response="healthy\n")
 
 
-
+def shutdown_server():
+    func = request.environ.get('werkzeug.server.shutdown')
+    if func is None:
+        raise RuntimeError('Not running with the Werkzeug Server')
+    func()
 
 def startup():
 
@@ -87,16 +95,19 @@ def startup():
         "component-list": component_list,
     }
 
+    app.run(port=8080, host="0.0.0.0")
+
     workflow_json = json.dumps(workflow_dict)
-    print("\nWorkflow Request Generated:\n"+ json.dumps(workflow_dict, sort_keys=True, indent=4))
+    logging.debug("\nWorkflow Request Generated:\n"+ json.dumps(workflow_dict, sort_keys=True, indent=4))
     response = requests.post(url, json=workflow_json)
     
     if response.status_code == 200 :
-        print("Workflow successfully deployed!")   
+        logging.debug("Workflow successfully deployed!")   
     else:
-        print("Workflow deployment failed: " + response.text)
+        logging.debug("Workflow deployment failed: " + response.text)
+        shutdown_server()
+
     
 
 if __name__ == "__main__" :
     startup()
-    app.run(port=8080, host="0.0.0.0")
