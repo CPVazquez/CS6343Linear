@@ -3,6 +3,7 @@ import sys
 import logging
 import threading
 import socket
+from time import sleep
 
 import requests
 from flask import Flask, request, Response
@@ -25,7 +26,7 @@ app = Flask(__name__)
 @app.route("/results", methods=["POST"])
 def print_results():
     return Response(status=200)
-    print((request.get_json()))
+    print(request.get_json() + "hello")
 
 
 @app.route("/health", methods=["GET"]) 
@@ -118,4 +119,5 @@ def startup():
 if __name__ == "__main__" :
     x = threading.Thread(target=app.run, args=("0.0.0.0",8080))
     x.start()
+    sleep(2)
     startup()
