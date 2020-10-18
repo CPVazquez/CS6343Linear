@@ -19,7 +19,7 @@ client = docker.from_env()
 APIclient = docker.APIClient(base_url='unix://var/run/docker.sock')
 
 # set up logging
-logging.basicConfig(level=logging.INFO, 
+logging.basicConfig(level=logging.DEBUG, 
     format="%(asctime)s - %(levelname)s - %(message)s")
 
 # set up flask app
@@ -52,8 +52,8 @@ def verify_workflow(data):
         jsonschema.validate(instance=data, schema=schema)
     except Exception as inst:
         valid = False
-        logging.info("workflow-request rejected:\n" + json.dumps(data))
-        logging.info("Request rejected due to failed validation.")
+        logging.debug("workflow-request rejected:\n" + json.dumps(data))
+        logging.debug("Request rejected due to failed validation.")
         valid = False
         mess = inst.args[0]
     return valid, mess
@@ -66,8 +66,8 @@ def start_cass(workflow_json):
     # if cass service not found
     if len(cass_filter) == 0:
 
-        logging.info("{:*^60}".format(" cass doesn't exist "))
-        logging.info("{:*^60}".format(" Spinning up cass "))
+        logging.debug("{:*^60}".format(" cass doesn't exist "))
+        logging.debug("{:*^60}".format(" Spinning up cass "))
 
         # create cass service
         database_service = client.services.create(
@@ -93,10 +93,10 @@ def start_cass(workflow_json):
         # if none of the tasks are healthy, wait a bit before
         # trying again
         if not healthy:
-            logging.info("cass is not ready")
+            logging.debug("cass is not ready")
             sleep(5)
 
-    logging.info("{:*^60}".format(" cass is ready for connections "))
+    logging.debug("{:*^60}".format(" cass is ready for connections "))
 
     #send update to the resturant owner
     origin_url = "http://"+workflow_json["origin"]+":8080/results"
@@ -112,8 +112,8 @@ def start_components(component, workflow_json, response_list):
 
     # if not exists
     if len(service_filter) == 0: 
-        logging.info("{:*^60}".format(" " + component + " doesn't exist "))
-        logging.info("{:*^60}".format(" Spinning up " + component + " "))
+        logging.debug("{:*^60}".format(" " + component + " doesn't exist "))
+        logging.debug("{:*^60}".format(" Spinning up " + component + " "))
 
         # create the service
         service = client.services.create(
@@ -132,7 +132,7 @@ def start_components(component, workflow_json, response_list):
         else:
             break
     
-    logging.info("{:*^60}".format(" " + component + " is healthy "))
+    logging.debug("{:*^60}".format(" " + component + " is healthy "))
 
     #send update to the resturant owner
     origin_url = "http://"+workflow_json["origin"]+":8080/results"
@@ -141,9 +141,9 @@ def start_components(component, workflow_json, response_list):
 
     requests.post(origin_url, json=json.dumps(message_dict))
     # send workflow_request to component
-    # logging.info("{:*^60}".format(" sent " + component + " workflow specification for " + workflow_json["storeId"]+ " "))
+    # logging.debug("{:*^60}".format(" sent " + component + " workflow specification for " + workflow_json["storeId"]+ " "))
     # service_response = requests.post(service_url+"/workflow-setup", json=json.dumps(workflow_json))
-    # logging.info("{:*^60}".format(" recieved response from " + component + " for workflow specification " + workflow_json["storeId"]+ " "))
+    # logging.debug("{:*^60}".format(" recieved response from " + component + " for workflow specification " + workflow_json["storeId"]+ " "))
     # thread_lock.acquire(blocking=True)
     # response_list.append(comp_response)
     # thread_lock.release()
