@@ -82,6 +82,7 @@ def startup():
             components = input("Invalid component selection. Please enter a space\n\serperated list of valid components: ")
 
     workflow_dict = {
+        "storeId": storeSelect,
         "method": method,
         "component-list": component_list,
     }
