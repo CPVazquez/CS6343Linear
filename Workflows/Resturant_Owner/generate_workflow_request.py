@@ -39,6 +39,7 @@ def shutdown_server():
         raise RuntimeError('Not running with the Werkzeug Server')
     func()
 
+
 def startup():
 
     print("Which store are you generating a workflow for? \n\
@@ -101,9 +102,6 @@ def startup():
         "component-list": component_list,
         "origin": ip_address
     }
-
-    #app.run(port=8080, host="0.0.0.0")
-
 
     workflow_json = json.dumps(workflow_dict)
     logging.debug("\nWorkflow Request Generated:\n"+ json.dumps(workflow_dict, sort_keys=True, indent=4))
