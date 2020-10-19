@@ -3,11 +3,6 @@
     "type": "object",
     "description": "A workflow request",
     "properties": {
-        "storeId" : {
-            "type": "string",
-            "format": "uuid",
-            "description": "the restaurant that is setting up this workflow"    
-        },
         "method": {
             "type": "string",
             "enum": ["persistent", "edge"],
@@ -26,5 +21,5 @@
             "description":"host ip of the origin"
         }
     },
-    "required": ["storeId", "method", "component-list", "origin"]
+    "required": ["method", "component-list", "origin"]
 }

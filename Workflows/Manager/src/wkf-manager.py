@@ -109,11 +109,11 @@ def start_cass(workflow_json):
     requests.post(origin_url, json=json.dumps(message_dict))
 
 
-def start_components(component, workflow_json, response_list):
+def start_components(component, storeId, response_list):
 
     # check if service exists
     service_filter = client.services.list(filters={'name': component})
-    # service_url = "http://" + component + ":" + str(portDict[component])
+    service_url = "http://" + component + ":" + str(portDict[component])
 
     # if not exists
     if len(service_filter) == 0:
@@ -122,7 +122,7 @@ def start_components(component, workflow_json, response_list):
 
         # create the service
         client.services.create(
-            "trishaire/" + component+":latest",  # the name of the image
+            "trishaire/" + component + ":latest",  # the name of the image
             name=component,  # name of service
             endpoint_spec=docker.types.EndpointSpec(
                 mode="vip", ports={portDict[component]: portDict[component]}
@@ -152,21 +152,26 @@ def start_components(component, workflow_json, response_list):
     logging.debug("{:*^60}".format(" " + component + " is healthy "))
 
     # send update to the resturant owner
-    origin_url = "http://"+workflow_json["origin"]+":8080/results"
+    origin_url = "http://" + workflows[storeId]["origin"] + ":8080/results"
     message = "Component " + component + " of your workflow has been deployed"
     message_dict = {"message": message}
-    requests.post(origin_url, json=json.dumps(message_dict))
+    requests.put(origin_url, json=json.dumps(message_dict))
 
     # send workflow_request to component
-    # logging.debug("{:*^60}".format(" sent " + component +
-    #   " workflow specification for " + workflow_json["storeId"]+ " "))
-    # comp_response = requests.post(service_url+"/workflow-setup",
-    #   json=json.dumps(workflow_json))
-    # logging.debug("{:*^60}".format(" recieved response from " + component +
-    #   " for workflow specification " + workflow_json["storeId"]+ " "))
-    # thread_lock.acquire(blocking=True)
-    # response_list.append(comp_response)
-    # thread_lock.release()
+    logging.debug("{:*^60}".format(
+        " sent " + component + " workflow specification for " + storeId + " "
+    ))
+    comp_response = requests.post(
+        service_url + "/workflow-request/" + storeId,
+        json=json.dumps(workflows[storeId])
+    )
+    logging.debug("{:*^60}".format(
+        " recieved response from " + component +
+        " for workflow specification " + storeId + " "
+    ))
+    thread_lock.acquire(blocking=True)
+    response_list.append(comp_response)
+    thread_lock.release()
 
 
 def stop_components(component, storeId, response_list):
@@ -177,7 +182,8 @@ def stop_components(component, storeId, response_list):
         " for workflow specification " + storeId + " "
     ))
     comp_response = requests.delete(
-        service_url+"/workflow-request", json=json.dumps({"storeId": storeId})
+        service_url + "/workflow-request",
+        json=json.dumps({"storeId": storeId})
     )
     logging.debug("{:*^60}".format(
         " recieved response from " + component +
@@ -188,9 +194,9 @@ def stop_components(component, storeId, response_list):
     thread_lock.release()
 
 
-def teardown(workflow_json):
+def teardown(storeId):
     # get the list of components for the workflow
-    component_list = workflow_json["component-list"].copy()
+    component_list = workflows[storeId]["component-list"].copy()
 
     try:
         component_list.remove("cass")
@@ -201,10 +207,9 @@ def teardown(workflow_json):
     response_list = []
 
     for comp in component_list:
-        # create stop_components
         x = threading.Thread(
             target=stop_components,
-            args=(comp, workflow_json["storeId"], response_list)
+            args=(comp, storeId, response_list)
         )
         x.start()
         thread_list.append(x)
@@ -214,8 +219,8 @@ def teardown(workflow_json):
         x.join()
 
 
-@app.route("/workflow-request", methods=["POST"])
-def setup_workflow():
+@app.route("/workflow-request/<storeId>", methods=["POST"])
+def setup_workflow(storeId):
     # get the data from the request
     data = json.loads(request.get_json())
     # verify the request is valid
@@ -229,16 +234,19 @@ def setup_workflow():
         )
     if data["method"] != "persistent":
         return Response(
-            status=400,
-            response="Sorry, edge deployment is not yet supported!"
+            status=422,
+            response="Sorry, edge deployment method is not yet supported!\n" +
+                     "Entity could not be prossesed"
         )
-    if workflows[data["storeId"]] is not None:
+    if workflows[storeId] is not None:
         return Response(
-            status=400,
+            status=409,
             response="Oops! A workflow already exists for this client!\n" +
                      "Please teardown existing workflow before deploying " +
                      "a new one"
         )
+
+    workflows[storeId] = data
 
     # get the list of components for the workflow
     component_list = data["component-list"].copy()
@@ -260,7 +268,7 @@ def setup_workflow():
     for comp in component_list:
         x = threading.Thread(
             target=start_components,
-            args=(comp, data, response_list)
+            args=(comp, storeId, response_list)
         )
         x.start()
         thread_list.append(x)
@@ -274,36 +282,33 @@ def setup_workflow():
     for resp in response_list:
         if resp.status_code != 200:
             delploy_successful = False
+            break
 
     if delploy_successful:
-        workflows[data["storeId"]] = data
         return Response(
-            status=200,
-            response="Workflow deployed!"
+            status=201
         )
     else:
-        teardown(data)
+        teardown(storeId)
         return Response(
-            status=404,
+            status=403,
             response="Worflow deployment failed.\n" +
                      "Invalid workflow specification"
         )
 
 
-@app.route("/workflow-request", methods=["DELETE"])
-def teardown_endpoint():
-    data = json.loads(request.get_json())
-    if workflows[data["storeId"]] is None:
+@app.route("/workflow-request/<storeId>", methods=["DELETE"])
+def teardown_workflow(storeId):
+    if workflows[storeId] is None:
         return Response(
-            status=400,
+            status=404,
             response="Workflow doesn't exist. Nothing to teardown"
         )
-    workflow = workflows[data["storeId"]]
 
-    teardown(workflow)
+    teardown(storeId)
 
-    workflows[data["storeId"]] = None
-    return Response(status=200, response="Workflow torndown")
+    workflows[storeId] = None
+    return Response(status=204)
 
 
 # Health check endpoint

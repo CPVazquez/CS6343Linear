@@ -29,7 +29,7 @@ t = None
 storeSelect = None
 
 
-@app.route("/results", methods=["POST"])
+@app.route("/results", methods=["PUT"])
 def print_results():
     mess = json.loads(request.get_json())
     logging.log(logging.UPDATE_LEVEL, mess["message"])
