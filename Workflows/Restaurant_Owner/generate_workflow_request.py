@@ -19,6 +19,8 @@ logging.basicConfig(
     level=logging.UPDATE_LEVEL,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
+logger = logging.getLogger()
+logger.setLevel(logging.UPDATE_LEVEL)
 
 url = "http://cluster1-1.utdallas.edu:8080/workflow-request"
 
@@ -32,7 +34,7 @@ storeSelect = None
 @app.route("/results", methods=["PUT"])
 def print_results():
     mess = json.loads(request.get_json())
-    logging.log(logging.UPDATE_LEVEL, mess["message"])
+    logger.log(logging.UPDATE_LEVEL, mess["message"])
     return Response(status=200)
 
 
@@ -113,7 +115,7 @@ def startup():
     }
 
     workflow_json = json.dumps(workflow_dict)
-    logging.log(
+    logger.log(
         logging.UPDATE_LEVEL,
         "\nWorkflow Request Generated:\n" +
         json.dumps(workflow_dict, sort_keys=True, indent=4)
@@ -121,9 +123,9 @@ def startup():
     response = requests.post(url, json=workflow_json)
 
     if response.status_code == 200:
-        logging.log(logging.UPDATE_LEVEL, "Workflow successfully deployed!")
+        logger.log(logging.UPDATE_LEVEL, "Workflow successfully deployed!")
     else:
-        logging.log(
+        logger.log(
             logging.UPDATE_LEVEL,
             "Workflow deployment failed: " +
             response.text

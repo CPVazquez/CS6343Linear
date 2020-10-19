@@ -93,10 +93,19 @@ Workflow 2 is the workflow of a pizza restaurant that takes online orders. It va
 
 [DeliveryAssigner](https://github.com/CPVazquez/CS6343/tree/master/Workflows/WF2/Components/C3)
 
+[AutoRestocker](https://github.com/CPVazquez/CS6343/tree/master/Workflows/WF2/Components/C4)
+
 [Restocker](https://github.com/CPVazquez/CS6343/tree/master/Workflows/WF2/Components/C5)
 
-### Pizza Order Generator
+### Pizza Order Generator (Data Source)
 
 [OrderGenerator](https://github.com/CPVazquez/CS6343/tree/master/Workflows/WF2/Order)
+
+### Restaurant Owner (Client)
+[RestaurantOwner](https://github.com/CPVazquez/CS6343/tree/master/Workflows/Restaurant_Owner)
+
+### Workflow Manager 
+[Manager](https://github.com/CPVazquez/CS6343/tree/master/Workflows/Manager)
+
 
 <sub><a name="repositoryFootnote">1</a> an image is a single image, and a repository is a collection of images. On Dockerhub we can use a repository to hold multiple images with different tags as long as they have the same name.</sub>

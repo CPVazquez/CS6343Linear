@@ -1,10 +1,9 @@
-# Delivery Assigner
-
+# Workflow Manager
 ## Written By
-Daniel Garcia and Carla Vazquez
+Daniel Garcia(left) and Carla Vazquez
 
 ## Description
-This component acts as the central manager for the workflow. It recieves the original requests from outside the system, from clients.
+This component acts as the central manager for the workflow. It receives the original requests from outside the system, from clients.
 
 ## Setup
 Machine requirements:
@@ -31,7 +30,7 @@ To update the repository:
 sudo docker login
 docker push trishaire/wkf-manager:tag
 ```
-To create the service type the following command:
+To create the service, type the following command:
 ```
 ./service.sh
 ```
@@ -59,8 +58,8 @@ requires a `workflow-request` json object.
 
 | status code | status | meaning|
 |---|---|---|
-|201|Created| workflow succesfully created|
-|400|Bad Request|indicates the workflow-request was ill formated|
+|201|Created| workflow successfully created|
+|400|Bad Request| indicates the workflow-request was ill formatted|
 |403|Forbidden|the desired workflow could not be deployed due to component dependencies|
 |409|Conflict|a workflow already exists for the specified store, and thus a new one cannot be created|
 |422|Unprocessable Entity| json is valid, but contains unsupported specifications, like edge deployment method|
@@ -75,8 +74,8 @@ storeId - the id of the store issuing the workflow request
 
 | status code | status | meaning|
 |---|---|---|
-|204|No Content|the specified workflow was deleted successfuly |
-|404|Not Found|the specified workflow does not exist or has already been deleted
+|204|No Content| the specified workflow was deleted successfully |
+|404|Not Found| the specified workflow does not exist or has already been deleted
 
 ### `GET /health`
 
@@ -87,4 +86,3 @@ storeId - the id of the store issuing the workflow request
 returns string `healthy` if the service is healthy
 
 [Main README](https://github.com/CPVazquez/CS6343)
-
