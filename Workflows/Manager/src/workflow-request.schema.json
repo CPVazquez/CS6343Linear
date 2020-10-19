@@ -23,8 +23,8 @@
         },
         "orign": {
             "type":"string",
-            "description":"hostname ip of the origin"
+            "description":"host ip of the origin"
         }
     },
-    "required": ["storeId", "method", "component-list"]
+    "required": ["storeId", "method", "component-list", "origin"]
 }

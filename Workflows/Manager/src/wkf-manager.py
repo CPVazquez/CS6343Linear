@@ -1,9 +1,9 @@
-import requests
 import logging
 import json
 from time import sleep
 import threading
 
+import requests
 import docker
 import jsonschema
 from flask import Flask, request, Response
@@ -19,15 +19,17 @@ client = docker.from_env()
 APIclient = docker.APIClient(base_url='unix://var/run/docker.sock')
 
 # set up logging
-logging.basicConfig(level=logging.DEBUG, 
-    format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 # set up flask app
 app = Flask(__name__)
 
 # set up component port dictionary
-portDict  = {
-    "order-verifier" : 1000,
+portDict = {
+    "order-verifier": 1000,
     "delivery-assigner": 3000,
     "auto-restocker": 4000,
     "restocker": 5000
@@ -43,7 +45,7 @@ workflows = dict()
 with open("src/workflow-request.schema.json", "r") as schema:
     schema = json.loads(schema.read())
 
-# 
+
 def verify_workflow(data):
     global schema
     valid = True
@@ -70,16 +72,18 @@ def start_cass(workflow_json):
         logging.debug("{:*^60}".format(" Spinning up cass "))
 
         # create cass service
-        database_service = client.services.create(
-            "trishaire/cass", # the name of the image
-            name="cass", # name of the service
-            endpoint_spec=docker.types.EndpointSpec(mode="vip", ports={ 9042 : 9042 }),
-            networks=['myNet']) #network
-        
+        client.services.create(
+            "trishaire/cass",  # the name of the image
+            name="cass",  # name of the service
+            endpoint_spec=docker.types.EndpointSpec(
+                mode="vip", ports={9042: 9042}
+            ),
+            networks=['myNet'])   # network
+
     healthy = False
 
     # keep pinging the service
-    while not healthy : 
+    while not healthy:
         # retrieve the tasks of the cass servcie
         tasks = client.services.get("cass").tasks()
 
@@ -88,8 +92,8 @@ def start_cass(workflow_json):
             tID = task['ID']
             result = APIclient.inspect_task(tID)['Status']['Message']
             if result == 'started':
-                healthy = True    
-        
+                healthy = True
+
         # if none of the tasks are healthy, wait a bit before
         # trying again
         if not healthy:
@@ -98,7 +102,7 @@ def start_cass(workflow_json):
 
     logging.debug("{:*^60}".format(" cass is ready for connections "))
 
-    #send update to the resturant owner
+    # send update to the resturant owner
     origin_url = "http://"+workflow_json["origin"]+":8080/results"
     message = "Component cass of your workflow has been deployed"
     message_dict = {"message": message}
@@ -108,26 +112,28 @@ def start_cass(workflow_json):
 def start_components(component, workflow_json, response_list):
 
     # check if service exists
-    service_filter = client.services.list(filters={'name':component})
-    service_url = "http://" + component + ":" + str(portDict[component])
+    service_filter = client.services.list(filters={'name': component})
+    # service_url = "http://" + component + ":" + str(portDict[component])
 
     # if not exists
-    if len(service_filter) == 0: 
+    if len(service_filter) == 0:
         logging.debug("{:*^60}".format(" " + component + " doesn't exist "))
         logging.debug("{:*^60}".format(" Spinning up " + component + " "))
 
         # create the service
-        service = client.services.create(
-                "trishaire/" + component+":latest",  # the name of the image
+        client.services.create(
+            "trishaire/" + component+":latest",  # the name of the image
             name=component,  # name of service
-            endpoint_spec=docker.types.EndpointSpec(mode="vip", ports={ portDict[component] : portDict[component] }),
-            env=["CASS_DB=cass"], # set environment var
-            networks=['myNet']) # set network
+            endpoint_spec=docker.types.EndpointSpec(
+                mode="vip", ports={portDict[component]: portDict[component]}
+            ),
+            env=["CASS_DB=cass"],  # set environment var
+            networks=['myNet'])  # set network
 
     healthy = False
 
     # keep pinging the service
-    while not healthy : 
+    while not healthy:
         # retrieve the tasks of the component servcie
         tasks = client.services.get(component).tasks()
 
@@ -136,38 +142,76 @@ def start_components(component, workflow_json, response_list):
             tID = task['ID']
             result = APIclient.inspect_task(tID)['Status']['Message']
             if result == 'started':
-                healthy = True    
-        
+                healthy = True
+
         # if none of the tasks are healthy, wait a bit before
         # trying again
         if not healthy:
             sleep(1)
 
-    # wait for component to spin up
-    # while True:
-    #     try:
-    #         service_response = requests.get(service_url+"/health")
-    #     except:
-    #         sleep(1)
-    #     else:
-    #         break
-    
     logging.debug("{:*^60}".format(" " + component + " is healthy "))
 
-    #send update to the resturant owner
+    # send update to the resturant owner
     origin_url = "http://"+workflow_json["origin"]+":8080/results"
     message = "Component " + component + " of your workflow has been deployed"
     message_dict = {"message": message}
     requests.post(origin_url, json=json.dumps(message_dict))
+
     # send workflow_request to component
-    # logging.debug("{:*^60}".format(" sent " + component + " workflow specification for " + workflow_json["storeId"]+ " "))
-    # service_response = requests.post(service_url+"/workflow-setup", json=json.dumps(workflow_json))
-    # logging.debug("{:*^60}".format(" recieved response from " + component + " for workflow specification " + workflow_json["storeId"]+ " "))
+    # logging.debug("{:*^60}".format(" sent " + component +
+    #   " workflow specification for " + workflow_json["storeId"]+ " "))
+    # comp_response = requests.post(service_url+"/workflow-setup",
+    #   json=json.dumps(workflow_json))
+    # logging.debug("{:*^60}".format(" recieved response from " + component +
+    #   " for workflow specification " + workflow_json["storeId"]+ " "))
     # thread_lock.acquire(blocking=True)
     # response_list.append(comp_response)
     # thread_lock.release()
-    
 
+
+def stop_components(component, storeId, response_list):
+    service_url = "http://" + component + ":" + str(portDict[component])
+
+    logging.debug("{:*^60}".format(
+        " sent teardown request to " + component +
+        " for workflow specification " + storeId + " "
+    ))
+    comp_response = requests.delete(
+        service_url+"/workflow-request", json=json.dumps({"storeId": storeId})
+    )
+    logging.debug("{:*^60}".format(
+        " recieved response from " + component +
+        " for workflow specification " + storeId + " ")
+    )
+    thread_lock.acquire(blocking=True)
+    response_list.append(comp_response)
+    thread_lock.release()
+
+
+def teardown(workflow_json):
+    # get the list of components for the workflow
+    component_list = workflow_json["component-list"].copy()
+
+    try:
+        component_list.remove("cass")
+    except ValueError:
+        pass
+
+    thread_list = []
+    response_list = []
+
+    for comp in component_list:
+        # create stop_components
+        x = threading.Thread(
+            target=stop_components,
+            args=(comp, workflow_json["storeId"], response_list)
+        )
+        x.start()
+        thread_list.append(x)
+
+    # wait for all the threads to terminate
+    for x in thread_list:
+        x.join()
 
 
 @app.route("/workflow-request", methods=["POST"])
@@ -179,7 +223,22 @@ def setup_workflow():
 
     # if invalid workflow request send back a 400 response
     if not valid:
-        return Response(status=400, response="workflow-request ill formated\n" + mess)
+        return Response(
+            status=400,
+            response="workflow-request ill formated\n" + mess
+        )
+    if data["method"] != "persistent":
+        return Response(
+            status=400,
+            response="Sorry, edge deployment is not yet supported!"
+        )
+    if workflows[data["storeId"]] is not None:
+        return Response(
+            status=400,
+            response="Oops! A workflow already exists for this client!\n" +
+                     "Please teardown existing workflow before deploying " +
+                     "a new one"
+        )
 
     # get the list of components for the workflow
     component_list = data["component-list"].copy()
@@ -192,19 +251,22 @@ def setup_workflow():
         has_cass = False
 
     # startup cass first and formost
-    if has_cass :
+    if has_cass:
         start_cass(data)
 
     thread_list = []
     response_list = []
     # start up the rest of the components
     for comp in component_list:
-        x = threading.Thread(target=start_components, args=(comp, data, response_list))
+        x = threading.Thread(
+            target=start_components,
+            args=(comp, data, response_list)
+        )
         x.start()
         thread_list.append(x)
 
     # wait for all the threads to terminate
-    for x in thread_list :
+    for x in thread_list:
         x.join()
 
     delploy_successful = True
@@ -213,15 +275,38 @@ def setup_workflow():
         if resp.status_code != 200:
             delploy_successful = False
 
-    if delploy_successful: 
+    if delploy_successful:
         workflows[data["storeId"]] = data
-        return Response(status=200, response="Workflow deployed!")
-    else :
-        return Response(status=404, response="Worflow deployment failed.\nInvalid workflow specification")
+        return Response(
+            status=200,
+            response="Workflow deployed!"
+        )
+    else:
+        teardown(data)
+        return Response(
+            status=404,
+            response="Worflow deployment failed.\n" +
+                     "Invalid workflow specification"
+        )
+
+
+@app.route("/workflow-request", methods=["DELETE"])
+def teardown_endpoint():
+    data = json.loads(request.get_json())
+    if workflows[data["storeId"]] is None:
+        return Response(
+            status=400,
+            response="Workflow doesn't exist. Nothing to teardown"
+        )
+    workflow = workflows[data["storeId"]]
+
+    teardown(workflow)
+
+    workflows[data["storeId"]] = None
+    return Response(status=200, response="Workflow torndown")
 
 
 # Health check endpoint
 @app.route("/health", methods=["GET"])
 def health_check():
-    return Response(status=200,response="healthy\n")
-
+    return Response(status=200, response="healthy\n")

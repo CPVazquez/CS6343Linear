@@ -1,5 +1,4 @@
 import json
-import sys
 import logging
 import threading
 import socket
@@ -16,12 +15,18 @@ __status__ = "Development"
 
 logging.UPDATE_LEVEL = 25
 logging.addLevelName(logging.UPDATE_LEVEL, "UPDATE")
-logging.basicConfig(level=logging.UPDATE_LEVEL, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.UPDATE_LEVEL,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 url = "http://cluster1-1.utdallas.edu:8080/workflow-request"
 
 # set up flask app
 app = Flask(__name__)
+
+t = None
+storeSelect = None
 
 
 @app.route("/results", methods=["POST"])
@@ -31,39 +36,39 @@ def print_results():
     return Response(status=200)
 
 
-@app.route("/health", methods=["GET"]) 
+@app.route("/health", methods=["GET"])
 def health_check():
-    return Response(status=200,response="healthy\n")
+    return Response(status=200, response="healthy\n")
 
 
 def shutdown_server():
-    func = request.environ.get('werkzeug.server.shutdown')
-    if func is None:
-        raise RuntimeError('Not running with the Werkzeug Server')
-    func()
+    t.running = False
+    t.join()
 
 
 def startup():
+    global storeSelect
 
-    print("Which store are you generating a workflow for? \n\
-        A. 7098813e-4624-462a-81a1-7e0e4e67631d\n\
-        B. 5a2bb99f-88d2-4612-ac60-774aea9b8de4\n\
-        C. b18b3932-a4ef-485c-a182-8e67b04c208c")
+    print("Which store are you generating a workflow for? \n" +
+          "A. 7098813e-4624-462a-81a1-7e0e4e67631d\n" +
+          "B. 5a2bb99f-88d2-4612-ac60-774aea9b8de4\n" +
+          "C. b18b3932-a4ef-485c-a182-8e67b04c208c")
     storeSelect = input("Pick a store (A-C): ")
 
     while storeSelect != "A" and storeSelect != "B" and storeSelect != "C":
         storeSelect = input("Invalid selection. Pick A-C: ")
-    
-    if storeSelect == "A" :
-        storeSelect = "7098813e-4624-462a-81a1-7e0e4e67631d"
-    elif storeSelect == "B" :
-        storeSelect = "5a2bb99f-88d2-4612-ac60-774aea9b8de4"
-    else :
-        storeSelect = "b18b3932-a4ef-485c-a182-8e67b04c208c"
-    
-    method = input("What deployment method do you want to use (persistent or edge): ")
 
-    while method != "persistent" and method != "edge" :
+    if storeSelect == "A":
+        storeSelect = "7098813e-4624-462a-81a1-7e0e4e67631d"
+    elif storeSelect == "B":
+        storeSelect = "5a2bb99f-88d2-4612-ac60-774aea9b8de4"
+    else:
+        storeSelect = "b18b3932-a4ef-485c-a182-8e67b04c208c"
+
+    method = input("What deployment method do you want to use "
+                   "(persistent or edge): ")
+
+    while method != "persistent" and method != "edge":
         method = input("Invalid selection. Pick persistent or edge: ")
 
     print("What components do you want?\n\
@@ -74,27 +79,28 @@ def startup():
         * auto-restocker")
     components = input("Enter a space seperated list: ")
 
-    while True: 
+    while True:
         valid = True
         components = components.lower()
         component_list = components.split()
-        for comp in component_list :
-            if comp == "order-verifier" :
+        for comp in component_list:
+            if comp == "order-verifier":
                 continue
-            elif comp == "delivery-assigner" :
+            elif comp == "delivery-assigner":
                 continue
-            elif comp == "cass" :
+            elif comp == "cass":
                 continue
-            elif comp == "restocker" :
+            elif comp == "restocker":
                 continue
-            elif comp == "auto-restocker" :
+            elif comp == "auto-restocker":
                 continue
-            else :
+            else:
                 valid = False
-        if valid :
-            break 
-        else :
-            components = input("Invalid component selection. Please enter a space\n\serperated list of valid components: ")
+        if valid:
+            break
+        else:
+            components = input("Invalid component selection. Please enter a" +
+                               " space\nserperated list of valid components: ")
 
     hostname = socket.gethostname()
     ip_address = socket.gethostbyname(hostname)
@@ -107,19 +113,27 @@ def startup():
     }
 
     workflow_json = json.dumps(workflow_dict)
-    logging.log(logging.UPDATE_LEVEL,"\nWorkflow Request Generated:\n"+ json.dumps(workflow_dict, sort_keys=True, indent=4))
+    logging.log(
+        logging.UPDATE_LEVEL,
+        "\nWorkflow Request Generated:\n" +
+        json.dumps(workflow_dict, sort_keys=True, indent=4)
+    )
     response = requests.post(url, json=workflow_json)
-    
-    if response.status_code == 200 :
-        logging.log(logging.UPDATE_LEVEL,"STATUS UPDATE: Workflow successfully deployed!")   
+
+    if response.status_code == 200:
+        logging.log(logging.UPDATE_LEVEL, "Workflow successfully deployed!")
     else:
-        logging.log(logging.UPDATE_LEVEL,"STATUS UPDATE: Workflow deployment failed: " + response.text)
+        logging.log(
+            logging.UPDATE_LEVEL,
+            "Workflow deployment failed: " +
+            response.text
+        )
         shutdown_server()
 
-    
 
-if __name__ == "__main__" :
-    x = threading.Thread(target=app.run, args=("0.0.0.0",8080))
-    x.start()
+if __name__ == "__main__":
+    global t
+    t = threading.Thread(target=app.run, args=("0.0.0.0", 8080))
+    t.start()
     sleep(1)
     startup()

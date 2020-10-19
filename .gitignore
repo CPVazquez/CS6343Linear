@@ -3,4 +3,5 @@
 *.pytest_cache
 *.coverage
 ./Workflows/WF2/Components/C3/src/config.py
-
+*/.vscode
+.vscode

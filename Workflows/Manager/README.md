@@ -1,8 +1,7 @@
 # Delivery Assigner
 
 ## Written By
-Daniel Garcia and
-Carla Vazquez
+Daniel Garcia and Carla Vazquez
 
 ## Description
 This component acts as the central manager for the workflow. It recieves the original requests from outside the system, from clients.
@@ -18,7 +17,8 @@ Package requirements:
 Packages installed on pipenv virtual environment:
 * flask
 * gunicorn
-* cassandra-driver
+* jsonschema
+* requests
 
 ## Commands
 To build the image:
@@ -40,7 +40,7 @@ To create the service type the following command:
 
 ### `POST /workflow-request`
 
-requires a `workflow-request`
+requires a `workflow-request`. Creates a workflow request to the json's specification.
 
 `workflow-request`
 | field | type | options | required | description |
@@ -48,6 +48,7 @@ requires a `workflow-request`
 | storeId | string - format uuid | N/A | true | the id of the resturant issuing the workflow request|
 | method | enum | persistent, edge | true | the workflow deployment method |
 | component-list| enum array| order-verifier, cass, delivery-assigner, auto-restocker, restocker | true | the components the workflow is requesting|
+| origin | string - format ip | N/A| true | the ip of the host issuing the request|
 
 Responses
 
@@ -56,6 +57,13 @@ on `200 OK` returns a message indicating successful workflow deployement
 on `400 Bad Request` indicates the workflow-request was ill formated
 
 on `403 Forbidden` the desired workflow could not be deployed due to component dependencies
+
+### `DELETE /workflow-request`
+
+requires a json object. Tears down the corresponding workflow if it exists.
+| field | type | options | required | description |
+|-------|------|---------|----|---|
+| storeId | string - format uuid | N/A | true | the id of the resturant issuing the workflow request|
 
 ### `GET /health`
 returns string `healthy` if the service is healthy
