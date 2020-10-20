@@ -45,13 +45,13 @@ def issue_workflow_request():
         method = input("Invalid selection. Pick persistent or edge: ")
 
     # get component-list
-    print("What components do you want?\n\
-        * order-verifier\n\
-        * delivery-assigner\n\
-        * cass\n\
-        * restocker\n\
-        * auto-restocker")
-    components = input("Enter a space seperated list: ")
+    print("What components do you want?\n" +
+          "\t* order-verifier\n" +
+          "\t* delivery-assigner\n" +
+          "\t* cass\n" +
+          "\t* restocker\n" +
+          "\t* auto-restocker")
+    components = input("Enter a space separated list: ")
 
     while True:
         valid = True
@@ -74,7 +74,7 @@ def issue_workflow_request():
             break
         else:
             components = input("Invalid component selection. Please enter a" +
-                               " space\nserperated list of valid components: ")
+                               " space\nseparated list of valid components: ")
 
     # retrieve host ip
     hostname = socket.gethostname()
@@ -117,7 +117,7 @@ def issue_workflow_teardown():
     response = requests.delete(url + "/" + storeSelect)
     logger.log(
         logging.UPDATE_LEVEL,
-        "Workflow teardown recieved the following response: " +
+        "Workflow teardown received the following response: " +
         str(response.status_code) + " " + response.text
     )
 
@@ -189,16 +189,16 @@ def startup():
             issue_workflow_request()
         elif choice == "2":  # remove the workflow-request
             issue_workflow_teardown()
-        elif choice == "3":  # retreive the workflow-request
+        elif choice == "3":  # retrieve the workflow-request
             get_workflow()
-        elif choice == "4":  # retreive all workflow-requests
+        elif choice == "4":  # retrieve all workflow-requests
             get_workflows()
         else:  # exit
             t.terminate()
             break
 
 
-# an endpoint to recieve updates at
+# an endpoint to receive updates at
 @app.route("/results", methods=["PUT"])
 def print_results():
     mess = json.loads(request.get_json())

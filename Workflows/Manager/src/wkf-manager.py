@@ -108,7 +108,7 @@ def start_cass(workflow_json):
 
     logging.debug("{:*^60}".format(" cass is ready for connections "))
 
-    # send update to the resturant owner
+    # send update to the restaurant owner
     origin_url = "http://"+workflow_json["origin"]+":8080/results"
     message = "Component cass of your workflow has been deployed"
     message_dict = {"message": message}
@@ -139,7 +139,7 @@ def start_components(component, storeId, response_list):
 
     # keep pinging the service
     while not healthy:
-        # retrieve the tasks of the component servcie
+        # retrieve the tasks of the component service
         tasks = client.services.get(component).tasks()
 
         # see if at least one of the tasks is healthy
@@ -156,7 +156,7 @@ def start_components(component, storeId, response_list):
 
     logging.debug("{:*^60}".format(" " + component + " is healthy "))
 
-    # send update to the resturant owner
+    # send update to the restaurant owner
     origin_url = "http://" + workflows[storeId]["origin"] + ":8080/results"
     message = "Component "+component + " of your workflow has been deployed"
     message_dict = {"message": message}
@@ -240,13 +240,13 @@ def setup_workflow(storeId):
     if not valid:
         return Response(
             status=400,
-            response="workflow-request ill formated\n" + mess
+            response="workflow-request ill formatted\n" + mess
         )
     if data["method"] != "persistent":
         return Response(
             status=422,
             response="Sorry, edge deployment method is not yet supported!\n" +
-                     "Entity could not be prossesed"
+                     "Entity could not be processed"
         )
     if storeId in workflows:
         return Response(
@@ -268,7 +268,7 @@ def setup_workflow(storeId):
     except ValueError:
         has_cass = False
 
-    # startup cass first and formost
+    # startup cass first and foremost
     if has_cass:
         start_cass(data)
 
@@ -302,7 +302,7 @@ def setup_workflow(storeId):
         teardown(storeId)
         return Response(
             status=403,
-            response="Worflow deployment failed.\n" +
+            response="Workflow deployment failed.\n" +
                      "Invalid workflow specification"
         )
 

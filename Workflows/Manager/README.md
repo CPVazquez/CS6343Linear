@@ -1,4 +1,5 @@
 # Workflow Manager
+
 ## Written By
 Daniel Garcia(left) and Carla Vazquez
 
@@ -88,7 +89,7 @@ storeId - the id of the store issuing the workflow request
 | status code | status | meaning|
 |---|---|---|
 |200| OK | returns the `workflow-request`|
-|404| Not Found| the specified `workflow-request` does not exist and could not be retireved|
+|404| Not Found| the specified `workflow-request` does not exist and could not be retrieved|
 
 ### `GET /workflow-requests`
 
@@ -97,7 +98,6 @@ storeId - the id of the store issuing the workflow request
 | status code | status | meaning|
 |---|---|---|
 |200| OK | returns all the `workflow-request`s on the workflow manager|
-
 
 ### `GET /health`
 
