@@ -19,7 +19,7 @@ __maintainer__ = "Carla Vazquez"
 __email__ = "cpv150030@utdallas.edu"
 __status__ = "Development"
 
-# TODO: set up time out for spining up components
+# TODO: look into async post to results
 
 # set up necessary docker clients
 client = docker.from_env()
@@ -110,9 +110,9 @@ def start_cass(workflow_json, response_list):
         if not healthy:
             if count < 60:  # request has not timed out
                 logging.debug("cass is not ready")
-                message = "Attempting to spin up cass"
-                message_dict = {"message": message}
-                requests.post(origin_url, None, json.dumps(message_dict))
+                # message = "Attempting to spin up cass"
+                # message_dict = {"message": message}
+                # requests.post(origin_url, None, json.dumps(message_dict))
                 sleep(5)
                 count += 5
             else:  # request timed out
