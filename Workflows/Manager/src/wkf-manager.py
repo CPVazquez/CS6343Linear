@@ -71,6 +71,8 @@ def start_cass(workflow_json):
     # look for cass service
     cass_filter = client.services.list(filters={'name': 'cass'})
 
+    origin_url = "http://"+workflow_json["origin"]+":8080/results"
+
     # if cass service not found
     if len(cass_filter) == 0:
 
@@ -104,12 +106,15 @@ def start_cass(workflow_json):
         # trying again
         if not healthy:
             logging.debug("cass is not ready")
+            # send update to the restaurant owner
+            message = "Attempting to spin up component cass"
+            message_dict = {"message": message}
+            requests.post(origin_url, json=json.dumps(message_dict))
             sleep(5)
 
     logging.debug("{:*^60}".format(" cass is ready for connections "))
 
     # send update to the restaurant owner
-    origin_url = "http://"+workflow_json["origin"]+":8080/results"
     message = "Component cass of your workflow has been deployed"
     message_dict = {"message": message}
     requests.post(origin_url, json=json.dumps(message_dict))

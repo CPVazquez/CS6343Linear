@@ -1,3 +1,7 @@
+"""Restaurant Owner (client)
+
+requests workflows and receives updates
+"""
 import json
 import logging
 import multiprocessing
@@ -12,6 +16,8 @@ __version__ = "1.0.0"
 __maintainer__ = "Carla Vazquez"
 __email__ = "cpv150030@utdallas.edu"
 __status__ = "Development"
+
+# TODO: set up time out for spining up components
 
 # set up logging
 logging.UPDATE_LEVEL = 25
