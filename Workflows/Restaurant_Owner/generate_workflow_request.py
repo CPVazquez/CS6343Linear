@@ -89,7 +89,6 @@ def issue_workflow_request():
     ip_address = socket.gethostbyname(hostname)
 
     workflow_dict = {
-        "storeId": storeSelect,
         "method": method,
         "component-list": component_list,
         "origin": ip_address
@@ -132,7 +131,7 @@ def get_workflow():
     if response.status_code == 200:
         logger.log(
             logging.UPDATE_LEVEL,
-            "Workflow is: \n" + response.text
+            json.dumps(json.loads(response.text), sort_keys=True, indent=4)
         )
     else:
         logger.log(
@@ -145,7 +144,7 @@ def get_workflows():
     response = requests.get(url)
     logger.log(
         logging.UPDATE_LEVEL,
-        json.dumps(response.text)
+        json.dumps(json.loads(response.text), sort_keys=True, indent=4)
     )
 
 

@@ -21,5 +21,6 @@
             "description":"host ip of the origin"
         }
     },
+    "additionalProperties": false,
     "required": ["method", "component-list", "origin"]
 }
