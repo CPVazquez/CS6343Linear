@@ -105,7 +105,7 @@ def issue_workflow_request():
     )
     response = requests.post(url + storeSelect, json=workflow_json)
 
-    if response.status_code == 200:
+    if response.status_code == 201:
         logger.log(logging.UPDATE_LEVEL, "Workflow successfully deployed!")
     else:
         logger.log(
