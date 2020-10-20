@@ -148,11 +148,11 @@ def startup():
     print("What do you want to do?\n" +
           "\t1. Send workflow request\n" +
           "\t2. Teardown workflow\n" +
-          "\t3. Exit")
+          "\t0. Exit")
 
     while True:
         choice = input("Pick an option (1-3): ")
-        while choice != "1" and choice != "2" and choice != "3":
+        while choice != "1" and choice != "2" and choice != "0":
             choice = input("Invalid selection. Pick 1-3: ")
 
         if choice == "1":
