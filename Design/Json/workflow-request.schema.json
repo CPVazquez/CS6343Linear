@@ -16,7 +16,7 @@
                 "enum":  ["order-verifier", "delivery-assigner", "auto-restocker", "restocker", "cass"]
             }
         },
-        "orign": {
+        "origin": {
             "type":"string",
             "description":"host ip of the origin"
         }
