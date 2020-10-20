@@ -112,12 +112,12 @@ def start_cass(workflow_json, response_list):
                 logging.debug("cass is not ready")
                 message = "Attempting to spin up cass"
                 message_dict = {"message": message}
-                x = threading.Thread(
-                    target=requests.post,
-                    args=(origin_url, None, json.dumps(message_dict)),
-                    daemon=True
-                )
-                x.start()
+                # x = threading.Thread(
+                #     target=requests.post,
+                #     args=(origin_url, None, json.dumps(message_dict)),
+                #     daemon=True
+                # )
+                # x.start()
                 sleep(5)
                 count += 5
             else:  # request timed out
