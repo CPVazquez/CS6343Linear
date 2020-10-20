@@ -27,7 +27,7 @@ url = "http://cluster1-1.utdallas.edu:8080/workflow-request/"
 # set up flask app
 app = Flask(__name__)
 
-t = None
+
 storeSelect = None
 
 
@@ -168,6 +168,7 @@ def startup():
 
 if __name__ == "__main__":
     global t
+
     t = threading.Thread(target=app.run, args=("0.0.0.0", 8080, False))
     t.start()
     sleep(1)
