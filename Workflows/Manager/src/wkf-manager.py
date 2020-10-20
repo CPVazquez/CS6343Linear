@@ -174,8 +174,8 @@ def start_components(component, storeId, response_list):
                     message = "Attempting to spin up " + component
                     message_dict = {"message": message}
                     requests.post(origin_url, json=json.dumps(message_dict))
-                sleep(1)
-                count += 1
+                sleep(5)
+                count += 5
             else:
                 component_service.remove()
                 break
