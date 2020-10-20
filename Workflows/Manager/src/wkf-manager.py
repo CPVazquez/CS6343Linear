@@ -322,7 +322,7 @@ def retrieve_workflow(storeId):
     else:
         return Response(
             status=200,
-            json=json.dumps(workflows[storeId])
+            response=json.dumps(workflows[storeId])
         )
 
 
@@ -330,7 +330,7 @@ def retrieve_workflow(storeId):
 def retrieve_workflows():
     return Response(
         status=200,
-        json=json.dumps(workflows)
+        response=json.dumps(workflows)
     )
 
 

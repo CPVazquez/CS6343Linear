@@ -132,7 +132,7 @@ def get_workflow():
     if response.status_code == 200:
         logger.log(
             logging.UPDATE_LEVEL,
-            "Workflow is: \n" + json.dumps(response.json())
+            "Workflow is: \n" + response.text
         )
     else:
         logger.log(
@@ -145,7 +145,7 @@ def get_workflows():
     response = requests.get(url)
     logger.log(
         logging.UPDATE_LEVEL,
-        json.dumps(response.json())
+        json.dumps(response.text)
     )
 
 
