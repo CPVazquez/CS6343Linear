@@ -184,7 +184,8 @@ def start_components(component, storeId, response_list):
             " of your workflow could not be deployed"
         message_dict = {"message": message}
         requests.post(origin_url, json=json.dumps(message_dict))
-        resp = requests.Response(status_code=408)
+        resp = requests.Response()
+        resp.status_code = 408
         response_list.append(resp)
         return
 
