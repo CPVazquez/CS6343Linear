@@ -1,6 +1,6 @@
 import json
 import logging
-import threading
+import multiprocessing
 import socket
 from time import sleep
 
@@ -40,11 +40,6 @@ def print_results():
 @app.route("/health", methods=["GET"])
 def health_check():
     return Response(status=200, response="healthy\n")
-
-
-def shutdown_server():
-    t.running = False
-    t.join()
 
 
 def issue_workflow_request():
@@ -121,12 +116,13 @@ def issue_workflow_teardown():
     response = requests.delete(url + storeSelect)
     logger.log(
         logging.UPDATE_LEVEL,
-        "Workflow teardown recieved the following response: " + response.text
+        "Workflow teardown recieved the following response: " +
+        response.status_code
     )
 
 
 def startup():
-    global storeSelect
+    global storeSelect, t
 
     print("Which store are you generating a workflow for? \n" +
           "\tA. 7098813e-4624-462a-81a1-7e0e4e67631d\n" +
@@ -149,7 +145,7 @@ def startup():
     print("What do you want to do?\n" +
           "\t1. Send workflow request\n" +
           "\t2. Teardown workflow\n" +
-          "\t3. Exit\n")
+          "\t3. Exit")
 
     while True:
         choice = input("Pick an option (1-3): ")
@@ -161,14 +157,14 @@ def startup():
         elif choice == "2":
             issue_workflow_teardown()
         else:
-            shutdown_server()
+            t.terminate()
             break
 
 
 if __name__ == "__main__":
     global t
 
-    t = threading.Thread(target=app.run, args=("0.0.0.0", 8080, False))
+    t = multiprocessing.Process(target=app.run, args=("0.0.0.0", 8080, False))
     t.start()
     sleep(1)
     startup()
