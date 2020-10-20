@@ -168,11 +168,11 @@ def start_components(component, storeId, response_list):
             if count < 15:
                 if count % 5 == 0:
                     logging.debug(component + "is not ready")
-                    sleep(1)
-                    count += 1
             else:
                 component_service.remove()
                 break
+            sleep(1)
+            count += 1
         else:
             break
 
