@@ -110,10 +110,6 @@ def start_cass(workflow_json, response_list):
         if not healthy:
             if count < 60:  # request has not timed out
                 logging.debug("cass is not ready")
-                # send update to the restaurant owner
-                message = "Attempting to spin up component cass"
-                message_dict = {"message": message}
-                requests.post(origin_url, json=json.dumps(message_dict))
                 sleep(5)
                 count += 5
             else:  # request timed out
