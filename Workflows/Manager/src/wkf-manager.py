@@ -19,6 +19,8 @@ __maintainer__ = "Carla Vazquez"
 __email__ = "cpv150030@utdallas.edu"
 __status__ = "Development"
 
+# TODO: set up time out for spining up components
+
 # set up necessary docker clients
 client = docker.from_env()
 APIclient = docker.APIClient(base_url='unix://var/run/docker.sock')

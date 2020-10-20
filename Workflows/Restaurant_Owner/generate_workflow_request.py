@@ -17,8 +17,6 @@ __maintainer__ = "Carla Vazquez"
 __email__ = "cpv150030@utdallas.edu"
 __status__ = "Development"
 
-# TODO: set up time out for spining up components
-
 # set up logging
 logging.UPDATE_LEVEL = 25
 logging.addLevelName(logging.UPDATE_LEVEL, "UPDATE")
