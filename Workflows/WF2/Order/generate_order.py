@@ -27,18 +27,19 @@ class PizzaOrder:
     cheese_amts = ['None','Light','Normal','Extra']
     topping_types = ['Pepperoni','Sausage','Beef','Onion','Chicken','Peppers','Olives','Bacon','Pineapple','Mushrooms']
 
-    def __init__(self, store):
+    def __init__(self, store, max_pizzas):
         self.store_id = self.stores[store][0]
         self.cust_name = fake.name()
         self.pay_token = str(uuid.uuid4())
         self.pay_type = self.payment_types[random.randint(0, 7)]
         self.cust_lat = round((self.stores[store][1] + random.uniform(-0.037, 0.037)), 6)
         self.cust_lon = round((self.stores[store][2] + random.uniform(-0.0432, 0.0432)), 6)
+        self.max_pizzas = max_pizzas
 
     def add_pizzas(self):
         # Generate a list of random pizzas in the range of 1 to max_pizzas
         pizza_list = []
-        n = round(random.triangular(1, max_pizzas, 1))  # 1 <= n <= max_pizzas (mode is 1)
+        n = round(random.triangular(1, self.max_pizzas, 1))  # 1 <= n <= max_pizzas (mode is 1)
         for _ in range(n):
             pizza = {
                 "crustType": self.crust_types[random.randint(0, 1)],
@@ -65,7 +66,7 @@ class PizzaOrder:
         return order_dict
 
 
-def post_order(q, url):
+def request_order(q, url):
     while True:
         order = q.get()
         order_dict = order.generate_order()
@@ -81,16 +82,7 @@ def post_order(q, url):
 if __name__ == "__main__":
     print("\n*** Pizza Order Generator Script - User Input Required ***\n")
     url = input("Enter Order Verifier URL: ")
-    print()
-    while True:
-        try:
-            num_threads = int(input("Enter the number of threads to start (min: 1, max: 10): "))
-        except ValueError:
-            print("Could not convert input data to integer. Please try again.")
-        if (num_threads >= 1) & (num_threads <= 10):
-            print()
-            break
-    print("0 - StoreID 7098813e-4624-462a-81a1-7e0e4e67631d")
+    print("\n0 - StoreID 7098813e-4624-462a-81a1-7e0e4e67631d")
     print("1 - StoreID 5a2bb99f-88d2-4612-ac60-774aea9b8de4")
     print("2 - StoreID b18b3932-a4ef-485c-a182-8e67b04c208c")
     while True:
@@ -121,13 +113,12 @@ if __name__ == "__main__":
 
     q = Queue(max_orders)
 
-    for _ in range(num_threads):
-        t = Thread(target=post_order, args=(q,url))
-        t.daemon = True
-        t.start()
+    t = Thread(target=request_order, args=(q,url))
+    t.daemon = True
+    t.start()
 
     for _ in range(max_orders):
-        pizza_order = PizzaOrder(store)
+        pizza_order = PizzaOrder(store, max_pizzas)
         q.put(pizza_order)
         time.sleep(3)
 

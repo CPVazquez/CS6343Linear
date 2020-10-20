@@ -76,19 +76,19 @@ def verify_restock_order(order):
 def restocker():
 
     valid = False
-    restock_json = request.get_json(silent=True)
-    response = Response(status=400, response="Restocking order ill formated.\nRejecting request.\nPlease correct formating.")
+    restock_dict = json.loads(request.get_json())
+    #response = Response(status=400, response="Restocking order ill formated.\nRejecting request.\nPlease correct formating.")
 
-    if restock_json != None :
-        valid, mess = verify_restock_order(restock_json)
+    if restock_dict != None :
+        valid, mess = verify_restock_order(restock_dict)
 
         if valid :
             try: 
-                storeID = uuid.UUID(restock_json["storeID"])
-                for item_dict in restock_json["restock-list"]:
+                storeID = uuid.UUID(restock_dict["storeID"])
+                for item_dict in restock_dict["restock-list"]:
                     session.execute(add_stock_prepared, (item_dict["quantity"],
                         storeID, item_dict["item-name"]))
-                response = Response(status=200, response="Filled out the following restock order:\n" + json.dumps(restock_json))
+                response = Response(status=200, response="Filled out the following restock order:\n" + json.dumps(restock_dict))
             except ValueError:
                 logging.debug("Exception: badly formed hexadecimal UUID\
                     string")
