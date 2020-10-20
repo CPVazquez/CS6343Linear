@@ -167,12 +167,15 @@ def start_components(component, storeId, response_list):
         except Exception:
             if count < 15:
                 if count % 5 == 0:
-                    logging.debug(component + "is not ready")
+                    logging.debug(component + " is not ready")
+                    message = "Attempting to spin up " + component
+                    message_dict = {"message": message}
+                    requests.post(origin_url, json=json.dumps(message_dict))
+                sleep(1)
+                count += 1
             else:
                 component_service.remove()
                 break
-            sleep(1)
-            count += 1
         else:
             break
 
