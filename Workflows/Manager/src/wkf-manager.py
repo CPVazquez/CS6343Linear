@@ -141,7 +141,7 @@ def start_components(component, storeId, response_list):
     # check if service exists
     service_filter = client.services.list(filters={'name': component})
     origin_url = "http://" + workflows[storeId]["origin"] + ":8080/results"
-    # service_url = "http://" + component + ":" + str(portDict[component])
+    service_url = "http://" + component + ":" + str(portDict[component])
 
     # if not exists
     if len(service_filter) == 0:
@@ -158,36 +158,23 @@ def start_components(component, storeId, response_list):
             env=["CASS_DB=cass"],  # set environment var
             networks=['myNet'])  # set network
 
-    healthy = False
     count = 0
 
-    # keep pinging the service
-    while not healthy:
-        # retrieve the tasks of the component service
-        tasks = client.services.get(component).tasks()
-
-        # see if at least one of the tasks is healthy
-        for task in tasks:
-            tID = task['ID']
-            result = APIclient.inspect_task(tID)['Status']['Message']
-            if result == 'started':
-                healthy = True
-
-        # if none of the tasks are healthy, wait a bit before
-        # trying again
-        if not healthy:
+    # wait for component to spin up
+    while True:
+        try:
+            requests.get(service_url+"/health")
+        except Exception:
             if count < 15:
                 if count % 5 == 0:
                     logging.debug(component + "is not ready")
-                    # send update to the restaurant owner
-                    message = "Attempting to spin up component " + component
-                    message_dict = {"message": message}
-                    requests.post(origin_url, json=json.dumps(message_dict))
-                sleep(1)
-                count += 1
+                    sleep(1)
+                    count += 1
             else:
                 component_service.remove()
                 break
+        else:
+            break
 
     if count >= 15:
         logging.debug("{:*^60}".format(
