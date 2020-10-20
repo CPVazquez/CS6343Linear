@@ -113,7 +113,7 @@ def start_components(component, storeId, response_list):
 
     # check if service exists
     service_filter = client.services.list(filters={'name': component})
-    service_url = "http://" + component + ":" + str(portDict[component])
+    # service_url = "http://" + component + ":" + str(portDict[component])
 
     # if not exists
     if len(service_filter) == 0:
@@ -152,45 +152,45 @@ def start_components(component, storeId, response_list):
     logging.debug("{:*^60}".format(" " + component + " is healthy "))
 
     # send update to the resturant owner
-    origin_url = "http://" + workflows[storeId]["origin"] + ":8080/results"
-    message = "Component " + component + " of your workflow has been deployed"
-    message_dict = {"message": message}
-    requests.put(origin_url, json=json.dumps(message_dict))
+    # origin_url = "http://" + workflows[storeId]["origin"] + ":8080/results"
+    # message = "Component "+component + " of your workflow has been deployed"
+    # message_dict = {"message": message}
+    # requests.put(origin_url, json=json.dumps(message_dict))
 
-    # send workflow_request to component
-    logging.debug("{:*^60}".format(
-        " sent " + component + " workflow specification for " + storeId + " "
-    ))
-    comp_response = requests.post(
-        service_url + "/workflow-request/" + storeId,
-        json=json.dumps(workflows[storeId])
-    )
-    logging.debug("{:*^60}".format(
-        " recieved response from " + component +
-        " for workflow specification " + storeId + " "
-    ))
-    thread_lock.acquire(blocking=True)
-    response_list.append(comp_response)
-    thread_lock.release()
+    # # send workflow_request to component
+    # logging.debug("{:*^60}".format(
+    #     " sent " + component + " workflow specification for " + storeId + " "
+    # ))
+    # comp_response = requests.post(
+    #     service_url + "/workflow-request/" + storeId,
+    #     json=json.dumps(workflows[storeId])
+    # )
+    # logging.debug("{:*^60}".format(
+    #     " recieved response from " + component +
+    #     " for workflow specification " + storeId + " "
+    # ))
+    # thread_lock.acquire(blocking=True)
+    # response_list.append(comp_response)
+    # thread_lock.release()
 
 
 def stop_components(component, storeId, response_list):
-    service_url = "http://" + component + ":" + str(portDict[component])
+    # service_url = "http://" + component + ":" + str(portDict[component])
 
     logging.debug("{:*^60}".format(
         " sent teardown request to " + component +
         " for workflow specification " + storeId + " "
     ))
-    comp_response = requests.delete(
-        service_url + "/workflow-request",
-        json=json.dumps({"storeId": storeId})
-    )
+    # comp_response = requests.delete(
+    #     service_url + "/workflow-request",
+    #     json=json.dumps({"storeId": storeId})
+    # )
     logging.debug("{:*^60}".format(
         " recieved response from " + component +
         " for workflow specification " + storeId + " ")
     )
     thread_lock.acquire(blocking=True)
-    response_list.append(comp_response)
+    # response_list.append(comp_response)
     thread_lock.release()
 
 
