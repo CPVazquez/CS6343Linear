@@ -126,12 +126,14 @@ def start_cass(workflow_json, response_list):
     if count < 60:
         logging.debug("{:*^60}".format(" cass is ready for connections "))
         message = "Component cass of your workflow has been deployed"
-        resp = requests.Response(status_code=200)
+        resp = requests.Response()
+        resp.status_code = 200
     else:
         logging.debug("{:*^60}".format(" cass could not be debloyed "))
         message = "Timeout. Component cass of your " +\
             "workflow could not be deployed"
-        resp = requests.Response(status_code=408)
+        resp = requests.Response()
+        resp.status_code = 408
 
     # send update to the restaurant owner
     message_dict = {"message": message}
