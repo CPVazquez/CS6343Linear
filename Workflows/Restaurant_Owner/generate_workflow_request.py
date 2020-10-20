@@ -13,6 +13,7 @@ __maintainer__ = "Carla Vazquez"
 __email__ = "cpv150030@utdallas.edu"
 __status__ = "Development"
 
+# set up logging
 logging.UPDATE_LEVEL = 25
 logging.addLevelName(logging.UPDATE_LEVEL, "UPDATE")
 logging.basicConfig(
@@ -22,11 +23,13 @@ logging.basicConfig(
 logger = logging.getLogger()
 logger.setLevel(logging.UPDATE_LEVEL)
 
-url = "http://cluster1-1.utdallas.edu:8080/workflow-request/"
+# create endpoint url
+url = "http://cluster1-1.utdallas.edu:8080/workflow-requests"
 
 # set up flask app
 app = Flask(__name__)
 
+# create global var storeSelect
 storeSelect = None
 
 
@@ -98,7 +101,7 @@ def issue_workflow_request():
         "\nWorkflow Request Generated:\n" +
         json.dumps(workflow_dict, sort_keys=True, indent=4)
     )
-    response = requests.post(url + storeSelect, json=workflow_json)
+    response = requests.post(url + "/" + storeSelect, json=workflow_json)
 
     if response.status_code == 201:
         logger.log(
@@ -116,11 +119,33 @@ def issue_workflow_request():
 def issue_workflow_teardown():
     global storeSelect
 
-    response = requests.delete(url + storeSelect)
+    response = requests.delete(url + "/" + storeSelect)
     logger.log(
         logging.UPDATE_LEVEL,
         "Workflow teardown recieved the following response: " +
         str(response.status_code) + " " + response.text
+    )
+
+
+def get_workflow():
+    response = requests.get(url + "/" + storeSelect)
+    if response.status_code == 200:
+        logger.log(
+            logging.UPDATE_LEVEL,
+            "Workflow is: \n" + json.dumps(response.json())
+        )
+    else:
+        logger.log(
+            logging.UPDATE_LEVEL,
+            str(response.status_code) + " " + response.text
+        )
+
+
+def get_workflows():
+    response = requests.get(url)
+    logger.log(
+        logging.UPDATE_LEVEL,
+        json.dumps(response.json())
     )
 
 
@@ -148,17 +173,25 @@ def startup():
     print("What do you want to do?\n" +
           "\t1. Send workflow request\n" +
           "\t2. Teardown workflow\n" +
+          "\t3. Get workflow\n" +
+          "\t4. Get all workflows\n"
           "\t0. Exit")
 
     while True:
-        choice = input("Pick an option (0-2): ")
-        while choice != "1" and choice != "2" and choice != "0":
-            choice = input("Invalid selection. Pick 0-2: ")
+        choice = input("Pick an option (0-4): ")
+        while choice != "1" and choice != "2" and choice != "3" and\
+                choice != "4" and choice != "0":
+
+            choice = input("Invalid selection. Pick 0-4: ")
 
         if choice == "1":
             issue_workflow_request()
         elif choice == "2":
             issue_workflow_teardown()
+        elif choice == "3":
+            get_workflow()
+        elif choice == "4":
+            get_workflows()
         else:
             t.terminate()
             break

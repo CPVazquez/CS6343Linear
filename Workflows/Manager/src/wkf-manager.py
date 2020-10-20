@@ -221,7 +221,7 @@ def teardown(storeId):
     del workflows[storeId]
 
 
-@app.route("/workflow-request/<storeId>", methods=["POST"])
+@app.route("/workflow-requests/<storeId>", methods=["POST"])
 def setup_workflow(storeId):
     # get the data from the request
     data = json.loads(request.get_json())
@@ -299,7 +299,7 @@ def setup_workflow(storeId):
         )
 
 
-@app.route("/workflow-request/<storeId>", methods=["DELETE"])
+@app.route("/workflow-requests/<storeId>", methods=["DELETE"])
 def teardown_workflow(storeId):
     if not (storeId in workflows):
         return Response(
@@ -310,6 +310,28 @@ def teardown_workflow(storeId):
     teardown(storeId)
 
     return Response(status=204)
+
+
+@app.route("/workflow-requests/<storeId>", methods=["GET"])
+def retrieve_workflow(storeId):
+    if not (storeId in workflows):
+        return Response(
+            status=404,
+            response="Workflow doesn't exist. Nothing to retrieved"
+        )
+    else:
+        return Response(
+            status=200,
+            json=json.dumps(workflows[storeId])
+        )
+
+
+@app.route("/workflow-requests", methods=["GET"])
+def retrieve_workflows():
+    return Response(
+        status=200,
+        json=json.dumps(workflows)
+    )
 
 
 # Health check endpoint
