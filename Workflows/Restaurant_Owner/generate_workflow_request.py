@@ -27,7 +27,6 @@ url = "http://cluster1-1.utdallas.edu:8080/workflow-request/"
 # set up flask app
 app = Flask(__name__)
 
-
 storeSelect = None
 
 

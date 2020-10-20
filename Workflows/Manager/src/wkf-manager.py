@@ -106,7 +106,7 @@ def start_cass(workflow_json):
     origin_url = "http://"+workflow_json["origin"]+":8080/results"
     message = "Component cass of your workflow has been deployed"
     message_dict = {"message": message}
-    requests.post(origin_url, json=json.dumps(message_dict))
+    requests.put(origin_url, json=json.dumps(message_dict))
 
 
 def start_components(component, storeId, response_list):
@@ -152,10 +152,10 @@ def start_components(component, storeId, response_list):
     logging.debug("{:*^60}".format(" " + component + " is healthy "))
 
     # send update to the resturant owner
-    # origin_url = "http://" + workflows[storeId]["origin"] + ":8080/results"
-    # message = "Component "+component + " of your workflow has been deployed"
-    # message_dict = {"message": message}
-    # requests.put(origin_url, json=json.dumps(message_dict))
+    origin_url = "http://" + workflows[storeId]["origin"] + ":8080/results"
+    message = "Component "+component + " of your workflow has been deployed"
+    message_dict = {"message": message}
+    requests.put(origin_url, json=json.dumps(message_dict))
 
     # # send workflow_request to component
     # logging.debug("{:*^60}".format(
