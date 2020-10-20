@@ -90,9 +90,6 @@ with open("src/workflow-request.schema.json", "r") as workflow_schema:
 # Logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Global variable stock_tracker_offset is used to artificially accelerate timestamps in stockTracker table
-stock_tracker_offset = -10
-
 # Global dict of pizza items/ingredients
 items_dict = {
     'Dough': 0,         'SpicySauce': 0,        'TraditionalSauce': 0,  'Cheese': 0,
@@ -192,9 +189,6 @@ def insert_pizzas(pizza_list):
 # Insert or update stockTracker table for items sold per day
 def stock_tracker_mgr(store_uuid, req_item_dict):
     date_sold = datetime.combine(date.today(), datetime.min.time())
-    #offset_date = date.today() + timedelta(days=stock_tracker_offset)
-    #date_sold = datetime.combine(offset_date, datetime.min.time())
-    #logging.debug("Inserting in stockTracker for Date: " + str(date_sold))
     for item_name in req_item_dict:
         rows = session.execute(select_stock_tracker_prepared, (store_uuid, item_name, date_sold))
         if not rows:
@@ -297,7 +291,7 @@ def order_manager(order_dict):
         for item in req_item_dict:
             item_list.append({"item-name": item, "quantity": req_item_dict[item]})
         auto_restock_dict = {"storeID": order_dict["storeId"], "restock-list": item_list}
-        logging.debug("Auto Restocker: " + json.dumps(auto_restock_dict))
+        logging.debug("For Auto Restocker: " + json.dumps(auto_restock_dict))
         #response = requests.post("http://auto-restocker:4000/auto-restock", json=auto_restock_dict)
         #logging.debug(response.text)
 
@@ -344,7 +338,7 @@ def verify_workflow(data):
 def setup_workflow(storeId):
     global delivery_assigner_active, auto_restocker_active, restocker_active
     data = json.loads(request.get_json())
-    logging.debug("setup_workflow data: " + json.dumps(data, indent=4))
+    logging.debug("setup_workflow data: " + json.dumps(data))
     valid, mess = verify_workflow(data)
     if not valid:
         return Response(status=400, response="workflow-request ill formatted\n" + mess)
@@ -381,14 +375,3 @@ def teardown_workflow(storeId):
 @app.route('/health', methods=['GET'])
 def health_check():
     return Response(status=200,response="healthy\n")
-
-
-# Function to periodically increment the global variable stock_tracker_offset
-def inc_stock_tracker_offset():
-    global stock_tracker_offset
-    stock_tracker_offset += 1
-    threading.Timer(900, inc_stock_tracker_offset).start()
-
-
-# First call to inc_stock_tracker_offset function
-#inc_stock_tracker_offset()
