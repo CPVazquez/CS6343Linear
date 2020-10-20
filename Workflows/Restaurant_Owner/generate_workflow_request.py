@@ -117,7 +117,7 @@ def issue_workflow_teardown():
     logger.log(
         logging.UPDATE_LEVEL,
         "Workflow teardown recieved the following response: " +
-        response.status_code
+        str(response.status_code)
     )
 
 
