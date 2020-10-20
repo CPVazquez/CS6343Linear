@@ -73,7 +73,7 @@ requires a `workflow-request` json object.
 
 | parameter | type | required | description |
 |-------|------|----|---|
-|storeId | string| true| the id of the store issuing the workflow request|
+|storeId | string| true| the id of the store whose workflow we want to delete|
 
 #### Responses
 
@@ -88,7 +88,7 @@ requires a `workflow-request` json object.
 
 | parameter | type | required | description |
 |-------|------|----|---|
-|storeId | string| true| the id of the store issuing the workflow request|
+|storeId | string| true| the id of the store whose workflow we want to retrieve|
 
 #### Responses
 
@@ -111,6 +111,7 @@ requires a `workflow-request` json object.
 | status code | status | meaning|
 |---|---|---|
 |200| OK | the server is up and running|
+
 returns string `healthy` if the service is healthy
 
 [Main README](https://github.com/CPVazquez/CS6343)
