@@ -24,7 +24,7 @@ python3 generate_workflow_request.py
 
 ## Endpoints
 
-### `PUT /results`
+### `POST /results`
 
 An endpoint for the client to receive workflow results.
 

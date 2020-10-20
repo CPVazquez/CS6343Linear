@@ -199,7 +199,7 @@ def startup():
 
 
 # an endpoint to receive updates at
-@app.route("/results", methods=["PUT"])
+@app.route("/results", methods=["POST"])
 def print_results():
     mess = json.loads(request.get_json())
     logger.log(logging.UPDATE_LEVEL, mess["message"])
