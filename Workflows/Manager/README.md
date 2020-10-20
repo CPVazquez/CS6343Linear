@@ -77,6 +77,28 @@ storeId - the id of the store issuing the workflow request
 |204|No Content| the specified workflow was deleted successfully |
 |404|Not Found| the specified workflow does not exist or has already been deleted
 
+### `GET /workflow-requests/<storeId>`
+
+#### Parameters
+
+storeId - the id of the store issuing the workflow request
+
+#### Responses
+
+| status code | status | meaning|
+|---|---|---|
+|200| OK | returns the `workflow-request`|
+|404| Not Found| the specified `workflow-request` does not exist and could not be retireved|
+
+### `GET /workflow-requests`
+
+#### Responses
+
+| status code | status | meaning|
+|---|---|---|
+|200| OK | returns all the `workflow-request`s on the workflow manager|
+
+
 ### `GET /health`
 
 #### Responses

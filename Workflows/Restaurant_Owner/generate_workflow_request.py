@@ -33,27 +33,18 @@ app = Flask(__name__)
 storeSelect = None
 
 
-@app.route("/results", methods=["PUT"])
-def print_results():
-    mess = json.loads(request.get_json())
-    logger.log(logging.UPDATE_LEVEL, mess["message"])
-    return Response(status=200)
-
-
-@app.route("/health", methods=["GET"])
-def health_check():
-    return Response(status=200, response="healthy\n")
-
-
+# create a workflow-request
 def issue_workflow_request():
     global storeSelect
 
+    # get deployment method
     method = input("What deployment method do you want to use "
                    "(persistent or edge): ")
 
     while method != "persistent" and method != "edge":
         method = input("Invalid selection. Pick persistent or edge: ")
 
+    # get component-list
     print("What components do you want?\n\
         * order-verifier\n\
         * delivery-assigner\n\
@@ -85,15 +76,18 @@ def issue_workflow_request():
             components = input("Invalid component selection. Please enter a" +
                                " space\nserperated list of valid components: ")
 
+    # retrieve host ip
     hostname = socket.gethostname()
     ip_address = socket.gethostbyname(hostname)
 
+    # create the json object
     workflow_dict = {
         "method": method,
         "component-list": component_list,
         "origin": ip_address
     }
 
+    # send the workflow-request to the workflow manager
     workflow_json = json.dumps(workflow_dict)
     logger.log(
         logging.UPDATE_LEVEL,
@@ -102,6 +96,7 @@ def issue_workflow_request():
     )
     response = requests.put(url + "/" + storeSelect, json=workflow_json)
 
+    # parse the response
     if response.status_code == 201:
         logger.log(
             logging.UPDATE_LEVEL,
@@ -115,6 +110,7 @@ def issue_workflow_request():
         )
 
 
+# remove an existing workflow-request
 def issue_workflow_teardown():
     global storeSelect
 
@@ -126,6 +122,7 @@ def issue_workflow_teardown():
     )
 
 
+# retreive an existing workflow-request
 def get_workflow():
     response = requests.get(url + "/" + storeSelect)
     if response.status_code == 200:
@@ -140,6 +137,7 @@ def get_workflow():
         )
 
 
+# retrieve all workflows
 def get_workflows():
     response = requests.get(url)
     logger.log(
@@ -148,9 +146,11 @@ def get_workflows():
     )
 
 
+# do setup and get user input
 def startup():
     global storeSelect, t
 
+    # pick the store this restaurant is representing
     print("Which store are you generating a workflow for? \n" +
           "\tA. 7098813e-4624-462a-81a1-7e0e4e67631d\n" +
           "\tB. 5a2bb99f-88d2-4612-ac60-774aea9b8de4\n" +
@@ -169,6 +169,7 @@ def startup():
 
     choice = None
 
+    # print choice menu only once
     print("What do you want to do?\n" +
           "\t1. Send workflow request\n" +
           "\t2. Teardown workflow\n" +
@@ -176,6 +177,7 @@ def startup():
           "\t4. Get all workflows\n"
           "\t0. Exit")
 
+    # get the user's choice
     while True:
         choice = input("Pick an option (0-4): ")
         while choice != "1" and choice != "2" and choice != "3" and\
@@ -183,17 +185,31 @@ def startup():
 
             choice = input("Invalid selection. Pick 0-4: ")
 
-        if choice == "1":
+        if choice == "1":  # create a workflow-request
             issue_workflow_request()
-        elif choice == "2":
+        elif choice == "2":  # remove the workflow-request
             issue_workflow_teardown()
-        elif choice == "3":
+        elif choice == "3":  # retreive the workflow-request
             get_workflow()
-        elif choice == "4":
+        elif choice == "4":  # retreive all workflow-requests
             get_workflows()
-        else:
+        else:  # exit
             t.terminate()
             break
+
+
+# an endpoint to recieve updates at
+@app.route("/results", methods=["PUT"])
+def print_results():
+    mess = json.loads(request.get_json())
+    logger.log(logging.UPDATE_LEVEL, mess["message"])
+    return Response(status=200)
+
+
+# Health check endpoint
+@app.route("/health", methods=["GET"])
+def health_check():
+    return Response(status=200, response="healthy\n")
 
 
 if __name__ == "__main__":

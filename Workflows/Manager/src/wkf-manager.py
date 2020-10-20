@@ -1,3 +1,8 @@
+#!/usr/bin/python3
+"""Workflow Manager Component
+
+Creates and destroys specified workflows
+"""
 import logging
 import json
 from time import sleep
@@ -46,6 +51,7 @@ with open("src/workflow-request.schema.json", "r") as schema:
     schema = json.loads(schema.read())
 
 
+# check that the workflow specification json is valid
 def verify_workflow(data):
     global schema
     valid = True
@@ -110,7 +116,6 @@ def start_cass(workflow_json):
 
 
 def start_components(component, storeId, response_list):
-
     # check if service exists
     service_filter = client.services.list(filters={'name': component})
     # service_url = "http://" + component + ":" + str(portDict[component])
@@ -189,15 +194,16 @@ def stop_components(component, storeId, response_list):
         " recieved response from " + component +
         " for workflow specification " + storeId + " ")
     )
-    thread_lock.acquire(blocking=True)
+    # thread_lock.acquire(blocking=True)
     # response_list.append(comp_response)
-    thread_lock.release()
+    # thread_lock.release()
 
 
 def teardown(storeId):
     # get the list of components for the workflow
     component_list = workflows[storeId]["component-list"].copy()
 
+    # if cass exists, remove it from the list
     try:
         component_list.remove("cass")
     except ValueError:
@@ -206,6 +212,7 @@ def teardown(storeId):
     thread_list = []
     response_list = []
 
+    # remove the workflow from all components
     for comp in component_list:
         x = threading.Thread(
             target=stop_components,
@@ -218,6 +225,7 @@ def teardown(storeId):
     for x in thread_list:
         x.join()
 
+    # delete the given workflow from the dictionary
     del workflows[storeId]
 
 
@@ -299,6 +307,7 @@ def setup_workflow(storeId):
         )
 
 
+# if the recource exists, remove it
 @app.route("/workflow-requests/<storeId>", methods=["DELETE"])
 def teardown_workflow(storeId):
     if not (storeId in workflows):
@@ -312,6 +321,7 @@ def teardown_workflow(storeId):
     return Response(status=204)
 
 
+# retrieve the specified resource, if it exists
 @app.route("/workflow-requests/<storeId>", methods=["GET"])
 def retrieve_workflow(storeId):
     if not (storeId in workflows):
@@ -326,6 +336,7 @@ def retrieve_workflow(storeId):
         )
 
 
+# retrieve all resources
 @app.route("/workflow-requests", methods=["GET"])
 def retrieve_workflows():
     return Response(
