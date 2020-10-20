@@ -221,7 +221,7 @@ def teardown(storeId):
     del workflows[storeId]
 
 
-@app.route("/workflow-requests/<storeId>", methods=["POST"])
+@app.route("/workflow-requests/<storeId>", methods=["PUT"])
 def setup_workflow(storeId):
     # get the data from the request
     data = json.loads(request.get_json())
@@ -317,7 +317,7 @@ def retrieve_workflow(storeId):
     if not (storeId in workflows):
         return Response(
             status=404,
-            response="Workflow doesn't exist. Nothing to retrieved"
+            response="Workflow doesn't exist. Nothing to retrieve"
         )
     else:
         return Response(

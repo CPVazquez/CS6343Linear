@@ -37,7 +37,7 @@ To create the service, type the following command:
 
 ## Endpoints
 
-### `POST /workflow-request/<storeId>`
+### `PUT /workflow-requests/<storeId>`
 
 #### Parameters
 
@@ -64,7 +64,7 @@ requires a `workflow-request` json object.
 |409|Conflict|a workflow already exists for the specified store, and thus a new one cannot be created|
 |422|Unprocessable Entity| json is valid, but contains unsupported specifications, like edge deployment method|
 
-### `DELETE /workflow-request/<storeId>`
+### `DELETE /workflow-requests/<storeId>`
 
 #### Parameters
 

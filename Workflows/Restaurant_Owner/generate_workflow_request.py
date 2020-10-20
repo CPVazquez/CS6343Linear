@@ -101,7 +101,7 @@ def issue_workflow_request():
         "\nWorkflow Request Generated:\n" +
         json.dumps(workflow_dict, sort_keys=True, indent=4)
     )
-    response = requests.post(url + "/" + storeSelect, json=workflow_json)
+    response = requests.put(url + "/" + storeSelect, json=workflow_json)
 
     if response.status_code == 201:
         logger.log(
