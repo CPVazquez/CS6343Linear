@@ -42,7 +42,9 @@ To create the service, type the following command:
 
 #### Parameters
 
-storeId - the id of the store issuing the workflow request
+| parameter | type | required | description |
+|-------|------|----|---|
+|storeId | string| true| the id of the store issuing the workflow request|
 
 #### Body
 
@@ -69,7 +71,9 @@ requires a `workflow-request` json object.
 
 #### Parameters
 
-storeId - the id of the store issuing the workflow request
+| parameter | type | required | description |
+|-------|------|----|---|
+|storeId | string| true| the id of the store issuing the workflow request|
 
 #### Responses
 
@@ -82,7 +86,9 @@ storeId - the id of the store issuing the workflow request
 
 #### Parameters
 
-storeId - the id of the store issuing the workflow request
+| parameter | type | required | description |
+|-------|------|----|---|
+|storeId | string| true| the id of the store issuing the workflow request|
 
 #### Responses
 

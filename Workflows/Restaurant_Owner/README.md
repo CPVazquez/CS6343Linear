@@ -45,6 +45,7 @@ An endpoint for the client to receive workflow results.
 | status code | status | meaning|
 |---|---|---|
 |200| OK | the server is up and running|
+
 returns string `healthy` if the service is healthy
 
 [Main README](https://github.com/CPVazquez/CS6343)
