@@ -254,7 +254,8 @@ def check_stock(order_dict):
 # Manages order placement and restock, if needed
 def order_manager(order_dict):
     store_id = order_dict["storeId"]
-    if workflows[store_id] is None:
+    if store_id not in workflows:
+        logging.debug("Order request is valid, but Workflow does not exist: " + store_id)
         return Response(status=422, response="Order request is valid, but Workflow does not exist.")
 
     order_id = str(uuid.uuid4())  # Assign order_id to order_dict
@@ -319,9 +320,7 @@ def verify_order(data):
 # Pizza order endpoint
 @app.route('/order', methods=['POST'])
 def order_funct():
-    # Get the data from the request
     data = json.loads(request.get_json())
-    # Verify the request is valid
     valid, mess = verify_order(data)
     if not valid:
         return Response(status=400, response="Pizza order request ill formatted\n" + mess)
@@ -343,10 +342,9 @@ def verify_workflow(data):
 
 @app.route("/workflow-request/<storeId>", methods=['PUT'])
 def setup_workflow(storeId):
-    logging.debug("In the setup_workflow function...")
     global delivery_assigner_active, auto_restocker_active, restocker_active
     data = json.loads(request.get_json())
-    logging.debug("data: " + json.dumps(data, indent=4))
+    logging.debug("setup_workflow data: " + json.dumps(data, indent=4))
     valid, mess = verify_workflow(data)
     if not valid:
         return Response(status=400, response="workflow-request ill formatted\n" + mess)
@@ -364,12 +362,12 @@ def setup_workflow(storeId):
 
     logging.debug("Workflow Deployed: Order Verifier started for Store " + storeId)
 
-    return Response(status=201, response="Order Verifier deployed!")    
+    return Response(status=201, response="Order Verifier deployed for {}\n".format(storeId))    
 
 
 @app.route("/workflow-request/<storeId>", methods=["DELETE"])
 def teardown_workflow(storeId):
-    if workflows[storeId] is None:
+    if storeId not in workflows:
         return Response(status=404, response="Workflow doesn't exist. Nothing to teardown.")
 
     workflows[storeId] = None

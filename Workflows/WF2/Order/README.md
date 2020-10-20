@@ -14,10 +14,7 @@ Chris Scott
     * Randomly generating customer details, such as name, location coordinates, and payment information
     * Randomly constructs pizza orders from the valid pizza attributes
   * The script prompts the user for the following information:
-    * URL for Order Verifier
-    * Number of threads to start:
-      * Min: 1
-      * Max: 10
+    * URL - Dependent on workflow, could be Order Verifier, Delivery Assigner, or Auto-Restocker
     * A pizza store location from the 3 preset locations:
       * 0 for StoreID 7098813e-4624-462a-81a1-7e0e4e67631d
       * 1 for StoreID 5a2bb99f-88d2-4612-ac60-774aea9b8de4
