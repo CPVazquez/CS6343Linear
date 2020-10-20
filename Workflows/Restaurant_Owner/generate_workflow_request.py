@@ -151,9 +151,9 @@ def startup():
           "\t0. Exit")
 
     while True:
-        choice = input("Pick an option (1-3): ")
+        choice = input("Pick an option (0-2): ")
         while choice != "1" and choice != "2" and choice != "0":
-            choice = input("Invalid selection. Pick 1-3: ")
+            choice = input("Invalid selection. Pick 0-2: ")
 
         if choice == "1":
             issue_workflow_request()
