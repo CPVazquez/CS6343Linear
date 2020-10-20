@@ -69,7 +69,7 @@ def verify_workflow(data):
     return valid, mess
 
 
-def start_cass(workflow_json):
+def start_cass(workflow_json, response_list):
     # look for cass service
     cass_filter = client.services.list(filters={'name': 'cass'})
 
@@ -82,7 +82,7 @@ def start_cass(workflow_json):
         logging.debug("{:*^60}".format(" Spinning up cass "))
 
         # create cass service
-        client.services.create(
+        cass_service = client.services.create(
             "trishaire/cass",  # the name of the image
             name="cass",  # name of the service
             endpoint_spec=docker.types.EndpointSpec(
@@ -91,6 +91,7 @@ def start_cass(workflow_json):
             networks=['myNet'])   # network
 
     healthy = False
+    count = 0
 
     # keep pinging the service
     while not healthy:
@@ -107,24 +108,41 @@ def start_cass(workflow_json):
         # if none of the tasks are healthy, wait a bit before
         # trying again
         if not healthy:
-            logging.debug("cass is not ready")
-            # send update to the restaurant owner
-            message = "Attempting to spin up component cass"
-            message_dict = {"message": message}
-            requests.post(origin_url, json=json.dumps(message_dict))
-            sleep(5)
+            if count < 60:  # request has not timed out
+                logging.debug("cass is not ready")
+                # send update to the restaurant owner
+                message = "Attempting to spin up component cass"
+                message_dict = {"message": message}
+                requests.post(origin_url, json=json.dumps(message_dict))
+                sleep(5)
+                count += 5
+            else:  # request timed out
+                cass_service.remove()
+                break
 
-    logging.debug("{:*^60}".format(" cass is ready for connections "))
+    message = None
+    resp = None
+
+    if count < 60:
+        logging.debug("{:*^60}".format(" cass is ready for connections "))
+        message = "Component cass of your workflow has been deployed"
+        resp = requests.Response(status_code=200)
+    else:
+        logging.debug("{:*^60}".format(" cass could not be debloyed "))
+        message = "Timeout. Component cass of your " +\
+            "workflow could not be deployed"
+        resp = requests.Response(status_code=408)
 
     # send update to the restaurant owner
-    message = "Component cass of your workflow has been deployed"
     message_dict = {"message": message}
     requests.post(origin_url, json=json.dumps(message_dict))
+    response_list.append(resp)
 
 
 def start_components(component, storeId, response_list):
     # check if service exists
     service_filter = client.services.list(filters={'name': component})
+    origin_url = "http://" + workflows[storeId]["origin"] + ":8080/results"
     # service_url = "http://" + component + ":" + str(portDict[component])
 
     # if not exists
@@ -133,7 +151,7 @@ def start_components(component, storeId, response_list):
         logging.debug("{:*^60}".format(" Spinning up " + component + " "))
 
         # create the service
-        client.services.create(
+        component_service = client.services.create(
             "trishaire/" + component + ":latest",  # the name of the image
             name=component,  # name of service
             endpoint_spec=docker.types.EndpointSpec(
@@ -143,6 +161,7 @@ def start_components(component, storeId, response_list):
             networks=['myNet'])  # set network
 
     healthy = False
+    count = 0
 
     # keep pinging the service
     while not healthy:
@@ -159,19 +178,40 @@ def start_components(component, storeId, response_list):
         # if none of the tasks are healthy, wait a bit before
         # trying again
         if not healthy:
-            sleep(1)
+            if count < 15:
+                if count % 5 == 0:
+                    logging.debug(component + "is not ready")
+                    # send update to the restaurant owner
+                    message = "Attempting to spin up component " + component
+                    message_dict = {"message": message}
+                    requests.post(origin_url, json=json.dumps(message_dict))
+                sleep(1)
+                count += 1
+            else:
+                component_service.remove()
+                break
+
+    if count >= 15:
+        logging.debug("{:*^60}".format(
+            " " + component + " could not be debloyed "
+        ))
+        message = "Timeout. Component " + component +\
+            " of your workflow could not be deployed"
+        message_dict = {"message": message}
+        requests.post(origin_url, json=json.dumps(message_dict))
+        resp = requests.Response(status_code=408)
+        response_list.append(resp)
+        return
 
     logging.debug("{:*^60}".format(" " + component + " is healthy "))
-
     # send update to the restaurant owner
-    origin_url = "http://" + workflows[storeId]["origin"] + ":8080/results"
-    message = "Component "+component + " of your workflow has been deployed"
+    message = "Component " + component + " of your workflow has been deployed"
     message_dict = {"message": message}
     requests.post(origin_url, json=json.dumps(message_dict))
 
     # # send workflow_request to component
     # logging.debug("{:*^60}".format(
-    #     " sent " + component + " workflow specification for " + storeId + " "
+    #     " sending " + component+" workflow specification for " + storeId +" "
     # ))
     # comp_response = requests.post(
     #     service_url + "/workflow-request/" + storeId,
@@ -188,6 +228,12 @@ def start_components(component, storeId, response_list):
 
 def stop_components(component, storeId, response_list):
     # service_url = "http://" + component + ":" + str(portDict[component])
+
+    # check if service exists
+    service_filter = client.services.list(filters={'name': component})
+
+    if len(service_filter) == 0:  # if service failed to deploy
+        return
 
     logging.debug("{:*^60}".format(
         " sent teardown request to " + component +
@@ -268,6 +314,9 @@ def setup_workflow(storeId):
     # get the list of components for the workflow
     component_list = data["component-list"].copy()
 
+    thread_list = []
+    response_list = []
+
     # check if the workflow request specifies cass
     has_cass = True
     try:
@@ -277,10 +326,8 @@ def setup_workflow(storeId):
 
     # startup cass first and foremost
     if has_cass:
-        start_cass(data)
+        start_cass(data, response_list)
 
-    thread_list = []
-    response_list = []
     # start up the rest of the components
     for comp in component_list:
         x = threading.Thread(
