@@ -218,6 +218,8 @@ def teardown(storeId):
     for x in thread_list:
         x.join()
 
+    del workflows[storeId]
+
 
 @app.route("/workflow-request/<storeId>", methods=["POST"])
 def setup_workflow(storeId):
@@ -238,7 +240,7 @@ def setup_workflow(storeId):
             response="Sorry, edge deployment method is not yet supported!\n" +
                      "Entity could not be prossesed"
         )
-    if workflows[storeId] is not None:
+    if storeId in workflows:
         return Response(
             status=409,
             response="Oops! A workflow already exists for this client!\n" +
@@ -299,7 +301,7 @@ def setup_workflow(storeId):
 
 @app.route("/workflow-request/<storeId>", methods=["DELETE"])
 def teardown_workflow(storeId):
-    if workflows[storeId] is None:
+    if not (storeId in workflows):
         return Response(
             status=404,
             response="Workflow doesn't exist. Nothing to teardown"
@@ -307,7 +309,6 @@ def teardown_workflow(storeId):
 
     teardown(storeId)
 
-    workflows[storeId] = None
     return Response(status=204)
 
 
