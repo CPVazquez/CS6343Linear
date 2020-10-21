@@ -10,6 +10,7 @@ gunicorn = "*"
 docker = "*"
 flask = "*"
 jsonschema = "*"
+aiohttp = "*"
 
 [requires]
 python_version = "3.8"
