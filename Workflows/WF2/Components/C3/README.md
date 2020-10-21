@@ -139,7 +139,7 @@ requires a `order` json object.
 | field | type | options | required | description |
 |-------|------|---------|----|---|
 | storeId | string(UUID) | N/A | true | the workflow store ID |
-| custName | string| Name | true | the name of the customer |
+| custName | string| N/A | true | the name of the customer |
 | paymentToken | string(UUID) | N/A | true | the payment token |
 | paymentTokenType | string | N/A | true | The type of payment |
 | custLocation | dict(lat, long) | N/A | true | the latitude and longitude of the customer |
