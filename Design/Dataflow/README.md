@@ -4,6 +4,7 @@ Due to the nature of this project, where clients can specify their desired workf
 
 ## Ideal Dataflow
 ![Ideal_Dataflow](Ideal_Dataflow.png)
+
 <sub>Figure 1.0</sub>
 
 Pictured above in Figure 1.0 is the ideal dataflow for the project when all components are deployed for a specified workflow. In this workflow two components are essential, the order-verifier and cass. Components restocker, delivery-assigner, and auto-restocker can be removed with no significant impact on the dataflow.
@@ -29,6 +30,7 @@ The restaurant-owner can also make an explicit call to the auto-restocker for a 
 The order-verifier, after contacting the restocker, delivery-assigner, and auto-restocker (if they are in the current workflow), will send a success message back to the order-generator.
 
 ![Possible_Dataflow](Possible_Dataflow.png)
+
 <sub>Figure 2.0</sub>
 
 Pictured above in Figure 1.0 is the other possible dataflow for the project when all components save the order-verifier are deployed for a specified workflow. In this workflow one components are essential, cass. Components restocker, delivery-assigner, and auto-restocker can be removed with no significant impact on the dataflow.
