@@ -6,6 +6,8 @@ ENV PYTHONFAULTHANDLER 1
 COPY . /app
 WORKDIR /app
 
+RUN apk add build-base
+
 RUN pip install pipenv
 RUN echo python3 --version
 RUN pipenv install --system --deploy
