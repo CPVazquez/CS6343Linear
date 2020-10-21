@@ -8,12 +8,12 @@ import json
 from time import sleep
 import threading
 import asyncio
-import sys
+
 
 import requests
 import docker
 import jsonschema
-# from update_client import UpdateClient
+from update_client import UpdateClient
 from flask import Flask, request, Response
 
 __author__ = "Carla Vazquez"
@@ -33,8 +33,6 @@ logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
-
-logging.debug(sys.path())
 
 # set up flask app
 app = Flask(__name__)
@@ -305,7 +303,7 @@ def setup_workflow(storeId):
         )
 
     workflows[storeId] = data
-    update_clients[storeId] = None  # UpdateClient(data["origin"])
+    update_clients[storeId] = UpdateClient(data["origin"])
 
     # get the list of components for the workflow
     component_list = data["component-list"].copy()
