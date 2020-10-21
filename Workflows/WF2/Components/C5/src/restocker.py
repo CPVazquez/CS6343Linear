@@ -75,6 +75,7 @@ def verify_restock_order(order):
         mess = inst.args[0]
     return valid, mess
 
+
 # the restock endpoint
 @app.route('/restock', methods=['POST'])
 def restocker():
@@ -106,6 +107,7 @@ def restocker():
 
     logging.debug(response)
     return response
+
 
 # the health endpoint, so that users can verify that the server is up and running
 @app.route('/health', methods=['GET'])
