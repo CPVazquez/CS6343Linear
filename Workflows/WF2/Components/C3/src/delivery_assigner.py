@@ -163,7 +163,7 @@ def register_workflow(storeId):
     workflows[storeID] = data
 
     return Response(
-        status=200,
+        status=201,
         response='Valid Workflow registered to delivery assigner component')
 
     
@@ -180,10 +180,32 @@ def teardown_workflow(storeId);
     del workflows[storeId]
     
     return Response(
-        status=200,
+        status=204,
         response="Workflow removed from delivery assigner!"
     )
+
     
+@app.route("/workflow-requests/<storeId>", methods=["GET"])
+def retrieve_workflow(storeId):
+    if not (storeId in workflows):
+        return Response(
+            status=404,
+            response="Workflow doesn't exist. Nothing to retrieve"
+        )
+    else:
+        return Response(
+            status=200,
+            response=json.dumps(workflows[storeId])
+        )
+
+
+@app.route("/workflow-requests", methods=["GET"])
+def retrieve_workflows():
+    return Response(
+        status=200,
+        response=json.dumps(workflows)
+    )
+
 
 @app.route('/assign-entity/<storeId>', methods=['GET'])
 def assign(storeId):
@@ -191,7 +213,7 @@ def assign(storeId):
 
     if storeId not in workflows:
         return Response(
-            status=422,
+            status=404,
             response="Workflow ID does not seem to exist for delivery assigner!\n" +
                      "Please add delivery assigner to the Workflow or create the workflow " +
                      "if it doesnt exist."
