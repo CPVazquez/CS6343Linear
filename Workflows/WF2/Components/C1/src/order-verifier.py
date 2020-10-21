@@ -1,11 +1,11 @@
 """Order Verifier Component
 
-Upon receiving an order from the Workflow Manager (WFM), this component validates the order, checks if sufficient stock exists, and if the stock exists, then it creates the order. If sufficient stock is not available, this component recreates a restock order and provides it as a response to the WFM.
+Upon receiving a Pizza Order, this component validates the order, checks if sufficient stock exists, and if the stock exists, then it creates the order. If sufficient stock is not available, this component requests a restock before creating the order.
 """
 
 from flask import Flask, request, Response
 from cassandra.cluster import Cluster
-from datetime import datetime, timedelta, date
+from datetime import datetime, date
 import copy
 import jsonschema
 import json
@@ -17,9 +17,9 @@ import uuid
 import os
 
 __author__ = "Chris Scott"
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 __maintainer__ = "Chris Scott"
-__email__ = "christopher.scott@utdallas.edu"
+__email__ = "cms190009@utdallas.edu"
 __status__ = "Development"
 
 # Connect to Cassandra service
@@ -90,7 +90,7 @@ with open("src/workflow-request.schema.json", "r") as workflow_schema:
 # Logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Global dict of pizza items/ingredients
+# Global pizza items/ingredients dict
 items_dict = {
     'Dough': 0,         'SpicySauce': 0,        'TraditionalSauce': 0,  'Cheese': 0,
     'Pepperoni': 0,     'Sausage': 0,           'Beef': 0,              'Onion': 0,
@@ -98,11 +98,8 @@ items_dict = {
     'Pineapple': 0,     'Mushrooms': 0
 }
 
-# Global variables for workflow
+# Global workflows dict
 workflows = dict()
-delivery_assigner_active = False
-auto_restocker_active = False
-restocker_active = False
 
 
 # Aggregate all ingredients for a given order
@@ -175,7 +172,7 @@ def insert_pizzas(pizza_list):
         elif pizza["cheeseAmt"] == "Normal":
             ingredient_set.add(("Cheese", 2))
         elif pizza["cheeseAmt"] == "Extra":
-            ingredient_set.add(("Cheese", 2))
+            ingredient_set.add(("Cheese", 3))
 
         for topping in pizza["toppingList"]:
             ingredient_set.add((topping, 1))
@@ -253,22 +250,24 @@ def order_manager(order_dict):
         return Response(status=422, response="Order request is valid, but Workflow does not exist.")
 
     order_id = str(uuid.uuid4())  # Assign order_id to order_dict
-    logging.debug('Request received and assigned Order ID ' + order_id + ':\n' + json.dumps(order_dict))
+    logging.debug('Order request received and assigned ID ' + order_id)
 
-    # Check the stock to see if order can be placed. If not, restock and check again
+    # Check stock to see if order can be placed. If not, restock and check again
     while True:
         in_stock_dict, req_item_dict, restock_list = check_stock(order_dict)
-        if restocker_active and restock_list:    
-            restock_dict = {"storeID": store_id, "restock-list": restock_list}
-            #response = requests.post("http://restocker:5000/restock", json=restock_dict)
-            response = requests.post("http://0.0.0.0:5000/restock", json=json.dumps(restock_dict))
-            logging.debug(response.text)
-            if response.status_code != 200:
-                # Restock was unsuccesful, must reject order request
-                return Response(status=response.status_code, response=response.text)
-        elif not restocker_active and restock_list:
-            logging.debug("Order " + order_id + " rejected due to insufficient stock at Store " + order_dict["storeId"])
-            return Response(status=400, response="Order request rejected, insufficient stock.")
+        if restock_list:
+            if "restocker" in workflows[store_id]["component-list"]:    
+                restock_dict = {"storeID": store_id, "restock-list": restock_list}
+                #response = requests.post("http://restocker:5000/restock", json=json.dumps(restock_dict))
+                response = requests.post("http://0.0.0.0:5000/restock", json=json.dumps(restock_dict))
+                logging.debug("Restocker: {} {}".format(str(response.status_code), response.text))
+                if response.status_code != 200:
+                    # Restock unsuccesful, must reject order request
+                    logging.debug(store_id + " restock unsuccessful, rejecting " + order_id)
+                    return Response(status=response.status_code, response=response.text)
+            else:
+                logging.debug(order_id + " rejected, insufficient stock at " + store_id)
+                return Response(status=400, response="Insufficient stock at " + store_id)
         else:
             break
 
@@ -276,26 +275,22 @@ def order_manager(order_dict):
     decrement_stock(uuid.UUID(order_dict["storeId"]), in_stock_dict, req_item_dict)
     create_order(order_id, order_dict, req_item_dict)
 
+    # Send pizza order to auto-restocker
+    #if "auto-restocker" in workflows[store_id]["component-list"]:
+        #response = requests.post("http://auto-restocker:4000/auto-restock", json=json.dumps(order_dict))
+        #logging.debug("Auto-Restocker: {} {}".format(str(response.status_code), response.text))
+
     # Assign delivery entity
-    if delivery_assigner_active:
+    if "delivery-assigner" in workflows[store_id]["component-list"]:
         #response = requests.post("http://delivery-assigner:3000/assign-entity", json={"order_id":order_id})
         response = requests.post("http://0.0.0.0:3000/assign-entity", json={"order_id":order_id})
-        logging.debug(response.text)
+        logging.debug("Delivery Assigner: {} {}".format(str(response.status_code), response.text))
         if response.status_code != 200:
             # Could not assign delivery entity, but order has been created
+            logging.debug("Order created, but failed to assign delivery entity for " + order_id)
             return Response(status=response.status_code, response=response.text)
 
-    # Send pizza order ingredients to auto-restocker
-    if auto_restocker_active:
-        item_list = []
-        for item in req_item_dict:
-            item_list.append({"item-name": item, "quantity": req_item_dict[item]})
-        auto_restock_dict = {"storeID": order_dict["storeId"], "restock-list": item_list}
-        logging.debug("For Auto Restocker: " + json.dumps(auto_restock_dict))
-        #response = requests.post("http://auto-restocker:4000/auto-restock", json=auto_restock_dict)
-        #logging.debug(response.text)
-
-    return Response(status=200, response="Order has been placed")
+    return Response(status=200, response=response.text)
 
 
 def verify_order(data):
@@ -305,7 +300,7 @@ def verify_order(data):
     try:
         jsonschema.validate(instance=data, schema=pizza_schema)
     except Exception as inst:
-        logging.debug("Pizza order request rejected, failed validation:\n" + json.dumps(data))
+        logging.debug("Pizza order request rejected, failed validation:\n" + json.dumps(data, indent=4))
         valid = False
         mess = inst.args[0]
     return valid, mess
@@ -328,43 +323,37 @@ def verify_workflow(data):
     try:
         jsonschema.validate(instance=data, schema=workflow_schema)
     except Exception as inst:
-        logging.debug("Workflow request rejected, failed validation:\n" + json.dumps(data))
+        logging.debug("Workflow request rejected, failed validation:\n" + json.dumps(data, indent=4))
         valid = False
         mess = inst.args[0]
     return valid, mess
 
 
-@app.route("/workflow-request/<storeId>", methods=['PUT'])
+@app.route("/workflow-requests/<storeId>", methods=['PUT'])
 def setup_workflow(storeId):
-    global delivery_assigner_active, auto_restocker_active, restocker_active
+    if storeId in workflows:
+        logging.debug("Workflow " + storeId + " already exists")
+        return Response(status=409, response="Workflow " + storeId + " already exists\n")
+
     data = json.loads(request.get_json())
-    logging.debug("setup_workflow data: " + json.dumps(data))
+    logging.debug("workflow-requests data: " + json.dumps(data, indent=4))
     valid, mess = verify_workflow(data)
     if not valid:
         return Response(status=400, response="workflow-request ill formatted\n" + mess)
 
     workflows[storeId] = data
 
-    component_list = data["component-list"].copy()
-    for comp in component_list:
-        if comp == "delivery-assigner":
-            delivery_assigner_active = True
-        if comp == "auto-restocker":
-            auto_restocker_active = True
-        if comp == "restocker":
-            restocker_active = True
-
     logging.debug("Workflow Deployed: Order Verifier started for Store " + storeId)
 
     return Response(status=201, response="Order Verifier deployed for {}\n".format(storeId))    
 
 
-@app.route("/workflow-request/<storeId>", methods=["DELETE"])
+@app.route("/workflow-requests/<storeId>", methods=["DELETE"])
 def teardown_workflow(storeId):
     if storeId not in workflows:
         return Response(status=404, response="Workflow doesn't exist. Nothing to teardown.")
 
-    workflows[storeId] = None
+    del workflows[storeId]
 
     logging.debug("Workflow Torn Down: Order Verifier stopped for Store " + storeId)
 

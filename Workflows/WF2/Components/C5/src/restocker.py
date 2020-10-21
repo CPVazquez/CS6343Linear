@@ -17,9 +17,9 @@ import jsonschema
 import uuid
 
 __author__ = "Carla Vazquez"
-__version__ = "1.0.0"
-__maintainer__ = "Carla Vazquez"
-__email__ = "cpv150030@utdallas.edu"
+__version__ = "2.0.0"
+__maintainer__ = "Chris Scott"
+__email__ = "cms190009@utdallas.edu"
 __status__ = "Development"
 
 # Connect to casandra service
@@ -41,28 +41,32 @@ add_stock_prepared = session.prepare('\
 get_stores = session.prepare("SELECT storeID FROM stores")
 get_items = session.prepare("SELECT name FROM items")
 
-
 # set up logging
 logging.basicConfig(level=logging.DEBUG, 
     format='%(asctime)s - %(levelname)s - %(message)s')
 
-
 # create flask app
 app = Flask(__name__)
 
+# open the restock jsonschema
+with open("src/restock-order.schema.json", "r") as restock_schema:
+    restock_schema = json.loads(restock_schema.read())
 
-# open the jsonschema
-with open("src/restock-order.schema.json", "r") as schema:
-    schema = json.loads(schema.read())
+# Open jsonschema for workflow-request
+with open("src/workflow-request.schema.json", "r") as workflow_schema:
+    workflow_schema = json.loads(workflow_schema.read())
+
+# Global workflows dict
+workflows = dict()
 
 
 # checks the recieved restock-order against the jsonschema
 def verify_restock_order(order):
-    global schema
+    global restock_schema
     valid = True
     mess = None
     try:
-        jsonschema.validate(instance=order, schema=schema)
+        jsonschema.validate(instance=order, schema=restock_schema)
     except Exception as inst:
         logging.debug(type(inst))    # the exception instance
         logging.debug(inst.args[0])          # __str__ allows args to be loggin.debuged directly,
@@ -74,10 +78,14 @@ def verify_restock_order(order):
 # the restock endpoint
 @app.route('/restock', methods=['POST'])
 def restocker():
-
     valid = False
     restock_dict = json.loads(request.get_json())
     #response = Response(status=400, response="Restocking order ill formated.\nRejecting request.\nPlease correct formating.")
+
+    store_id = restock_dict["storeID"]
+    if store_id not in workflows:
+        logging.debug("Restock request is valid, but Workflow does not exist: " + store_id)
+        return Response(status=422, response="Restock request is valid, but Workflow does not exist.")
 
     if restock_dict != None :
         valid, mess = verify_restock_order(restock_dict)
@@ -99,17 +107,60 @@ def restocker():
     logging.debug(response)
     return response
 
-# the health endpoint, so that users can verify that the server
-# is up and running
+# the health endpoint, so that users can verify that the server is up and running
 @app.route('/health', methods=['GET'])
 def health_check():
     return Response(status=200,response="healthy\n")
 
 
-#scan the database for items that are out of stock or close to it
+def verify_workflow(data):
+    global workflow_schema
+    valid = True
+    mess = None
+    try:
+        jsonschema.validate(instance=data, schema=workflow_schema)
+    except Exception as inst:
+        logging.debug("Workflow request rejected, failed validation:\n" + json.dumps(data, indent=4))
+        valid = False
+        mess = inst.args[0]
+    return valid, mess
+
+
+@app.route("/workflow-requests/<storeId>", methods=['PUT'])
+def setup_workflow(storeId):
+    if storeId in workflows:
+        logging.debug("Workflow " + storeId + " already exists")
+        return Response(status=409, response="Workflow " + storeId + " already exists\n")
+
+    data = json.loads(request.get_json())
+    logging.debug("workflow-requests data: " + json.dumps(data, indent=4))
+    valid, mess = verify_workflow(data)
+    if not valid:
+        return Response(status=400, response="workflow-request ill formatted\n" + mess)
+
+    workflows[storeId] = data
+
+    logging.debug("Workflow Deployed: Restocker started for Store " + storeId)
+
+    return Response(status=201, response="Restocker deployed for {}\n".format(storeId))    
+
+
+@app.route("/workflow-requests/<storeId>", methods=["DELETE"])
+def teardown_workflow(storeId):
+    if storeId not in workflows:
+        return Response(status=404, response="Workflow doesn't exist. Nothing to teardown.\n")
+
+    del workflows[storeId]
+
+    logging.debug("Workflow Torn Down: Restocker stopped for Store " + storeId)
+
+    return Response(status=204)
+
+
+# scan the database for items that are out of stock or close to it
 def scan_out_of_stock():
-    # gets a list of all stores
-    stores = session.execute(get_stores)
+    # gets a list of active store workflows
+    stores = workflows.keys()
     # loops through said stores
     for store in stores:
         # gets a list of all items
