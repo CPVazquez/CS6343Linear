@@ -1,12 +1,14 @@
-from faker import Faker
-from queue import Queue
-from threading import Thread
 import json
 import random
-import requests
 import sys
+import threading
 import time
 import uuid
+from datetime import datetime, timedelta
+from queue import Queue
+
+import requests
+from faker import Faker
 
 __author__ = "Chris Scott"
 __version__ = "1.0.0"
@@ -15,6 +17,19 @@ __email__ = "christopher.scott@utdallas.edu"
 __status__ = "Development"
 
 fake = Faker('en_US')
+
+date_offset = -1
+
+def advance_date():
+    global date_offset
+    date_offset += 1
+    threading.Timer(60, advance_date).start()
+
+def get_date():
+    start_date = datetime(2020, 1, 1)
+    current_date = start_date + timedelta(days=date_offset)
+    return current_date.isoformat()
+
 
 class PizzaOrder:
     # Order Attribute Lists
@@ -34,6 +49,7 @@ class PizzaOrder:
         self.pay_type = self.payment_types[random.randint(0, 7)]
         self.cust_lat = round((self.stores[store][1] + random.uniform(-0.037, 0.037)), 6)
         self.cust_lon = round((self.stores[store][2] + random.uniform(-0.0432, 0.0432)), 6)
+        self.order_date = get_date()
         self.max_pizzas = max_pizzas
 
     def add_pizzas(self):
@@ -61,6 +77,7 @@ class PizzaOrder:
                 "lat": self.cust_lat,
                 "lon": self.cust_lon
             },
+            "orderDate": self.order_date,
             "pizzaList": self.add_pizzas()
         }
         return order_dict
@@ -73,9 +90,9 @@ def request_order(q, url):
         print("\nPizza Order Request:\n" + json.dumps(order_dict, indent=4))
         response = requests.post(url, json=json.dumps(order_dict))
         if response.status_code == 200:
-            print("Request accepted - " + response.text)
+            print("Request Accepted - " + response.text)
         else:
-            print("Request rejected - " + response.text)
+            print("Request Rejected - " + response.text)
         q.task_done()
 
 
@@ -113,9 +130,11 @@ if __name__ == "__main__":
 
     q = Queue(max_orders)
 
-    t = Thread(target=request_order, args=(q,url))
+    t = threading.Thread(target=request_order, args=(q,url))
     t.daemon = True
     t.start()
+
+    advance_date()
 
     for _ in range(max_orders):
         pizza_order = PizzaOrder(store, max_pizzas)

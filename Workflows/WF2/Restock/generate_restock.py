@@ -55,9 +55,9 @@ def request_restock(q, url):
         print("\nRestock Request:\n" + json.dumps(restock_dict, indent=4))
         response = requests.post(url, json=json.dumps(restock_dict))
         if response.status_code == 200:
-            print("Request accepted - " + response.text)
+            print("Request Accepted - " + response.text)
         else:
-            print("Request rejected - " + response.text)
+            print("Request Rejected - " + response.text)
         q.task_done()
 
 

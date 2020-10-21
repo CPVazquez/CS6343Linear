@@ -35,6 +35,11 @@
         }
       }
     },
+    "orderDate": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The date of order creation"
+    },
     "pizzaList": {
       "type": "array",
       "description": "The list of pizzas that have been ordered",
