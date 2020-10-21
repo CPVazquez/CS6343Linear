@@ -248,8 +248,8 @@ def stop_components(component, storeId, response_list):
 
     logging.log(
         logging.UPDATE_LEVEL,
-        " sent teardown request to " + component +
-        " for workflow specification " + storeId + " "
+        "sent teardown request to " + component +
+        " for workflow specification " + storeId
     )
     # comp_response = requests.delete(
     #     service_url + "/workflow-request",
@@ -257,8 +257,8 @@ def stop_components(component, storeId, response_list):
     # )
     logging.log(
         logging.UPDATE_LEVEL,
-        " recieved response from " + component +
-        " for workflow specification " + storeId + " "
+        "recieved response from " + component +
+        " for workflow specification " + storeId
     )
     # thread_lock.acquire(blocking=True)
     # response_list.append(comp_response)
@@ -297,7 +297,7 @@ def teardown(storeId):
 
 @app.route("/workflow-requests/<storeId>", methods=["PUT"])
 def setup_workflow(storeId):
-    logging.log(logging.UPDATE_LEVEL, "{:*^60}".format(
+    logging.log(logging.UPDATE_LEVEL, "{:*^90}".format(
         " Serving request `POST /workflow-requests/"
         + storeId + "` "
     ))
@@ -381,7 +381,7 @@ def setup_workflow(storeId):
 # if the recource exists, remove it
 @app.route("/workflow-requests/<storeId>", methods=["DELETE"])
 def teardown_workflow(storeId):
-    logging.log(logging.UPDATE_LEVEL, "{:*^60}".format(
+    logging.log(logging.UPDATE_LEVEL, "{:*^90}".format(
         " Serving request `DELETE /workflow-requests/"
         + storeId + "` "
     ))
@@ -399,7 +399,7 @@ def teardown_workflow(storeId):
 # retrieve the specified resource, if it exists
 @app.route("/workflow-requests/<storeId>", methods=["GET"])
 def retrieve_workflow(storeId):
-    logging.log(logging.UPDATE_LEVEL, "{:*^60}".format(
+    logging.log(logging.UPDATE_LEVEL, "{:*^90}".format(
         " Serving request `GET /workflow-requests/"
         + storeId + "` "
     ))
@@ -418,7 +418,7 @@ def retrieve_workflow(storeId):
 # retrieve all resources
 @app.route("/workflow-requests", methods=["GET"])
 def retrieve_workflows():
-    logging.log(logging.UPDATE_LEVEL, "{:*^60}".format(
+    logging.log(logging.UPDATE_LEVEL, "{:*^90}".format(
         " Serving request `GET /workflow-requests` "
     ))
     return Response(
@@ -430,7 +430,7 @@ def retrieve_workflows():
 # Health check endpoint
 @app.route("/health", methods=["GET"])
 def health_check():
-    logging.log(logging.UPDATE_LEVEL, "{:*^60}".format(
+    logging.log(logging.UPDATE_LEVEL, "{:*^90}".format(
         " Serving request `GET /health"
     ))
     return Response(status=200, response="healthy\n")
