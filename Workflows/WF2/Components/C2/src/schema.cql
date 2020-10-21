@@ -161,14 +161,14 @@ CREATE TABLE orderByStore (
   orderedFrom UUID,
   placedAT TIMESTAMP,
   orderID UUID,
-  PRIMARY KEY (orderedFrom, placedAt)
+  PRIMARY KEY (orderedFrom, orderID)
 );
 
 CREATE TABLE orderByDeliveryEntity (
   deliveredBy TEXT,
   placedAT TIMESTAMP,
   orderID UUID,
-  PRIMARY KEY (deliveredBy, placedAt)
+  PRIMARY KEY (deliveredBy, orderID)
 );
 
 CREATE TABLE stockTracker (
@@ -183,5 +183,5 @@ CREATE TABLE orderByCustomer (
   orderedBy TEXT,
   placedAT TIMESTAMP,
   orderID UUID,
-  PRIMARY KEY (orderedBy, placedAt)
+  PRIMARY KEY (orderedBy, orderID)
 );
