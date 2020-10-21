@@ -7,12 +7,11 @@ import logging
 import json
 from time import sleep
 import threading
-import asyncio
 
 import requests
 import docker
 import jsonschema
-from .update_client import UpdateClient
+from src.update_client import UpdateClient
 from flask import Flask, request, Response
 
 __author__ = "Carla Vazquez"
@@ -174,7 +173,7 @@ def start_components(component, storeId, response_list):
                 if count % 5 == 0:
                     logging.debug(component + " is not ready")
                     message = "Attempting to spin up " + component
-                    asyncio.run(update_clients[storeId].post(message))
+                    update_clients[storeId].post(message)
                 sleep(5)
                 count += 5
             else:
@@ -189,7 +188,7 @@ def start_components(component, storeId, response_list):
         ))
         message = "Timeout. Component " + component +\
             " of your workflow could not be deployed"
-        asyncio.run(update_clients[storeId].post(message))
+        update_clients[storeId].post(message)
         resp = requests.Response()
         resp.status_code = 408
         response_list.append(resp)
@@ -198,7 +197,7 @@ def start_components(component, storeId, response_list):
     logging.debug("{:*^60}".format(" " + component + " is healthy "))
     # send update to the restaurant owner
     message = "Component " + component + " of your workflow has been deployed"
-    asyncio.run(update_clients[storeId].post(message))
+    update_clients[storeId].post(message)
 
     # # send workflow_request to component
     # logging.debug("{:*^60}".format(
