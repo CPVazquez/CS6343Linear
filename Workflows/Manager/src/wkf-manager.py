@@ -11,7 +11,6 @@ import threading
 import requests
 import docker
 import jsonschema
-from src.update_client import UpdateClient
 from flask import Flask, request, Response
 
 __author__ = "Carla Vazquez"
@@ -48,7 +47,6 @@ thread_lock = threading.Lock()
 
 # set up workflow dict
 workflows = dict()
-update_clients = dict()
 
 # open workflow-request specification
 with open("src/workflow-request.schema.json", "r") as schema:
@@ -145,6 +143,7 @@ def start_cass(workflow_json, response_list):
 def start_components(component, storeId, response_list):
     # check if service exists
     service_filter = client.services.list(filters={'name': component})
+    origin_url = "http://" + workflows[storeId]["origin"] + ":8080/results"
     service_url = "http://" + component + ":" + str(portDict[component])
 
     # if not exists
@@ -173,7 +172,8 @@ def start_components(component, storeId, response_list):
                 if count % 5 == 0:
                     logging.debug(component + " is not ready")
                     message = "Attempting to spin up " + component
-                    update_clients[storeId].post(message)
+                    message_dict = {"message": message}
+                    requests.post(origin_url, json=json.dumps(message_dict))
                 sleep(5)
                 count += 5
             else:
@@ -188,7 +188,8 @@ def start_components(component, storeId, response_list):
         ))
         message = "Timeout. Component " + component +\
             " of your workflow could not be deployed"
-        update_clients[storeId].post(message)
+        message_dict = {"message": message}
+        requests.post(origin_url, json=json.dumps(message_dict))
         resp = requests.Response()
         resp.status_code = 408
         response_list.append(resp)
@@ -197,7 +198,8 @@ def start_components(component, storeId, response_list):
     logging.debug("{:*^60}".format(" " + component + " is healthy "))
     # send update to the restaurant owner
     message = "Component " + component + " of your workflow has been deployed"
-    update_clients[storeId].post(message)
+    message_dict = {"message": message}
+    requests.post(origin_url, json=json.dumps(message_dict))
 
     # # send workflow_request to component
     # logging.debug("{:*^60}".format(
@@ -270,7 +272,6 @@ def teardown(storeId):
 
     # delete the given workflow from the dictionary
     del workflows[storeId]
-    del update_clients[storeId]
 
 
 @app.route("/workflow-requests/<storeId>", methods=["PUT"])
@@ -301,7 +302,6 @@ def setup_workflow(storeId):
         )
 
     workflows[storeId] = data
-    update_clients[storeId] = UpdateClient(data["origin"])
 
     # get the list of components for the workflow
     component_list = data["component-list"].copy()
