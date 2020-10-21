@@ -20,8 +20,6 @@ __email__ = "cpv150030@utdallas.edu"
 __status__ = "Development"
 
 # set up logging
-logging.UPDATE_LEVEL = 25
-logging.addLevelName(logging.UPDATE_LEVEL, "UPDATE")
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
@@ -80,8 +78,8 @@ def start_cass(workflow_json, response_list):
     # if cass service not found
     if len(cass_filter) == 0:
 
-        logging.log(logging.UPDATE_LEVEL, "cass doesn't exist")
-        logging.log(logging.UPDATE_LEVEL, "Spinning up cass")
+        logging.info("cass doesn't exist")
+        logging.info("Spinning up cass")
 
         # create cass service
         cass_service = client.services.create(
@@ -111,8 +109,7 @@ def start_cass(workflow_json, response_list):
         # trying again
         if not healthy:
             if count < 60:  # request has not timed out
-                logging.log(
-                    logging.UPDATE_LEVEL,
+                logging.info(
                     "Attempt " + str(count / 5) + ", cass is not ready"
                 )
                 # message = "Attempting to spin up cass"
@@ -128,16 +125,14 @@ def start_cass(workflow_json, response_list):
     resp = None
 
     if count < 60:
-        logging.log(
-            logging.UPDATE_LEVEL,
+        logging.info(
             "SUCCESS: cass is ready for connections"
         )
         message = "Component cass of your workflow has been deployed"
         resp = requests.Response()
         resp.status_code = 200
     else:
-        logging.log(
-            logging.UPDATE_LEVEL,
+        logging.info(
             "FAILURE: cass could not be debloyed "
         )
         message = "Timeout. Component cass of your " +\
@@ -159,8 +154,8 @@ def start_components(component, storeId, response_list):
 
     # if not exists
     if len(service_filter) == 0:
-        logging.log(logging.UPDATE_LEVEL, component + " doesn't exist")
-        logging.log(logging.UPDATE_LEVEL, "Spinning up " + component + " ")
+        logging.info(component + " doesn't exist")
+        logging.info("Spinning up " + component + " ")
 
         # create the service
         component_service = client.services.create(
@@ -181,8 +176,7 @@ def start_components(component, storeId, response_list):
         except Exception:
             if count < 15:
                 if count % 5 == 0:
-                    logging.log(
-                        logging.UPDATE_LEVEL,
+                    logging.info(
                         "Attempt " + str(count / 5) + ", " + component +
                         " is not ready"
                     )
@@ -198,8 +192,7 @@ def start_components(component, storeId, response_list):
             break
 
     if count >= 15:
-        logging.log(
-            logging.UPDATE_LEVEL,
+        logging.info(
             "FAILURE: " + component + " could not be debloyed "
         )
         message = "Timeout. Component " + component +\
@@ -211,8 +204,7 @@ def start_components(component, storeId, response_list):
         response_list.append(resp)
         return
 
-    logging.log(
-        logging.UPDATE_LEVEL,
+    logging.info(
         "SUCCESS: " + component + " is healthy"
     )
     # send update to the restaurant owner
@@ -246,19 +238,15 @@ def stop_components(component, storeId, response_list):
     if len(service_filter) == 0:  # if service failed to deploy
         return
 
-    logging.log(
-        logging.UPDATE_LEVEL,
-        "sent teardown request to " + component +
-        " for workflow specification " + storeId
+    logging.info(
+        "sent teardown request to " + component
     )
     # comp_response = requests.delete(
     #     service_url + "/workflow-request",
     #     json=json.dumps({"storeId": storeId})
     # )
-    logging.log(
-        logging.UPDATE_LEVEL,
-        "recieved response from " + component +
-        " for workflow specification " + storeId
+    logging.info(
+        "recieved response from " + component
     )
     # thread_lock.acquire(blocking=True)
     # response_list.append(comp_response)
@@ -297,7 +285,7 @@ def teardown(storeId):
 
 @app.route("/workflow-requests/<storeId>", methods=["PUT"])
 def setup_workflow(storeId):
-    logging.log(logging.UPDATE_LEVEL, "{:*^90}".format(
+    logging.info("{:*^74}".format(
         " PUT /workflow-requests/"
         + storeId + " "
     ))
@@ -381,7 +369,7 @@ def setup_workflow(storeId):
 # if the recource exists, remove it
 @app.route("/workflow-requests/<storeId>", methods=["DELETE"])
 def teardown_workflow(storeId):
-    logging.log(logging.UPDATE_LEVEL, "{:*^90}".format(
+    logging.info("{:*^74}".format(
         " DELETE /workflow-requests/"
         + storeId + " "
     ))
@@ -399,7 +387,7 @@ def teardown_workflow(storeId):
 # retrieve the specified resource, if it exists
 @app.route("/workflow-requests/<storeId>", methods=["GET"])
 def retrieve_workflow(storeId):
-    logging.log(logging.UPDATE_LEVEL, "{:*^90}".format(
+    logging.info("{:*^74}".format(
         " GET /workflow-requests/"
         + storeId + " "
     ))
@@ -418,7 +406,7 @@ def retrieve_workflow(storeId):
 # retrieve all resources
 @app.route("/workflow-requests", methods=["GET"])
 def retrieve_workflows():
-    logging.log(logging.UPDATE_LEVEL, "{:*^90}".format(
+    logging.info("{:*^74}".format(
         " GET /workflow-requests "
     ))
     return Response(
@@ -430,7 +418,7 @@ def retrieve_workflows():
 # Health check endpoint
 @app.route("/health", methods=["GET"])
 def health_check():
-    logging.log(logging.UPDATE_LEVEL, "{:*^90}".format(
+    logging.info("{:*^74}".format(
         " GET /health "
     ))
     return Response(status=200, response="healthy\n")
