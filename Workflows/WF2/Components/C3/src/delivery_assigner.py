@@ -26,6 +26,8 @@ logging.basicConfig(level=logging.INFO,
 
 logger = logging.getLogger(__name__)
 
+workflows = {}
+
 #Google API URL
 URL = "https://maps.googleapis.com/maps/api/directions/json?origin={}, {}&destination={},{}&key={}"
 
@@ -37,12 +39,8 @@ session = cluster.connect('pizza_grocery')
 session.row_factory = dict_factory   
 
 #Prepared queries
-order_info_query = session.prepare("Select orderedFrom, orderedBy from orderTable where orderID=?")
 entity_query = session.prepare("Select name, latitude, longitude from deliveryEntitiesByStore where storeID=? and onDelivery=False ALLOW FILTERING")
 store_info_query = session.prepare("Select latitude, longitude from stores where storeID=?")
-customer_info_query = session.prepare("Select latitude, longitude from customers where customerName=?")
-verify_order_query = session.prepare("Select * from orderTable where orderID=?")
-update_order_query = session.prepare("Update orderTable set deliveredBy=?, estimatedDeliveryTime=? where orderID=?")
 
 
 def _convert_time_str(time):
@@ -65,8 +63,7 @@ def _get_time(origin, destination):
        
 
 def _get_delivery_time(delivery_entities, customer, store):    
-    store = (store['latitude'], store['longitude'])
-    customer =  (customer['latitude'], customer['longitude'])
+    store = (store['latitude'], store['longitude'])    
     delivery_entities = [(entity['name'], (entity['latitude'], entity['longitude'])) for entity in delivery_entities]        
     best_time = float('inf')
     best_entity = None
@@ -84,14 +81,6 @@ def _get_delivery_time(delivery_entities, customer, store):
     return time, best_entity
     
 
-def _verify_order(order_id):
-    row = session.execute(verify_order_query, (order_id,)).one()    
-
-
-def _update_order(order_id, entity, time):
-    session.execute(update_order_query, (entity, time, order_id))
-
-
 def _get_entities(store_id):
     entities = []
     rows = session.execute(entity_query, (store_id,))
@@ -101,98 +90,120 @@ def _get_entities(store_id):
     return entities
 
 
-def _get_order_info(order_id):
-    row = session.execute(order_info_query, (order_id,)).one()    
-    return row
-
-
 def _get_store_info(store_id):    
     row = session.execute(store_info_query, (store_id,)).one()
     return row
 
 
-def _get_customer_info(customer_name):
-    
-    row = session.execute(customer_info_query, (customer_name,)).one()    
-    return row
-
-
-def assign_entity(order_id):
+def assign_entity(store_id, order):
     '''Assigns the best delivery entity to and order and updates orderTable in the DB.
         
            Parameters:
-               order-id (UUID): OrderId for requested order.
+               store_id(string): Store ID of workflow.
+               order(dict): Order dictionary.
            Returns:
                Response (object): Response object for POST Request.
     '''
-
+      
     try:
-        order_info = _get_order_info(order_id)  
+        store_info = _get_store_info(store_id)
     except:
-        return Response(status=400, response="Invalid Order ID")
-    try:
-        store_info = _get_store_info(order_info['orderedfrom'])
-    except:
-        return Response(status=400, response="Invalid Store ID")
+        return Response(
+            status=409,
+            response="Store ID not found in Database!\n" +
+                     "Please request with valid store ID."   
+        )
     try:	
-        entities = _get_entities(order_info['orderedfrom'])    
+        entities = _get_entities(store_id)    
         if len(entities) == 0:
-            return Response(status=400, response="No Avaiblabe entities")
+            return Response(
+                status=204,
+                response="No Avaiblabe delivery entities for storeID::" + 
+                         str(storeID) + "\n" +
+                         "Please update delivery entities or wait for entities to finish active deliveries!"            
+            )
     except:
-        return Response(status=400, response="Entities Corrupted")
-    try:
-        customer_info = _get_customer_info(order_info['orderedby'])
-    except:
-        return Response(status=400, response="Invalid Customer info")
+        return Response(
+            status=502,
+            response="Entities table in database corrupted!\n" +
+                     "Please recreate delivery entities table."
+        )
+    
+    customer_info = (order['custLocation']['lat'], order['custLocation']['long'])
    
     try:
         time, entity = _get_delivery_time(entities, customer_info, store_info)
     except:
-        return Response(status=500, response="Error in Google API")
-    
-    try:    	
-        _update_order(order_id, entity, time)
-    except:
-        return Response(status=500, response="Unable to Update DB")
-    
-    return Response(status=200, response="For Order ID: {}, Selected Entity: {}, Estimated Time: {}".format(order_id, entity, time))
+        return Response(
+            status=502,
+            response="Error in Google API!\n" +
+                     "Please contact admin."
+            )
+
+    order['deliveredBy'] = entity
+    order['estimatedTime'] = time
+
+    return Response(status=200, mimetype='application/json', response=json.dumps(order))
 
 
-@app.route('/assign-entity', methods=['POST'])
-def assign():
+@app.route('/workflow-request/<storeId>', methods=['POST'])
+def register_workflow(storeId):
+    '''REST API for registering workflow to delivery assigner service'''
+    
+    data = request.get_json()
+
+    if storeId in workflows:
+        return Response(
+            status=409,
+            response="Oops! A workflow already exists for this client!\n" +
+                     "Please teardown existing workflow before deploying " +
+                     "a new one"
+        )
+    
+    workflows[storeID] = data
+
+    return Response(
+        status=200,
+        response='Valid Workflow registered to delivery assigner component')
+
+    
+@app.route('/workflow-request/<storeId>', methods=['DELETE'])
+def teardown_workflow(storeId);
+    '''REST API for tearing down workflow for delivery assigner service'''
+
+    if storeId not in workflows:
+        return Response(
+            status=404, 
+            response="Workflow does not exist for delivery assigner!\n" +
+                     "Nothing to tear down."
+        )
+    del workflows[storeId]
+    
+    return Response(
+        status=200,
+        response="Workflow removed from delivery assigner!"
+    )
+    
+
+@app.route('/assign-entity/<storeId>', methods=['POST'])
+def assign(storeId):
     '''REST API for assigning best delivery entity.'''
 
-    data = request.get_json()
-    order_id = uuid.UUID(data['order_id'])
-    return assign_entity(order_id)
+    if storeId not in workflows:
+        return Response(
+            status=422,
+            response="Workflow ID does not seem to exist for delivery assigner!\n" +
+                     "Please add delivery assigner to the Workflow or create the workflow " +
+                     "if it doesnt exist."
+    order = request.get_json()
+    store_id = uuid.UUID(storeId)    
+    response = assign_entity(store_id, order)        
+    return response
 
 
 @app.route('/health', methods=['GET'])
 def health_check():
     '''REST API for checking health of task.'''
 
-    return Response(status=200,response="healthy")
-
-
-def _test():
-    order_id = session.execute("Select orderID from orderTable").one()['orderid']
-    order_info = get_order_info(order_id)  
-    store_info = get_store_info(order_info['orderedfrom'])
-    entities = get_entities(order_info['orderedfrom'])    
-    customer_info = get_customer_info(order_info['orderedby'])
-    logger.info('Entities :: {}'.format(entities))
-    logger.info('Order Info :: {}'.format(order_info))
-    logger.info('Store info :: {}'.format(store_info))		
-    logger.info('Customer Info :: {}'.format(customer_info))
-
-    time, entity = get_delivery_time(entities, customer_info, store_info)
-    logger.info('Best Time ::{}'.format(time))
-    logger.info('Best Entity::{}'.format(entity))	
-    verify_order(order_id)
-
-     
-   
-	
-		
-        
-    
+    return Response(status=200,response="Delivery Assigner is healthy!!")
+ 
