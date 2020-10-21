@@ -23,11 +23,11 @@ __status__ = "Development"
 logging.UPDATE_LEVEL = 25
 logging.addLevelName(logging.UPDATE_LEVEL, "UPDATE")
 logging.basicConfig(
-            level=logging.INFO,
-                format="%(asctime)s - %(levelname)s - %(message)s"
-                )
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 logging.getLogger('docker').setLevel(logging.INFO)
-logging.getLogger('requests').setLevle(logging.INFO)
+logging.getLogger('requests').setLevel(logging.INFO)
 
 # set up necessary docker clients
 client = docker.from_env()
@@ -80,8 +80,12 @@ def start_cass(workflow_json, response_list):
     # if cass service not found
     if len(cass_filter) == 0:
 
-        logging.debug("{:*^60}".format(" cass doesn't exist "))
-        logging.debug("{:*^60}".format(" Spinning up cass "))
+        logging.log(logging.UPDATE_LEVEL, "{:*^60}".format(
+            " cass doesn't exist "
+        ))
+        logging.log(logging.UPDATE_LEVEL, "{:*^60}".format(
+            " Spinning up cass "
+        ))
 
         # create cass service
         cass_service = client.services.create(
@@ -111,7 +115,7 @@ def start_cass(workflow_json, response_list):
         # trying again
         if not healthy:
             if count < 60:  # request has not timed out
-                logging.debug("cass is not ready")
+                logging.log(logging.UPDATE_LEVEL, "cass is not ready")
                 # message = "Attempting to spin up cass"
                 # message_dict = {"message": message}
                 # requests.post(origin_url, None, json.dumps(message_dict))
@@ -125,12 +129,16 @@ def start_cass(workflow_json, response_list):
     resp = None
 
     if count < 60:
-        logging.debug("{:*^60}".format(" cass is ready for connections "))
+        logging.log(logging.UPDATE_LEVEL, "{:*^60}".format(
+            " cass is ready for connections "
+            ))
         message = "Component cass of your workflow has been deployed"
         resp = requests.Response()
         resp.status_code = 200
     else:
-        logging.debug("{:*^60}".format(" cass could not be debloyed "))
+        logging.log(logging.UPDATE_LEVEL, "{:*^60}".format(
+            " cass could not be debloyed "
+        ))
         message = "Timeout. Component cass of your " +\
             "workflow could not be deployed"
         resp = requests.Response()
@@ -150,8 +158,12 @@ def start_components(component, storeId, response_list):
 
     # if not exists
     if len(service_filter) == 0:
-        logging.debug("{:*^60}".format(" " + component + " doesn't exist "))
-        logging.debug("{:*^60}".format(" Spinning up " + component + " "))
+        logging.log(logging.UPDATE_LEVEL, "{:*^60}".format(
+            " " + component + " doesn't exist "
+        ))
+        logging.log(logging.UPDATE_LEVEL, "{:*^60}".format(
+            " Spinning up " + component + " "
+        ))
 
         # create the service
         component_service = client.services.create(
@@ -172,7 +184,10 @@ def start_components(component, storeId, response_list):
         except Exception:
             if count < 15:
                 if count % 5 == 0:
-                    logging.debug(component + " is not ready")
+                    logging.log(
+                        logging.UPDATE_LEVEL,
+                        component + " is not ready"
+                    )
                     message = "Attempting to spin up " + component
                     message_dict = {"message": message}
                     requests.post(origin_url, json=json.dumps(message_dict))
@@ -185,7 +200,7 @@ def start_components(component, storeId, response_list):
             break
 
     if count >= 15:
-        logging.debug("{:*^60}".format(
+        logging.log(logging.UPDATE_LEVEL, "{:*^60}".format(
             " " + component + " could not be debloyed "
         ))
         message = "Timeout. Component " + component +\
@@ -197,7 +212,9 @@ def start_components(component, storeId, response_list):
         response_list.append(resp)
         return
 
-    logging.debug("{:*^60}".format(" " + component + " is healthy "))
+    logging.log(logging.UPDATE_LEVEL, "{:*^60}".format(
+        " " + component + " is healthy "
+    ))
     # send update to the restaurant owner
     message = "Component " + component + " of your workflow has been deployed"
     message_dict = {"message": message}
@@ -229,7 +246,7 @@ def stop_components(component, storeId, response_list):
     if len(service_filter) == 0:  # if service failed to deploy
         return
 
-    logging.debug("{:*^60}".format(
+    logging.log(logging.UPDATE_LEVEL, "{:*^60}".format(
         " sent teardown request to " + component +
         " for workflow specification " + storeId + " "
     ))
@@ -237,7 +254,7 @@ def stop_components(component, storeId, response_list):
     #     service_url + "/workflow-request",
     #     json=json.dumps({"storeId": storeId})
     # )
-    logging.debug("{:*^60}".format(
+    logging.log(logging.UPDATE_LEVEL, "{:*^60}".format(
         " recieved response from " + component +
         " for workflow specification " + storeId + " ")
     )
