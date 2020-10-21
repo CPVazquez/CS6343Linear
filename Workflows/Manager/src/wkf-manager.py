@@ -13,7 +13,7 @@ import sys
 import requests
 import docker
 import jsonschema
-from app.src.update_client import UpdateClient
+from .update_client import UpdateClient
 from flask import Flask, request, Response
 
 __author__ = "Carla Vazquez"
@@ -34,7 +34,7 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-logging.debug(sys.path())
+logging.debug(sys.path)
 
 # set up flask app
 app = Flask(__name__)
