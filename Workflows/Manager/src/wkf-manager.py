@@ -20,10 +20,14 @@ __email__ = "cpv150030@utdallas.edu"
 __status__ = "Development"
 
 # set up logging
+logging.UPDATE_LEVEL = 25
+logging.addLevelName(logging.UPDATE_LEVEL, "UPDATE")
 logging.basicConfig(
-    level=logging.NOTSET,
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
+            level=logging.INFO,
+                format="%(asctime)s - %(levelname)s - %(message)s"
+                )
+logging.getLogger('docker').setLevel(logging.INFO)
+logging.getLogger('requests').setLevle(logging.INFO)
 
 # set up necessary docker clients
 client = docker.from_env()
