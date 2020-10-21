@@ -298,8 +298,8 @@ def teardown(storeId):
 @app.route("/workflow-requests/<storeId>", methods=["PUT"])
 def setup_workflow(storeId):
     logging.log(logging.UPDATE_LEVEL, "{:*^90}".format(
-        " Serving request `POST /workflow-requests/"
-        + storeId + "` "
+        " PUT /workflow-requests/"
+        + storeId + " "
     ))
     # get the data from the request
     data = json.loads(request.get_json())
@@ -382,8 +382,8 @@ def setup_workflow(storeId):
 @app.route("/workflow-requests/<storeId>", methods=["DELETE"])
 def teardown_workflow(storeId):
     logging.log(logging.UPDATE_LEVEL, "{:*^90}".format(
-        " Serving request `DELETE /workflow-requests/"
-        + storeId + "` "
+        " DELETE /workflow-requests/"
+        + storeId + " "
     ))
     if not (storeId in workflows):
         return Response(
@@ -400,8 +400,8 @@ def teardown_workflow(storeId):
 @app.route("/workflow-requests/<storeId>", methods=["GET"])
 def retrieve_workflow(storeId):
     logging.log(logging.UPDATE_LEVEL, "{:*^90}".format(
-        " Serving request `GET /workflow-requests/"
-        + storeId + "` "
+        " GET /workflow-requests/"
+        + storeId + " "
     ))
     if not (storeId in workflows):
         return Response(
@@ -419,7 +419,7 @@ def retrieve_workflow(storeId):
 @app.route("/workflow-requests", methods=["GET"])
 def retrieve_workflows():
     logging.log(logging.UPDATE_LEVEL, "{:*^90}".format(
-        " Serving request `GET /workflow-requests` "
+        " GET /workflow-requests "
     ))
     return Response(
         status=200,
@@ -431,6 +431,6 @@ def retrieve_workflows():
 @app.route("/health", methods=["GET"])
 def health_check():
     logging.log(logging.UPDATE_LEVEL, "{:*^90}".format(
-        " Serving request `GET /health"
+        " GET /health "
     ))
     return Response(status=200, response="healthy\n")
