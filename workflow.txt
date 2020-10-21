@@ -1,1 +1,0 @@
-curl --header "Content-Type: application/json" --header "Accept: application/json" --request PUT --data '"{\"method\":\"persistent\",\"component-list\":[\"order-verifier\",\"delivery-assigner\",\"auto-restocker\",\"restocker\",\"cass\"],\"origin\":\"0.0.0.0\"}"' http://0.0.0.0:1000/workflow-request/7098813e-4624-462a-81a1-7e0e4e67631d
