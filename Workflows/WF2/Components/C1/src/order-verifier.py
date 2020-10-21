@@ -162,8 +162,8 @@ def stock_tracker_mgr(store_uuid, date_sold, req_item_dict):
 
 
 # Insert order info into DB
-def create_order(order_id, order_dict, req_item_dict):
-    order_uuid = uuid.UUID(order_id)
+def create_order(order_dict, req_item_dict):
+    order_uuid = uuid.UUID(order_dict["orderId"])
     store_uuid = uuid.UUID(order_dict["storeId"])
     pay_uuid = uuid.UUID(order_dict["paymentToken"])
     cust_name = order_dict["custName"]
@@ -251,7 +251,8 @@ def order_manager(order_dict):
         logging.debug("Order request is valid, but Workflow does not exist: " + store_id)
         return Response(status=422, response="Order request is valid, but Workflow does not exist.")
 
-    order_id = str(uuid.uuid4())  # Assign order_id to order_dict
+    order_dict["orderId"] = str(uuid.uuid4())  # Assign order_id to order_dict
+    order_id = order_dict["orderId"]
     logging.debug('Order request received and assigned ID ' + order_id)
 
     # Check stock to see if order can be placed. If not, restock and check again
@@ -260,8 +261,7 @@ def order_manager(order_dict):
         if restock_list:
             if "restocker" in workflows[store_id]["component-list"]:    
                 restock_dict = {"storeID": store_id, "restock-list": restock_list}
-                #response = requests.post("http://restocker:5000/restock", json=json.dumps(restock_dict))
-                response = requests.post("http://0.0.0.0:5000/restock", json=json.dumps(restock_dict))
+                response = requests.post("http://restocker:5000/restock", json=json.dumps(restock_dict))
                 logging.debug("Request Restock - {} {}".format(str(response.status_code), response.text))
                 if response.status_code != 200:
                     # Restock unsuccesful, must reject order request
@@ -275,21 +275,21 @@ def order_manager(order_dict):
 
     # Decrement stock and create the order
     decrement_stock(uuid.UUID(store_id), in_stock_dict, req_item_dict)
-    create_order(order_id, order_dict, req_item_dict)
+    create_order(order_dict, req_item_dict)
 
     # TODO: Send pizza order to auto-restocker
-    # if "auto-restocker" in workflows[store_id]["component-list"]:
-    #     response = requests.post("http://auto-restocker:4000/auto-restock", json=json.dumps(order_dict))
-    #     logging.debug("Auto-Restocker: {} {}".format(str(response.status_code), response.text))
+    if "auto-restocker" in workflows[store_id]["component-list"]:
+        response = requests.post("http://auto-restocker:4000/auto-restock", json=json.dumps(order_dict))
+        logging.debug("Auto-Restocker - {} {}".format(str(response.status_code), response.text))
 
     # TODO: Assign delivery entity
-    # if "delivery-assigner" in workflows[store_id]["component-list"]:
-    #     #response = requests.post("http://delivery-assigner:3000/assign-entity", json={"order_id":order_id})
-    #     logging.debug("Delivery Assigner: {} {}".format(str(response.status_code), response.text))
-    #     if response.status_code != 200:
-    #         # Could not assign delivery entity, but order has been created
-    #         logging.debug("Order created, but failed to assign delivery entity for " + order_id)
-    #         return Response(status=response.status_code, response=response.text)
+    if "delivery-assigner" in workflows[store_id]["component-list"]:
+        response = requests.post("http://delivery-assigner:3000/assign-entity", json=json.dumps(order_dict))
+        logging.debug("Delivery Assigner - {} {}".format(str(response.status_code), response.text))
+        if response.status_code != 200:
+            # Could not assign delivery entity, but order has been created
+            logging.debug("Order created, but failed to assign delivery entity to " + order_id)
+            return Response(status=response.status_code, response=response.text)
 
     return Response(status=200, response="Order {} has been placed".format(order_id))
 

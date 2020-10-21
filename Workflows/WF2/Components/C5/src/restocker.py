@@ -81,8 +81,7 @@ def verify_restock_order(order):
 def restocker():
     valid = False
     restock_dict = json.loads(request.get_json())
-    #response = Response(status=400, response="Restocking order ill formated.\nRejecting request.\nPlease correct formating.")
-
+    
     store_id = restock_dict["storeID"]
     if store_id not in workflows:
         logging.debug("Restock request is valid, but Workflow does not exist: " + store_id)
@@ -157,6 +156,23 @@ def teardown_workflow(storeId):
     logging.debug("Workflow Torn Down: Restocker stopped for Store " + storeId)
 
     return Response(status=204)
+
+
+# retrieve the specified resource, if it exists
+@app.route("/workflow-requests/<storeId>", methods=["GET"])
+def retrieve_workflow(storeId):
+    logging.debug("GET /workflow-requests/" + storeId)
+    if not (storeId in workflows):
+        return Response(status=404, response="Workflow doesn't exist. Nothing to retrieve")
+    else:
+        return Response(status=200, response=json.dumps(workflows[storeId]))
+
+
+# retrieve all resources
+@app.route("/workflow-requests", methods=["GET"])
+def retrieve_workflows():
+    logging.debug("GET /workflow-requests")
+    return Response(status=200, response=json.dumps(workflows))
 
 
 # scan the database for items that are out of stock or close to it

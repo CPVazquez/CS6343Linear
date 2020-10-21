@@ -18,18 +18,6 @@ __status__ = "Development"
 
 fake = Faker('en_US')
 
-date_offset = -1
-
-def advance_date():
-    global date_offset
-    date_offset += 1
-    threading.Timer(60, advance_date).start()
-
-def get_date():
-    start_date = datetime(2020, 1, 1)
-    current_date = start_date + timedelta(days=date_offset)
-    return current_date.isoformat()
-
 
 class PizzaOrder:
     # Order Attribute Lists
@@ -42,14 +30,14 @@ class PizzaOrder:
     cheese_amts = ['None','Light','Normal','Extra']
     topping_types = ['Pepperoni','Sausage','Beef','Onion','Chicken','Peppers','Olives','Bacon','Pineapple','Mushrooms']
 
-    def __init__(self, store, max_pizzas):
+    def __init__(self, store, order_date, max_pizzas):
         self.store_id = self.stores[store][0]
         self.cust_name = fake.name()
         self.pay_token = str(uuid.uuid4())
         self.pay_type = self.payment_types[random.randint(0, 7)]
         self.cust_lat = round((self.stores[store][1] + random.uniform(-0.037, 0.037)), 6)
         self.cust_lon = round((self.stores[store][2] + random.uniform(-0.0432, 0.0432)), 6)
-        self.order_date = get_date()
+        self.order_date = order_date
         self.max_pizzas = max_pizzas
 
     def add_pizzas(self):
@@ -90,9 +78,9 @@ def request_order(q, url):
         print("\nPizza Order Request:\n" + json.dumps(order_dict, indent=4))
         response = requests.post(url, json=json.dumps(order_dict))
         if response.status_code == 200:
-            print("Request Accepted - " + response.text)
+            print("Request Accepted - {} {}".format(str(response.status_code), response.text))
         else:
-            print("Request Rejected - " + response.text)
+            print("Request Rejected - {} {}".format(str(response.status_code), response.text))
         q.task_done()
 
 
@@ -112,10 +100,18 @@ if __name__ == "__main__":
             break
     while True:
         try:
-            max_orders = int(input("Enter the number of pizza orders to generate (min: 1, max: 1000): "))
+            num_days = int(input("Enter the number of days to generate orders (min: 1, max: 365): "))
         except ValueError:
             print("Could not convert input data to integer. Please try again.")
-        if (max_orders >= 1) & (max_orders <= 1000):
+        if (num_days >= 1) & (num_days <= 365):
+            print()
+            break
+    while True:
+        try:
+            orders_per_day = int(input("Enter the number of orders to generate per day (min: 1, max: 1000): "))
+        except ValueError:
+            print("Could not convert input data to integer. Please try again.")
+        if (orders_per_day >= 1) & (orders_per_day <= 1000):
             print()
             break
     while True:
@@ -128,17 +124,21 @@ if __name__ == "__main__":
             break
     print("\n*** Pizza Order Generator Script - Generating Orders ***\n")
 
-    q = Queue(max_orders)
+    total_orders = num_days * orders_per_day
+
+    q = Queue(total_orders)
 
     t = threading.Thread(target=request_order, args=(q,url))
     t.daemon = True
     t.start()
 
-    advance_date()
-
-    for _ in range(max_orders):
-        pizza_order = PizzaOrder(store, max_pizzas)
+    offset = -1
+    for i in range(total_orders):
+        if (i % orders_per_day) == 0:
+            offset += 1
+        date_str = (datetime(2020, 1, 1) + timedelta(days=offset)).isoformat()
+        pizza_order = PizzaOrder(store, date_str, max_pizzas)
         q.put(pizza_order)
-        time.sleep(3)
+        time.sleep(1)
 
     q.join()    # Wait for all PizzaOrder objects to be processed from the queue
