@@ -1,4 +1,5 @@
 import aiohttp
+import json
 
 
 class UpdateClient(object):
@@ -15,7 +16,8 @@ class UpdateClient(object):
             'Content-Type': 'application/json'
         }
         async with self.session.post(
-                self.url, headers=headers, json={"message": message}
+                self.url, headers=headers,
+                json=json.dumps({"message": message})
                 ) as response:
             results = await response.json()
             return results
