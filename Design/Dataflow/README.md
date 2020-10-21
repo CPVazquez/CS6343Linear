@@ -33,7 +33,7 @@ The order-verifier, after contacting the restocker, delivery-assigner, and auto-
 
 <sub>Figure 2.0</sub>
 
-Pictured above in Figure 1.0 is the other possible dataflow for the project when all components save the order-verifier are deployed for a specified workflow. In this workflow one components are essential, cass. Components restocker, delivery-assigner, and auto-restocker can be removed with no significant impact on the dataflow.
+Pictured above in Figure 2.0 is the other possible dataflow for the project when all components save the order-verifier are deployed for a specified workflow. In this workflow one components are essential, cass. Components restocker, delivery-assigner, and auto-restocker can be removed with no significant impact on the dataflow.
 
 ### Dataflow walk-through
 The order-generator sends a pizza-order json to the delivery-assigner and auto-restocker components, if they are present in the workflow.
