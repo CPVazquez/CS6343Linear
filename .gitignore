@@ -4,3 +4,4 @@
 *.coverage
 ./Workflows/WF2/Components/C3/src/config.py
 
+wkf-commands.txt
