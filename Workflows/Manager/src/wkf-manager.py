@@ -19,17 +19,15 @@ __maintainer__ = "Carla Vazquez"
 __email__ = "cpv150030@utdallas.edu"
 __status__ = "Development"
 
-# TODO: set up time out for spining up components
+# set up logging
+logging.basicConfig(
+    level=logging.NOTSET,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 # set up necessary docker clients
 client = docker.from_env()
 APIclient = docker.APIClient(base_url='unix://var/run/docker.sock')
-
-# set up logging
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
 
 # set up flask app
 app = Flask(__name__)
