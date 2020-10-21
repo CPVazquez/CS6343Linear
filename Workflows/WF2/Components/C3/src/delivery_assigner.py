@@ -146,7 +146,7 @@ def assign_entity(store_id, order):
     return Response(status=200, mimetype='application/json', response=json.dumps(order))
 
 
-@app.route('/workflow-request/<storeId>', methods=['POST'])
+@app.route('/workflow-request/<storeId>', methods=['PUT'])
 def register_workflow(storeId):
     '''REST API for registering workflow to delivery assigner service'''
     
@@ -185,7 +185,7 @@ def teardown_workflow(storeId);
     )
     
 
-@app.route('/assign-entity/<storeId>', methods=['POST'])
+@app.route('/assign-entity/<storeId>', methods=['GET'])
 def assign(storeId):
     '''REST API for assigning best delivery entity.'''
 
