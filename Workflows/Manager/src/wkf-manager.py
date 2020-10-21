@@ -9,10 +9,11 @@ from time import sleep
 import threading
 import asyncio
 
+
 import requests
 import docker
 import jsonschema
-from .update_client import UpdateClient
+from update_client import UpdateClient
 from flask import Flask, request, Response
 
 __author__ = "Carla Vazquez"
