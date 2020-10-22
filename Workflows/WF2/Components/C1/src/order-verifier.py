@@ -156,7 +156,10 @@ def stock_tracker_mgr(store_uuid, date_sold, req_item_dict):
     for item_name in req_item_dict:
         row = session.execute(select_stock_tracker_prepared, (store_uuid, item_name, date_sold)).one()
         if not row:
-            session.execute(insert_stock_tracker_prepared, (store_uuid, item_name, req_item_dict[item_name], date_sold))
+            session.execute(
+                insert_stock_tracker_prepared, 
+                (store_uuid, item_name, req_item_dict[item_name], date_sold)
+            )
         else:
             quantity = row.quantitysold + req_item_dict[item_name]
             session.execute(update_stock_tracker_prepared, (quantity, store_uuid, item_name, date_sold))
@@ -232,9 +235,9 @@ def check_stock(order_dict):
     in_stock_dict = copy.deepcopy(items_dict)
     store_id = uuid.UUID(order_dict["storeId"])
     req_item_dict = aggregate_ingredients(order_dict["pizzaList"])
-    restock_list = []
+    restock_list = list()
 
-    # If there is insufficient stock, restock_list contains items for restock
+    # If insufficient stock, restock_list contains items for restock
     # Otherwise, restock_list is an empty list
     rows = session.execute(select_stock_prepared, (store_id,))
     for row in rows:
@@ -280,7 +283,7 @@ def order_manager(order_dict):
 
     # TODO: Send pizza order to auto-restocker
     if "auto-restocker" in workflows[store_id]["component-list"]:
-        response = requests.post("http://0.0.0.0:4000/auto-restock", json=json.dumps(order_dict))
+        response = requests.post("http://restocker:4000/auto-restock", json=json.dumps(order_dict))
         logging.info("Auto-Restocker - {} {}".format(str(response.status_code), response.text))
 
     # TODO: Assign delivery entity
@@ -295,6 +298,7 @@ def order_manager(order_dict):
     return Response(status=201, response="Order {} has been placed".format(order_id))
 
 
+# validate pizza-order against schema
 def verify_order(data):
     global pizza_schema
     valid = True
@@ -307,7 +311,7 @@ def verify_order(data):
     return valid, mess
 
 
-# Pizza order endpoint
+# if pizza-order is valid, try to create it
 @app.route('/order', methods=['POST'])
 def order_funct():
     data = json.loads(request.get_json())
@@ -318,6 +322,7 @@ def order_funct():
     return order_manager(data)
 
 
+# validate workflow-request against schema
 def verify_workflow(data):
     global workflow_schema
     valid = True
@@ -330,6 +335,7 @@ def verify_workflow(data):
     return valid, mess
 
 
+# if workflow-request is valid and does not exist, create it
 @app.route("/workflow-requests/<storeId>", methods=['PUT'])
 def setup_workflow(storeId):
     logging.info("PUT /workflow-requests/" + storeId)

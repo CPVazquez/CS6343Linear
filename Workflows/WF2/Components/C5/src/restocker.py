@@ -16,7 +16,7 @@ import docker
 import jsonschema
 import uuid
 
-__author__ = "Carla Vazquez"
+__author__ = "Carla Vazquez, Chris Scott"
 __version__ = "2.0.0"
 __maintainer__ = "Chris Scott"
 __email__ = "cms190009@utdallas.edu"

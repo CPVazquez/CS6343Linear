@@ -13,6 +13,8 @@ __maintainer__ = "Chris Scott"
 __email__ = "christopher.scott@utdallas.edu"
 __status__ = "Development"
 
+cluster = "cluster1-1.utdallas.edu"
+
 
 class Restock:
     # Restock Attribute Lists
@@ -52,19 +54,19 @@ def request_restock(q, url):
     while True:
         restock = q.get()
         restock_dict = restock.generate_restock()
-        print("\nRestock Request:\n" + json.dumps(restock_dict, indent=4))
+        print("Generated Restock Request:\n" + json.dumps(restock_dict, indent=4))
         response = requests.post(url, json=json.dumps(restock_dict))
         if response.status_code == 200:
-            print("Request Accepted - " + response.text)
+            print("Request Accepted - {} {}".format(str(response.status_code), response.text))
         else:
-            print("Request Rejected - " + response.text)
+            print("Request Rejected - {} {}".format(str(response.status_code), response.text))
         q.task_done()
 
 
 if __name__ == "__main__":
     print("\n*** Restock Generator Script - User Input Required ***\n")
-    url = input("Enter Restocker URL: ")
-    print("\n0 - StoreID 7098813e-4624-462a-81a1-7e0e4e67631d")
+    
+    print("0 - StoreID 7098813e-4624-462a-81a1-7e0e4e67631d")
     print("1 - StoreID 5a2bb99f-88d2-4612-ac60-774aea9b8de4")
     print("2 - StoreID b18b3932-a4ef-485c-a182-8e67b04c208c")
     while True:
@@ -75,6 +77,7 @@ if __name__ == "__main__":
         if (store >= 0) & (store <= 2):
             print()
             break
+
     while True:
         try:
             max_restocks = int(input("Enter the number of restocks to generate (min: 1, max: 1000): "))
@@ -83,7 +86,10 @@ if __name__ == "__main__":
         if (max_restocks >= 1) & (max_restocks <= 1000):
             print()
             break
+
     print("\n*** Restock Generator Script - Generating Restocks ***\n")
+
+    url = "http://"+cluster+":5000/restock"
 
     q = Queue(max_restocks)
 
