@@ -105,13 +105,6 @@ def restocker():
     return response
 
 
-# the health endpoint, so that users can verify that the server is up and running
-@app.route('/health', methods=['GET'])
-def health_check():
-    logging.info("GET /health")
-    return Response(status=200,response="healthy\n")
-
-
 def verify_workflow(data):
     global workflow_schema
     valid = True
@@ -165,6 +158,13 @@ def retrieve_workflow(storeId):
 def retrieve_workflows():
     logging.info("GET /workflow-requests")
     return Response(status=200, response=json.dumps(workflows))
+
+
+# the health endpoint, so that users can verify that the server is up and running
+@app.route('/health', methods=['GET'])
+def health_check():
+    logging.info("GET /health")
+    return Response(status=200,response="healthy\n")
 
 
 # scan the database for items that are out of stock or close to it

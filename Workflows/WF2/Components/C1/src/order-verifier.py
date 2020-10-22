@@ -268,10 +268,10 @@ def order_manager(order_dict):
                 if response.status_code != 200:
                     # Restock unsuccesful, must reject order request
                     logging.info("Request {} rejected, restock failed at {}".format(order_id, store_id))
-                    return Response(status=response.status_code, response=response.text)
+                    return Response(status=424, response="{} {}".fromat(response.status_code, response.text))
             else:
                 logging.info("Request {} rejected, insufficient stock at {}".format(order_id, store_id))
-                return Response(status=400, response="Insufficient stock at {}\n".format(store_id))
+                return Response(status=404, response="Insufficient stock at {}\n".format(store_id))
         else:
             break
 
@@ -293,7 +293,7 @@ def order_manager(order_dict):
             logging.info("Order created, but failed to assign delivery entity to " + order_id)
             return Response(status=response.status_code, response=response.text)
 
-    return Response(status=200, response="Order {} has been placed".format(order_id))
+    return Response(status=201, response="Order {} has been placed".format(order_id))
 
 
 def verify_order(data):

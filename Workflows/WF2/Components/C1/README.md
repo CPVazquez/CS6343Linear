@@ -40,19 +40,63 @@ Packages installed on pipenv virtual environment:
 
 ## Endpoints
 
+### `POST /order`
+
+Requires a [`pizza-order`](https://github.com/CPVazquez/CS6343/blob/master/Workflows/WF2/Components/C1/src/pizza-order.schema.json) json object
+
+`pizza-order` 
+
+| field | type | required | description |
+|-------|------|----------|-------------|
+| orderId | string - format uuid | false | A base64 ID give to each order to identify it |
+| storeId | string - format uuid | true | A base64 ID given to each store to identify it |
+| custName | string | true | The name of the customer, as a single string for both first/last name |
+| paymentToken | string - format uuid | true | The token for the third-party payment service that the customer is paying with |
+| paymentTokenType | string | true | The type of token accepted (paypal, google pay, etc) |
+| custLocation | `location` | true | The location of the customer, in degrees latitude and longitude |
+| orderDate | string - date-time format | true | The date of order creation |
+| pizzaList | `pizza` array | true | The list of pizzas that have been ordered |
+
+`location`
+
+| field | type | required | description |
+|-------|------|----------|-------------|
+| lat | number | false | latitude |
+| lon | number | false | longitude |
+
+`pizza`
+
+| field | type | options | required | description |
+|-------|------|---------|----|---|
+| crustType | enum | Thin, Traditional | false | The type of crust |
+| sauceType | enum | Spicy, Traditional | false | The type of sauce |
+| cheeseAmt | enum | None, Light, Normal, Extra | false | The amount of cheese on the pizza |
+| toppingList | enum array | Pepperoni, Sausage, Beef, Onion, Chicken, Peppers, Olives, Bacon, Pineapple, Mushrooms | false | The list of toppings added at extra cost. Cost verified by server |
+
+#### Responses
+
+| status code | status | meaning |
+|-------------|--------|---------|
+| 200 | Created | pizza-order successfully created |
+| 400 | Bad Request | indicates the pizza-order was ill formatted |
+| 404 | Not Found | insufficient stock at the specified store to create pizza-orer |
+| 422 | Conflict | a workflow does not exist for the specified store, thus the pizza-order cannot be created |
+| 424 | Failed Dependency | request to another workflow component failed, therefore the pizza-order cannot be created | 
+
 ### `PUT /workflow-requests/<storeId>`
 
 #### Parameters
 
 | parameter | type | required | description |
 |-----------|------|----------|-------------|
-|storeId | string | true | the id of the store issuing the workflow request |
+| storeId | string | true | the id of the store issuing the workflow request |
 
 #### Body
 
 Requires a `workflow-request` json object. 
 
 `workflow-request`
+
 | field | type | options | required | description |
 |-------|------|---------|----------|-------------|
 | method | enum | persistent, edge | true | the workflow deployment method |
@@ -63,9 +107,9 @@ Requires a `workflow-request` json object.
 
 | status code | status | meaning|
 |-------------|--------|--------|
-| 201 | Created | workflow successfully created |
+| 201 | Created | workflow was successfully created |
 | 400 | Bad Request | indicates the workflow-request was ill formatted |
-| 409 | Conflict |a workflow already exists for the specified store, and thus a new one cannot be created |
+| 409 | Conflict | a workflow already exists for the specified store, and thus a new one cannot be created |
 
 ### `DELETE /workflow-requests/<storeId>`
 
@@ -78,40 +122,40 @@ Requires a `workflow-request` json object.
 #### Responses
 
 | status code | status | meaning|
-|---|---|---|
-|204|No Content| the specified workflow was deleted successfully |
-|404|Not Found| the specified workflow does not exist or has already been deleted
+|-------------|--------|--------|
+| 204 | No Content | the specified workflow was deleted successfully |
+| 404 | Not Found | the specified workflow does not exist or has already been deleted |
 
 ### `GET /workflow-requests/<storeId>`
 
 #### Parameters
 
 | parameter | type | required | description |
-|-------|------|----|---|
-|storeId | string| true| the id of the store whose workflow we want to retrieve|
+|-----------|------|----------|-------------|
+| storeId | string | true | the id of the store whose workflow we want to retrieve |
 
 #### Responses
 
-| status code | status | meaning|
-|---|---|---|
-|200| OK | returns the `workflow-request`|
-|404| Not Found| the specified `workflow-request` does not exist and could not be retrieved|
+| status code | status | meaning | 
+|-------------|--------|---------|
+| 200 | OK | returns the `workflow-request` |
+| 404 | Not Found | the specified `workflow-request` does not exist and could not be retrieved |
 
 ### `GET /workflow-requests`
 
 #### Responses
 
-| status code | status | meaning|
-|---|---|---|
-|200| OK | returns all the `workflow-request`s on the workflow manager|
+| status code | status | meaning |
+|-------------|--------|---------|
+| 200 | OK | returns all the `workflow-request`s on the workflow manager |
 
 ### `GET /health`
 
 #### Responses
-| status code | status | meaning|
-|---|---|---|
-|200| OK | the server is up and running|
+| status code | status | meaning |
+|-------------|--------|---------|
+| 200 | OK | the server is up and running |
 
-returns string `healthy` if the service is healthy
+Returns string `healthy` if the service is healthy
 
 [Main README](https://github.com/CPVazquez/CS6343)
