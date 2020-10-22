@@ -34,7 +34,7 @@ session = cluster.connect('pizza_grocery')
 select_stock_prepared = session.prepare('SELECT * FROM stock WHERE storeID=?')
 select_items_prepared = session.prepare('SELECT * FROM items WHERE name=?')
 select_stock_tracker_prepared = session.prepare('\
-    SELECT * \
+    SELECT quantitySold \
     FROM stockTracker \
     WHERE storeID=? AND itemName=? AND dateSold=?\
 ')
@@ -154,13 +154,12 @@ def insert_pizzas(pizza_list):
 # Insert or update stockTracker table for items sold per day
 def stock_tracker_mgr(store_uuid, date_sold, req_item_dict):
     for item_name in req_item_dict:
-        rows = session.execute(select_stock_tracker_prepared, (store_uuid, item_name, date_sold))
-        if not rows:
+        row = session.execute(select_stock_tracker_prepared, (store_uuid, item_name, date_sold)).one()
+        if not row:
             session.execute(insert_stock_tracker_prepared, (store_uuid, item_name, req_item_dict[item_name], date_sold))
         else:
-            for row in rows:
-                quantity = row.quantitysold + req_item_dict[item_name]
-                session.execute(update_stock_tracker_prepared, (quantity, store_uuid, item_name, date_sold))
+            quantity = row.quantitysold + req_item_dict[item_name]
+            session.execute(update_stock_tracker_prepared, (quantity, store_uuid, item_name, date_sold))
 
 
 # Insert order info into DB
@@ -281,7 +280,7 @@ def order_manager(order_dict):
 
     # TODO: Send pizza order to auto-restocker
     if "auto-restocker" in workflows[store_id]["component-list"]:
-        response = requests.post("http://auto-restocker:4000/auto-restock", json=json.dumps(order_dict))
+        response = requests.post("http://0.0.0.0:4000/auto-restock", json=json.dumps(order_dict))
         logging.info("Auto-Restocker - {} {}".format(str(response.status_code), response.text))
 
     # TODO: Assign delivery entity
