@@ -22,14 +22,16 @@ __status__ = "Development"
 app = Flask(__name__)
 
 logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+                    format='%(asctime)s %(name)-12s ' + 
+                        '%(levelname)-8s %(message)s')
 
 logger = logging.getLogger(__name__)
 
 workflows = {}
 
 #Google API URL
-URL = "https://maps.googleapis.com/maps/api/directions/json?origin={}, {}&destination={},{}&key={}"
+URL = "https://maps.googleapis.com/maps/api/directions/json?origin={}, " +
+    "{}&destination={},{}&key={}"
 
 #Connecting to Cassandra Cluster
     
@@ -39,9 +41,14 @@ session = cluster.connect('pizza_grocery')
 session.row_factory = dict_factory   
 
 #Prepared queries
-entity_query = session.prepare("Select name, latitude, longitude from deliveryEntitiesByStore where storeID=? and onDelivery=False ALLOW FILTERING")
-store_info_query = session.prepare("Select latitude, longitude from stores where storeID=?")
-
+entity_query = session.prepare("Select name, latitude, longitude from " + 
+    "deliveryEntitiesByStore where storeID=? and " +
+    "onDelivery=False ALLOW FILTERING")
+store_info_query = session.prepare("Select latitude, " + 
+    "longitude from stores where storeID=?")
+update_order_query = session.prepare("Update orderTable set deliveredBy=?, " + 
+    "estimatedDeliveryTime=? where orderID=?")
+insert_order_query = session.prepare
 
 def _convert_time_str(time):
     time = time.split()        
@@ -54,7 +61,8 @@ def _convert_time_str(time):
     return hours * 60 + mins    
 
 def _get_time(origin, destination):
-    url = URL.format(origin[0], origin[1], destination[0], destination[1], API_KEY)        
+    url = URL.format(origin[0], origin[1], destination[0],
+        destination[1], API_KEY)        
     response = requests.get(url)
     content = json.loads(response.content.decode())            
     
@@ -64,7 +72,8 @@ def _get_time(origin, destination):
 
 def _get_delivery_time(delivery_entities, customer, store):    
     store = (store['latitude'], store['longitude'])    
-    delivery_entities = [(entity['name'], (entity['latitude'], entity['longitude'])) for entity in delivery_entities]        
+    delivery_entities = [(entity['name'], (entity['latitude'],
+        entity['longitude'])) for entity in delivery_entities]        
     best_time = float('inf')
     best_entity = None
     for delivery_entity in delivery_entities:        
@@ -94,6 +103,9 @@ def _get_store_info(store_id):
     row = session.execute(store_info_query, (store_id,)).one()
     return row
 
+def _update_order(order_id, entity, time):
+    session.execute(update_order_query, (entity, time, order_id))
+
 
 def assign_entity(store_id, order):
     '''Assigns the best delivery entity to and order and updates orderTable in the DB.
@@ -120,7 +132,8 @@ def assign_entity(store_id, order):
                 status=204,
                 response="No Avaiblabe delivery entities for storeID::" + 
                          str(storeID) + "\n" +
-                         "Please update delivery entities or wait for entities to finish active deliveries!"            
+                         "Please update delivery entities or " + 
+                         "wait for entities to finish active deliveries!"            
             )
     except:
         return Response(
@@ -142,8 +155,23 @@ def assign_entity(store_id, order):
 
     order['deliveredBy'] = entity
     order['estimatedTime'] = time
+    logger.info("
+        For order of Customer {} to store {}, Delivery Entity::{}, " +
+            "Estimated Time::{} mins.".format(
+            order['custName'], storeId, entity, time
+    ))
 
-    return Response(status=200, mimetype='application/json', response=json.dumps(order))
+    response_json = {
+        "custName": order['custName'],        
+        "deliveredBy": entity,
+        "estimatedTime": time
+    }
+
+    return Response(
+        status=200,
+        mimetype='application/json',
+        response=json.dumps(response_json)
+    )
 
 
 @app.route('/workflow-request/<storeId>', methods=['PUT'])
@@ -168,7 +196,7 @@ def register_workflow(storeId):
 
     
 @app.route('/workflow-request/<storeId>', methods=['DELETE'])
-def teardown_workflow(storeId);
+def teardown_workflow(storeId):
     '''REST API for tearing down workflow for delivery assigner service'''
 
     if storeId not in workflows:
@@ -212,20 +240,35 @@ def assign(storeId):
     '''REST API for assigning best delivery entity.'''
 
     if storeId not in workflows:
+        logger.info("StoreId not in workflows of delivery assigner.")
         return Response(
             status=404,
             response="Workflow ID does not seem to exist for delivery assigner!\n" +
-                     "Please add delivery assigner to the Workflow or create the workflow " +
-                     "if it doesnt exist."
-    order = request.get_json()
+                     "Please add delivery assigner to the Workflow or " + 
+                     "create the workflow if it doesnt exist."
+	)
+    order = request.get_json()   
+    if orderId not in order:
+       order['orderId'] = uuid.uuid4()       
+
     store_id = uuid.UUID(storeId)    
-    response = assign_entity(store_id, order)        
+    entity, time, response = assign_entity(store_id, order)            
+
+    if 'order-verifier' in workflows[storeId]['component-list']:
+        try:
+    	    _update_order(order['orderId'], entity, time)
+        except:
+            return Response(
+                status=509,
+                response="Unable to update order with delivery entity and estimated time!" +
+                         "Order does not exist."
+            )
     return response
 
 
 @app.route('/health', methods=['GET'])
 def health_check():
     '''REST API for checking health of task.'''
-
+    logger.info("Checking health of delivery assigner.")
     return Response(status=200,response="Delivery Assigner is healthy!!")
  
