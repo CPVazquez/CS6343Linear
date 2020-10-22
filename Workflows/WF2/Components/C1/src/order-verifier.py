@@ -5,18 +5,19 @@ If sufficient stock exists, Order Verifier decrements the store's stock and crea
 Otherwise, Order Verifier requests a restock before decrementing stock and creating the order.
 """
 
-from flask import Flask, request, Response
-from cassandra.cluster import Cluster
-from datetime import datetime
 import copy
-import jsonschema
 import json
 import logging
-import requests
+import os
 import threading
 import time
 import uuid
-import os
+from datetime import datetime
+
+import jsonschema
+import requests
+from cassandra.cluster import Cluster
+from flask import Flask, Response, request
 
 __author__ = "Chris Scott"
 __version__ = "2.0.0"
