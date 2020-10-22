@@ -17,15 +17,11 @@ __maintainer__ = "Carla Vazquez"
 __email__ = "cpv150030@utdallas.edu"
 __status__ = "Development"
 
-# set up logging
-logging.UPDATE_LEVEL = 25
-logging.addLevelName(logging.UPDATE_LEVEL, "UPDATE")
+# set up logging\
 logging.basicConfig(
-    level=logging.UPDATE_LEVEL,
+    level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
-logger = logging.getLogger()
-logger.setLevel(logging.UPDATE_LEVEL)
 
 # create endpoint url
 url = "http://cluster1-1.utdallas.edu:8080/workflow-requests"
@@ -93,8 +89,7 @@ def issue_workflow_request():
 
     # send the workflow-request to the workflow manager
     workflow_json = json.dumps(workflow_dict)
-    logger.log(
-        logging.UPDATE_LEVEL,
+    logging.info(
         "\nWorkflow Request Generated:\n" +
         json.dumps(workflow_dict, sort_keys=True, indent=4)
     )
@@ -102,13 +97,11 @@ def issue_workflow_request():
 
     # parse the response
     if response.status_code == 201:
-        logger.log(
-            logging.UPDATE_LEVEL,
+        logging.info(
             str(response.status_code) + " Workflow successfully deployed!"
         )
     else:
-        logger.log(
-            logging.UPDATE_LEVEL,
+        logging.info(
             "Workflow deployment failed: " + str(response.status_code) + " " +
             response.text
         )
@@ -119,8 +112,7 @@ def issue_workflow_teardown():
     global storeSelect
 
     response = requests.delete(url + "/" + storeSelect)
-    logger.log(
-        logging.UPDATE_LEVEL,
+    logging.info(
         "Workflow teardown received the following response: " +
         str(response.status_code) + " " + response.text
     )
@@ -130,13 +122,11 @@ def issue_workflow_teardown():
 def get_workflow():
     response = requests.get(url + "/" + storeSelect)
     if response.status_code == 200:
-        logger.log(
-            logging.UPDATE_LEVEL,
+        logging.info(
             json.dumps(json.loads(response.text), sort_keys=True, indent=4)
         )
     else:
-        logger.log(
-            logging.UPDATE_LEVEL,
+        logging.info(
             str(response.status_code) + " " + response.text
         )
 
@@ -144,8 +134,7 @@ def get_workflow():
 # retrieve all workflows
 def get_workflows():
     response = requests.get(url)
-    logger.log(
-        logging.UPDATE_LEVEL,
+    logging.info(
         json.dumps(json.loads(response.text), sort_keys=True, indent=4)
     )
 
@@ -206,7 +195,7 @@ def startup():
 @app.route("/results", methods=["POST"])
 def print_results():
     mess = json.loads(request.get_json())
-    logger.log(logging.UPDATE_LEVEL, mess["message"])
+    logging.info(mess["message"])
     return Response(status=200)
 
 
