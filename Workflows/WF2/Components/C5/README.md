@@ -73,9 +73,9 @@ requires a [`restock-order`](https://github.com/CPVazquez/CS6343/blob/master/Wor
 
 | status code | status | meaning|
 |-------------|--------|--------|
-| 201 | Created | restock-order successfully created |
+| 200 | OK | restock-order successfully processed |
 | 400 | Bad Request | indicates the restock-order was ill formatted |
-| 422 | Conflict | a workflow does not exist for the specified store, thus the restock-order cannot be created |
+| 422 | Unprocessable Entity | a workflow does not exist for the specified store, thus the restock-order cannot be processed |
 
 ### `PUT /workflow-requests/<storeId>`
 

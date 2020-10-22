@@ -80,7 +80,7 @@ Requires a [`pizza-order`](https://github.com/CPVazquez/CS6343/blob/master/Workf
 | 200 | Created | pizza-order successfully created |
 | 400 | Bad Request | indicates the pizza-order was ill formatted |
 | 404 | Not Found | insufficient stock at the specified store to create pizza-orer |
-| 422 | Conflict | a workflow does not exist for the specified store, thus the pizza-order cannot be created |
+| 422 | Unprocessable Entity | a workflow does not exist for the specified store, thus the pizza-order cannot be created |
 | 424 | Failed Dependency | request to another workflow component failed, therefore the pizza-order cannot be created | 
 
 ### `PUT /workflow-requests/<storeId>`
@@ -110,6 +110,7 @@ Requires a `workflow-request` json object.
 | 201 | Created | workflow was successfully created |
 | 400 | Bad Request | indicates the workflow-request was ill formatted |
 | 409 | Conflict | a workflow already exists for the specified store, and thus a new one cannot be created |
+| 422 | Unprocessable Entity | json is valid, but the workflow-request specifies an unsupported workflow |
 
 ### `DELETE /workflow-requests/<storeId>`
 
