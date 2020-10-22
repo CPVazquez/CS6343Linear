@@ -8,6 +8,3 @@ verify_ssl = true
 [packages]
 faker = "*"
 requests = "*"
-
-[requires]
-python_version = "3.8"
