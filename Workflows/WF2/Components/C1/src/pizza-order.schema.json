@@ -4,10 +4,12 @@
   "properties": {
     "orderId": {
       "type": "string",
+      "format": "uuid",
       "description": "A base64 ID given to each order to identify it"
     },
     "storeId": {
       "type": "string",
+      "format": "uuid",
       "description": "A base64 ID given to each store to identify it"
     },
     "custName": {
@@ -16,6 +18,7 @@
     },
     "paymentToken": {
       "type": "string",
+      "format": "uuid",
       "description": "The token for the third-party payment service that the customer is paying with"
     },
     "paymentTokenType": {

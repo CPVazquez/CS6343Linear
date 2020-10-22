@@ -18,6 +18,7 @@
         },
         "origin": {
             "type":"string",
+            "format": "ipv4",
             "description":"host ip of the origin"
         }
     },
