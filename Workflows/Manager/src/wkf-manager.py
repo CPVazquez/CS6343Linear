@@ -84,7 +84,7 @@ def start_cass(workflow_json, response_list):
 
         # create cass service
         cass_service = client.services.create(
-            "trishaire/cass",  # the name of the image
+            "trishaire/cass:latest",  # the name of the image
             name="cass",  # name of the service
             endpoint_spec=docker.types.EndpointSpec(
                 mode="vip", ports={9042: 9042}
@@ -145,7 +145,6 @@ def start_cass(workflow_json, response_list):
     message_dict = {"message": message}
     requests.post(origin_url, json=json.dumps(message_dict))
     thread_lock.acquire(blocking=True)
-    logging.info("NOTICE: response is" + str(resp.status_code))
     response_list.append(resp)
     thread_lock.release()
 
@@ -219,7 +218,7 @@ def start_components(component, storeId, response_list):
 
     # send workflow_request to component
     logging.info(
-        " sending " + component +
+        "sending " + component +
         " workflow specification"
     )
     comp_response = requests.put(
@@ -227,8 +226,8 @@ def start_components(component, storeId, response_list):
         json=json.dumps(workflows[storeId])
     )
     logging.info(
-        " recieved response "+str(comp_response.status_code) + " " + comp_response.text +" from " + component +
-        " for workflow specification"
+        "recieved response "+str(comp_response.status_code) + " from " +
+        component + " for workflow specification"
     )
     thread_lock.acquire(blocking=True)
     response_list.append(comp_response)
@@ -251,7 +250,8 @@ def stop_components(component, storeId, response_list):
         service_url + "/workflow-requests/" + storeId,
     )
     logging.info(
-        "recieved response from " + component
+        "recieved response " + str(comp_response.status_code) +
+        " from " + component
     )
     thread_lock.acquire(blocking=True)
     response_list.append(comp_response)
