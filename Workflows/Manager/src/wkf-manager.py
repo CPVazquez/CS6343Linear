@@ -371,7 +371,7 @@ def start_up(storeId, data, component_list):
     return response_list
 
 
-@app.route("/workflow-update", methods="PUT")
+@app.route("/workflow-update", methods=["PUT"])
 def update_workflow(storeId):
     logging.info("{:*^74}".format(
         " PUT /workflow-update/"
