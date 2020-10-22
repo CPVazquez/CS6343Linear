@@ -2,6 +2,10 @@
   "title": "Pizza Order",
   "type": "object",
   "properties": {
+    "orderId": {
+      "type": "string",
+      "description": "A base64 ID given to each order to identify it"
+    },
     "storeId": {
       "type": "string",
       "description": "A base64 ID given to each store to identify it"
@@ -34,6 +38,11 @@
         }
       }
     },
+    "orderDate": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The date of order creation"
+    },
     "pizzaList": {
       "type": "array",
       "description": "The list of pizzas that have been ordered",
@@ -65,6 +74,5 @@
       }
     }
   },
-  "required": ["storeId", "custName", "paymentToken", "paymentTokenType", "custLocation", "pizzaList"]
+  "required": ["storeId", "custName", "paymentToken", "paymentTokenType", "custLocation", "orderDate", "pizzaList"]
 }
-
