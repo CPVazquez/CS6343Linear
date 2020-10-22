@@ -22,6 +22,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
+logging.getLogger('requests').setLevel(logging.WARNING)
 
 # create endpoint url
 url = "http://cluster1-1.utdallas.edu:8080/workflow-requests"
@@ -168,6 +169,7 @@ def startup():
           "\t2. Teardown workflow\n" +
           "\t3. Get workflow\n" +
           "\t4. Get all workflows\n"
+          "\t5. TO BE ADDED\n" +
           "\t0. Exit")
 
     # get the user's choice

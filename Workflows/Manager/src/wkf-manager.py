@@ -38,6 +38,7 @@ app = Flask(__name__)
 portDict = {
     "order-verifier": 1000,
     "delivery-assigner": 3000,
+    "cass": 9042,
     "auto-restocker": 4000,
     "restocker": 5000
 }
@@ -110,7 +111,7 @@ def start_cass(workflow_json, response_list):
         if not healthy:
             if count < 60:  # request has not timed out
                 logging.info(
-                    "Attempt " + str(count / 5) + ", cass is not ready"
+                    "Attempt " + str(int(count / 5)) + ", cass is not ready"
                 )
                 # message = "Attempting to spin up cass"
                 # message_dict = {"message": message}
@@ -130,7 +131,7 @@ def start_cass(workflow_json, response_list):
         )
         message = "Component cass of your workflow has been deployed"
         resp = requests.Response()
-        resp.status_code = 200
+        resp.status_code = 201
     else:
         logging.info(
             "FAILURE: cass could not be debloyed "
@@ -143,7 +144,9 @@ def start_cass(workflow_json, response_list):
     # send update to the restaurant owner
     message_dict = {"message": message}
     requests.post(origin_url, json=json.dumps(message_dict))
+    thread_lock.acquire(blocking=True)
     response_list.append(resp)
+    thread_lock.release()
 
 
 def start_components(component, storeId, response_list):
@@ -175,14 +178,13 @@ def start_components(component, storeId, response_list):
             requests.get(service_url+"/health")
         except Exception:
             if count < 15:
-                if count % 5 == 0:
-                    logging.info(
-                        "Attempt " + str(count / 5) + ", " + component +
-                        " is not ready"
-                    )
-                    message = "Attempting to spin up " + component
-                    message_dict = {"message": message}
-                    requests.post(origin_url, json=json.dumps(message_dict))
+                logging.info(
+                    "Attempt " + str(int(count / 5)) + ", " + component +
+                    " is not ready"
+                )
+                message = "Attempting to spin up " + component
+                message_dict = {"message": message}
+                requests.post(origin_url, json=json.dumps(message_dict))
                 sleep(5)
                 count += 5
             else:
@@ -201,7 +203,9 @@ def start_components(component, storeId, response_list):
         requests.post(origin_url, json=json.dumps(message_dict))
         resp = requests.Response()
         resp.status_code = 408
+        thread_lock.acquire(blocking=True)
         response_list.append(resp)
+        thread_lock.release()
         return
 
     logging.info(
@@ -212,56 +216,57 @@ def start_components(component, storeId, response_list):
     message_dict = {"message": message}
     requests.post(origin_url, json=json.dumps(message_dict))
 
-    # # send workflow_request to component
-    # logging.debug("{:*^60}".format(
-    #     " sending " + component+" workflow specification for " + storeId +" "
-    # ))
-    # comp_response = requests.post(
-    #     service_url + "/workflow-request/" + storeId,
-    #     json=json.dumps(workflows[storeId])
-    # )
-    # logging.debug("{:*^60}".format(
-    #     " recieved response from " + component +
-    #     " for workflow specification " + storeId + " "
-    # ))
-    # thread_lock.acquire(blocking=True)
-    # response_list.append(comp_response)
-    # thread_lock.release()
+    # send workflow_request to component
+    logging.debug(
+        " sending " + component +
+        " workflow specification"
+    )
+    comp_response = requests.post(
+        service_url + "/workflow-request/" + storeId,
+        json=json.dumps(workflows[storeId])
+    )
+    logging.debug(
+        " recieved response from " + component +
+        " for workflow specification"
+    )
+    thread_lock.acquire(blocking=True)
+    response_list.append(comp_response)
+    thread_lock.release()
 
 
 def stop_components(component, storeId, response_list):
-    # service_url = "http://" + component + ":" + str(portDict[component])
+    service_url = "http://" + component + ":" + str(portDict[component])
 
     # check if service exists
     service_filter = client.services.list(filters={'name': component})
 
     if len(service_filter) == 0:  # if service failed to deploy
-        return
+        return  # don't send teardown
 
     logging.info(
         "sent teardown request to " + component
     )
-    # comp_response = requests.delete(
-    #     service_url + "/workflow-request",
-    #     json=json.dumps({"storeId": storeId})
-    # )
+    comp_response = requests.delete(
+        service_url + "/workflow-request",
+        json=json.dumps({"storeId": storeId})
+    )
     logging.info(
         "recieved response from " + component
     )
-    # thread_lock.acquire(blocking=True)
-    # response_list.append(comp_response)
-    # thread_lock.release()
+    thread_lock.acquire(blocking=True)
+    response_list.append(comp_response)
+    thread_lock.release()
 
 
 def teardown(storeId):
+
+    logging.info("Tearing down workflow")
     # get the list of components for the workflow
     component_list = workflows[storeId]["component-list"].copy()
 
     # if cass exists, remove it from the list
-    try:
+    if "cass" in component_list:
         component_list.remove("cass")
-    except ValueError:
-        pass
 
     thread_list = []
     response_list = []
@@ -296,17 +301,25 @@ def setup_workflow(storeId):
 
     # if invalid workflow request send back a 400 response
     if not valid:
+        logging.info("workflow-request ill formatted")
+        logging.info("{:*^74}".format(" Request FAILED "))
         return Response(
             status=400,
             response="workflow-request ill formatted\n" + mess
         )
+    # unsuported specifications
     if data["method"] != "persistent":
+        logging.info("Unsupported specifications")
+        logging.info("{:*^74}".format(" Request FAILED "))
         return Response(
             status=422,
             response="Sorry, edge deployment method is not yet supported!\n" +
                      "Entity could not be processed"
         )
+    # conflict
     if storeId in workflows:
+        logging.info("workflow already exists")
+        logging.info("{:*^74}".format(" Request FAILED "))
         return Response(
             status=409,
             response="Oops! A workflow already exists for this client!\n" +
@@ -323,14 +336,11 @@ def setup_workflow(storeId):
     response_list = []
 
     # check if the workflow request specifies cass
-    has_cass = True
-    try:
-        component_list.remove("cass")
-    except ValueError:
-        has_cass = False
-
-    # startup cass first and foremost
+    has_cass = "cass" in component_list
     if has_cass:
+        # remove cass from the component-list
+        component_list.remove("cass")
+        # startup cass first and foremost
         start_cass(data, response_list)
 
     # start up the rest of the components
@@ -349,16 +359,18 @@ def setup_workflow(storeId):
     delploy_successful = True
 
     for resp in response_list:
-        if resp.status_code != 200:
+        if resp.status_code != 201:
             delploy_successful = False
             break
 
     if delploy_successful:
+        logging.info("{:*^74}".format(" Request SUCCEEDED "))
         return Response(
             status=201
         )
     else:
         teardown(storeId)
+        logging.info("{:*^74}".format(" Request FAILED "))
         return Response(
             status=403,
             response="Workflow deployment failed.\n" +
@@ -374,6 +386,8 @@ def teardown_workflow(storeId):
         + storeId + " "
     ))
     if not (storeId in workflows):
+        logging.info("Nothing to teardown")
+        logging.info("{:*^74}".format(" Request FAILED "))
         return Response(
             status=404,
             response="Workflow doesn't exist. Nothing to teardown"
@@ -381,6 +395,7 @@ def teardown_workflow(storeId):
 
     teardown(storeId)
 
+    logging.info("{:*^74}".format(" Request SUCCEEDED "))
     return Response(status=204)
 
 
@@ -392,11 +407,14 @@ def retrieve_workflow(storeId):
         + storeId + " "
     ))
     if not (storeId in workflows):
+        logging.info("Nothing to retrieve")
+        logging.info("{:*^74}".format(" Request FAILED "))
         return Response(
             status=404,
             response="Workflow doesn't exist. Nothing to retrieve"
         )
     else:
+        logging.info("{:*^74}".format(" Request SUCCEEDED "))
         return Response(
             status=200,
             response=json.dumps(workflows[storeId])
@@ -409,6 +427,8 @@ def retrieve_workflows():
     logging.info("{:*^74}".format(
         " GET /workflow-requests "
     ))
+
+    logging.info("{:*^74}".format(" Request SUCCEEDED "))
     return Response(
         status=200,
         response=json.dumps(workflows)
@@ -421,4 +441,5 @@ def health_check():
     logging.info("{:*^74}".format(
         " GET /health "
     ))
+    logging.info("{:*^74}".format(" Request SUCCEEDED "))
     return Response(status=200, response="healthy\n")
