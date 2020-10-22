@@ -145,6 +145,7 @@ def start_cass(workflow_json, response_list):
     message_dict = {"message": message}
     requests.post(origin_url, json=json.dumps(message_dict))
     thread_lock.acquire(blocking=True)
+    logging.info("NOTICE: response is" + str(resp.status_code))
     response_list.append(resp)
     thread_lock.release()
 
@@ -217,16 +218,16 @@ def start_components(component, storeId, response_list):
     requests.post(origin_url, json=json.dumps(message_dict))
 
     # send workflow_request to component
-    logging.debug(
+    logging.info(
         " sending " + component +
         " workflow specification"
     )
-    comp_response = requests.post(
-        service_url + "/workflow-request/" + storeId,
+    comp_response = requests.put(
+        service_url + "/workflow-requests/" + storeId,
         json=json.dumps(workflows[storeId])
     )
-    logging.debug(
-        " recieved response from " + component +
+    logging.info(
+        " recieved response "+str(comp_response.status_code) + " " + comp_response.text +" from " + component +
         " for workflow specification"
     )
     thread_lock.acquire(blocking=True)
@@ -247,8 +248,7 @@ def stop_components(component, storeId, response_list):
         "sent teardown request to " + component
     )
     comp_response = requests.delete(
-        service_url + "/workflow-request",
-        json=json.dumps({"storeId": storeId})
+        service_url + "/workflow-requests/" + storeId,
     )
     logging.info(
         "recieved response from " + component
