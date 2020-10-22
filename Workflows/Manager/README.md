@@ -97,6 +97,36 @@ requires a `workflow-request` json object.
 |200| OK | returns the `workflow-request`|
 |404| Not Found| the specified `workflow-request` does not exist and could not be retrieved|
 
+### `PUT /workflow-update/<storeId>`
+
+#### Parameters
+
+| parameter | type | required | description |
+|-------|------|----|---|
+|storeId | string| true| the id of the store issuing the workflow update|
+
+#### Body
+
+requires a `workflow-request` json object. 
+
+`workflow-request`
+| field | type | options | required | description |
+|-------|------|---------|----|---|
+| method | enum | persistent, edge | true | the workflow deployment method |
+| component-list| enum array| order-verifier, cass, delivery-assigner, auto-restocker, restocker | true | the components the workflow is requesting|
+| origin | string - format ip | N/A| true | the ip of the host issuing the request|
+
+#### Responses
+
+| status code | status | meaning|
+|---|---|---|
+|200|OK| workflow successfully updated|
+|400|Bad Request| indicates the workflow-request was ill formatted|
+|403|Forbidden|the desired workflow could not be deployed due to component dependencies|
+|409|Conflict|a workflow does not exists for the specified store, and thus it cannot be updated|
+|422|Unprocessable Entity| json is valid, but contains unsupported specifications, like edge deployment method|
+
+
 ### `GET /workflow-requests`
 
 #### Responses

@@ -149,10 +149,10 @@ def start_cass(workflow_json, response_list):
     thread_lock.release()
 
 
-def start_components(component, storeId, response_list):
+def start_component(component, storeId, data, response_list):
     # check if service exists
     service_filter = client.services.list(filters={'name': component})
-    origin_url = "http://" + workflows[storeId]["origin"] + ":8080/results"
+    origin_url = "http://" + data["origin"] + ":8080/results"
     service_url = "http://" + component + ":" + str(portDict[component])
 
     # if not exists
@@ -204,7 +204,7 @@ def start_components(component, storeId, response_list):
         resp = requests.Response()
         resp.status_code = 408
         thread_lock.acquire(blocking=True)
-        response_list.append(resp)
+        response_list.append(component)
         thread_lock.release()
         return
 
@@ -223,18 +223,43 @@ def start_components(component, storeId, response_list):
     )
     comp_response = requests.put(
         service_url + "/workflow-requests/" + storeId,
-        json=json.dumps(workflows[storeId])
+        json=json.dumps(data)
     )
     logging.info(
-        "recieved response "+str(comp_response.status_code) + " from " +
-        component + " for workflow specification"
+        "recieved response "+str(comp_response.status_code) + " " +
+        comp_response.text + " from " + component
     )
-    thread_lock.acquire(blocking=True)
-    response_list.append(comp_response)
-    thread_lock.release()
+
+    if comp_response.status_code != 201:
+        thread_lock.acquire(blocking=True)
+        response_list.append(component)
+        thread_lock.release()
 
 
-def stop_components(component, storeId, response_list):
+def update_component(component, storeId, data, response_list):
+    service_url = "http://" + component + ":" + str(portDict[component])
+
+    # send workflow_request to component
+    logging.info(
+        "sending " + component +
+        " workflow update"
+    )
+    comp_response = requests.put(
+        service_url + "/workflow-update/" + storeId,
+        json=json.dumps(data)
+    )
+    logging.info(
+        "recieved response " + str(comp_response.status_code) +
+        " " + comp_response.text + " from " + component
+    )
+
+    if comp_response.status_code != 200:
+        thread_lock.acquire(blocking=True)
+        response_list.append(component)
+        thread_lock.release()
+
+
+def stop_component(component, storeId, response_list):
     service_url = "http://" + component + ":" + str(portDict[component])
 
     # check if service exists
@@ -251,41 +276,11 @@ def stop_components(component, storeId, response_list):
     )
     logging.info(
         "recieved response " + str(comp_response.status_code) +
-        " from " + component
+        + comp_response.text + " from " + component
     )
     thread_lock.acquire(blocking=True)
     response_list.append(comp_response)
     thread_lock.release()
-
-
-def teardown(storeId):
-
-    logging.info("Tearing down workflow")
-    # get the list of components for the workflow
-    component_list = workflows[storeId]["component-list"].copy()
-
-    # if cass exists, remove it from the list
-    if "cass" in component_list:
-        component_list.remove("cass")
-
-    thread_list = []
-    response_list = []
-
-    # remove the workflow from all components
-    for comp in component_list:
-        x = threading.Thread(
-            target=stop_components,
-            args=(comp, storeId, response_list)
-        )
-        x.start()
-        thread_list.append(x)
-
-    # wait for all the threads to terminate
-    for x in thread_list:
-        x.join()
-
-    # delete the given workflow from the dictionary
-    del workflows[storeId]
 
 
 @app.route("/workflow-requests/<storeId>", methods=["PUT"])
@@ -331,7 +326,24 @@ def setup_workflow(storeId):
 
     # get the list of components for the workflow
     component_list = data["component-list"].copy()
+    failed_list = start_up(storeId, data, component_list)
 
+    if failed_list.count == 0:
+        logging.info("{:*^74}".format(" Request SUCCEEDED "))
+        return Response(
+            status=201
+        )
+    else:
+        teardown(storeId, component_list)
+        logging.info("{:*^74}".format(" Request FAILED "))
+        return Response(
+            status=403,
+            response="Workflow deployment failed.\n" +
+                     "Invalid workflow specification"
+        )
+
+
+def start_up(storeId, data, component_list):
     thread_list = []
     response_list = []
 
@@ -346,8 +358,8 @@ def setup_workflow(storeId):
     # start up the rest of the components
     for comp in component_list:
         x = threading.Thread(
-            target=start_components,
-            args=(comp, storeId, response_list)
+            target=start_component,
+            args=(comp, storeId, data, response_list)
         )
         x.start()
         thread_list.append(x)
@@ -356,26 +368,121 @@ def setup_workflow(storeId):
     for x in thread_list:
         x.join()
 
-    delploy_successful = True
+    return response_list
 
-    for resp in response_list:
-        if resp.status_code != 201:
-            delploy_successful = False
-            break
 
-    if delploy_successful:
+@app.route("/workflow-update", methods="PUT")
+def update_workflow(storeId):
+    logging.info("{:*^74}".format(
+        " PUT /workflow-update/"
+        + storeId + " "
+    ))
+    # get the data from the request
+    data = json.loads(request.get_json())
+    # verify the request is valid
+    valid, mess = verify_workflow(data)
+
+    # if invalid workflow request send back a 400 response
+    if not valid:
+        logging.info("workflow-request ill formatted")
+        logging.info("{:*^74}".format(" Request FAILED "))
+        return Response(
+            status=400,
+            response="workflow-request ill formatted\n" + mess
+        )
+    # unsuported specifications
+    if data["method"] != "persistent":
+        logging.info("Unsupported specifications")
+        logging.info("{:*^74}".format(" Request FAILED "))
+        return Response(
+            status=422,
+            response="Sorry, edge deployment method is not yet supported!\n" +
+                     "Entity could not be processed"
+        )
+    if not (storeId in workflows):
+        logging.info("workflow does not exists! Nothing to update")
+        logging.info("{:*^74}".format(" Request FAILED "))
+        return Response(
+            status=409,
+            response="Oops! A workflow does not exists for this client!\n" +
+                     "Nothing to update!"
+        )
+
+    list_teardown = list(set(workflows[storeId]["component-list"]) -
+                         set(data["component-list"]))
+    list_start = list(set(data["component-list"]) -
+                      set(workflows[storeId]["component-list"]))
+    list_update = list(set(data["component-list"]).intersection(
+        set(workflows[storeId]["component-list"])
+    ))
+
+    success = True
+
+    logging.info("starting components not in previous workflow")
+    failed_list = start_up(storeId, data, list_start)
+
+    if failed_list.count != 0:
+        logging.info("failed to start new components")
+        teardown(storeId, list_start)
+        success = False
+    else:
+        logging.info("updating components in previous workflow")
+        failed_list = update(storeId, data, list_update)
+
+        if failed_list.count != 0:
+            logging.info("failed to update existing components")
+            # get the comps that succeeded
+            undo_update_list = list(set(list_update) - set(failed_list))
+            # change their workflows back
+            update(storeId, workflows[storeId], undo_update_list)
+            # tear down the list_start components
+            teardown(storeId, list_start)
+            success = False
+        else:
+            logging.info("removing components no longer needed")
+            teardown(storeId, list_teardown)
+
+    if success:
         logging.info("{:*^74}".format(" Request SUCCEEDED "))
         return Response(
-            status=201
+            status=200
         )
     else:
-        teardown(storeId)
         logging.info("{:*^74}".format(" Request FAILED "))
         return Response(
             status=403,
-            response="Workflow deployment failed.\n" +
-                     "Invalid workflow specification"
+            response="Workflow update failed.\n" +
+                     "Invalid workflow specification\n" +
+                     "workflow unchanged"
         )
+
+
+def update(storeId, data, component_list):
+    thread_list = []
+    response_list = []
+
+    # check if the workflow request specifies cass
+    has_cass = "cass" in component_list
+    if has_cass:
+        # remove cass from the component-list
+        component_list.remove("cass")
+        # startup cass first and foremost
+        start_cass(data, response_list)
+
+    # start up the rest of the components
+    for comp in component_list:
+        x = threading.Thread(
+            target=update_component,
+            args=(comp, storeId, data, response_list)
+        )
+        x.start()
+        thread_list.append(x)
+
+    # wait for all the threads to terminate
+    for x in thread_list:
+        x.join()
+
+    return response_list
 
 
 # if the recource exists, remove it
@@ -393,10 +500,40 @@ def teardown_workflow(storeId):
             response="Workflow doesn't exist. Nothing to teardown"
         )
 
-    teardown(storeId)
+    # get the list of components for the workflow
+    component_list = workflows[storeId]["component-list"].copy()
+
+    teardown(storeId, component_list)
+
+    # delete the given workflow from the dictionary
+    del workflows[storeId]
 
     logging.info("{:*^74}".format(" Request SUCCEEDED "))
     return Response(status=204)
+
+
+def teardown(storeId, component_list):
+    logging.info("Tearing down workflow")
+
+    # if cass exists, remove it from the list
+    if "cass" in component_list:
+        component_list.remove("cass")
+
+    thread_list = []
+    response_list = []
+
+    # remove the workflow from all components
+    for comp in component_list:
+        x = threading.Thread(
+            target=stop_component,
+            args=(comp, storeId, response_list)
+        )
+        x.start()
+        thread_list.append(x)
+
+    # wait for all the threads to terminate
+    for x in thread_list:
+        x.join()
 
 
 # retrieve the specified resource, if it exists
