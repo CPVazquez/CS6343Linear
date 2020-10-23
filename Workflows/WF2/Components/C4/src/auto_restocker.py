@@ -1,6 +1,7 @@
 import logging
 import uuid
 import json
+from threading import Timer
 
 from cassandra.query import dict_factory
 from cassandra.cluster import Cluster
@@ -24,6 +25,8 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
 
 logger = logging.getLogger(__name__)
+
+workflows = {}
 
 #Connecting to Cassandra Cluster    
 cluster = Cluster(['cass'])
@@ -55,7 +58,7 @@ def _update_stock(store_id, item_name, quantity):
 
 
 def _predict_item_stocks(store_id, item_name, history, days):
-	logger.info("prediction stocks *****")
+	logger.info("***predicting stocks*****")
 	today = date.today()
 	rows = session.execute(get_item_stock_query, (store_id, item_name, today))
 	df = rows._current_rows
@@ -70,8 +73,18 @@ def _predict_item_stocks(store_id, item_name, history, days):
 	logger.info('Auto Restock - Precdiction:: Date: {}, Quantity: {}'.format(forecast['ds'],sum(prediction)))
 	return prediction
 
+def periodic_auto_restock():
+	Timer(420.0, periodic_auto_restocker).start()
+	items = ['Dough', 'Cheese']
+        for item in items:
+		for store_id in workflows:
+			prediction, date = auto_restock(store_id, item, 7, 1)
+                        requests.put('http://' + worflows[store_id]['origin'] +
+				'/auto-restock', json=json.dumps({"item": item,
+					"prediction" : prediction, 'date': date)
 
-def auto_restock(store_id, item_name, history, days):
+
+def auto_restock(store_id, item_name, history):
 	'''Forecasts the demand for a item in a store using previous sale data and automatically restocks.
 
 		Parameters:
@@ -84,25 +97,74 @@ def auto_restock(store_id, item_name, history, days):
 	'''
 	logger.info("Starting Auto-Restock Store:{}, Item:{}, History:{}, Days:{}\n".format(store_id, item_name, history, days))
 	
-	stock = _get_current_stock(store_id, item_name)
-	
-	#return Response(status=400, response="Invalid store id or item id")
-	
-	predictions = _predict_item_stocks(store_id, item_name, history, days)
-	
-	#return Response(status=500, response="Facebook Prophet error")
+	predictions, date = _predict_item_stocks(store_id, item_name, history)
+		
+	return predictions, date
 
-	total_stock = sum(predictions)
-	if stock < total_stock:
-		_update_stock(store_id, item_name, total_stock)
-		logger.info('Updated stock of Item: {} in Store: {} to {}'.format(item_name, store_id, total_stock))
+
+@app.route('/workflow-request/<storeId>', methods=['PUT'])
+def register_workflow(storeId):
+	'''REST API for registering workflow to auto restocker service'''
+    
+	data = request.get_json()
+
+	if storeId in workflows:
+		return Response(
+		status=409,
+		response="Oops! A workflow already exists for this client!\n" +
+			"Please teardown existing workflow before deploying " +
+			"a new one"
+	)
+    
+	workflows[storeID] = data
+
+	return Response(
+		status=201,
+		response='Valid Workflow registered to auto-restocker component')
+
+    
+@app.route('/workflow-request/<storeId>', methods=['DELETE'])
+def teardown_workflow(storeId);
+	'''REST API for tearing down workflow for auto-restocker service'''
+
+	if storeId not in workflows:
+		return Response(
+			status=404, 
+			response="Workflow does not exist for auto-restocker!\n" +
+				"Nothing to tear down."
+		)
+	del workflows[storeId]
+    
+	return Response(
+		status=204,
+		response="Workflow removed from auto-restocker!"
+	)
+
+    
+@app.route("/workflow-requests/<storeId>", methods=["GET"])
+def retrieve_workflow(storeId):
+	if not (storeId in workflows):
+		return Response(
+			status=404,
+			response="Workflow doesn't exist. Nothing to retrieve"
+		)
 	else:
-		logger.info('Stock Surplus of {} available for Item: {} in Store: {}'.format(stock,
-			item_name, store_id))
-	return Response(status=200, response="Item auto restocked")
+		return Response(
+			status=200,
+			response=json.dumps(workflows[storeId])
+		)
+
+
+@app.route("/workflow-requests", methods=["GET"])
+def retrieve_workflows():
+	return Response(
+		status=200,
+		response=json.dumps(workflows)
+	)
+
 
 @app.route('/auto-restock', methods=['POST'])
-def restock():
+def restock():'''REST API for auto-restocking an item in a store.'''
 	'''REST API for auto-restocking an item in a store.'''
 
 	data = request.get_json()
@@ -119,8 +181,4 @@ def health_check():
 
 	return Response(status=200,response="healthy")
 
-def _test():
-	store_id = uuid.UUID('7098813e-4624-462a-81a1-7e0e4e67631d')
-	item_name = "Dough"
-	auto_restock(store_id, item_name, 5, 1)
 		
