@@ -329,9 +329,6 @@ def setup_workflow(storeId):
     component_list = data["component-list"].copy()
     failed_list = start_up(storeId, data, component_list)
 
-    if len(failed_list) != 0:
-        logging.info("failed_list: " + failed_list[0])
-
     if len(failed_list) == 0:
         logging.info("{:*^74}".format(" Request SUCCEEDED "))
         return Response(
@@ -426,7 +423,7 @@ def update_workflow(storeId):
     logging.info("starting components not in previous workflow")
     failed_list = start_up(storeId, data, list_start)
 
-    if failed_list.count != 0:
+    if len(failed_list)!= 0:
         logging.info("failed to start new components")
         teardown(storeId, list_start)
         success = False
@@ -434,7 +431,7 @@ def update_workflow(storeId):
         logging.info("updating components in previous workflow")
         failed_list = update(storeId, data, list_update)
 
-        if failed_list.count != 0:
+        if len(failed_list) != 0:
             logging.info("failed to update existing components")
             # get the comps that succeeded
             undo_update_list = list(set(list_update) - set(failed_list))
