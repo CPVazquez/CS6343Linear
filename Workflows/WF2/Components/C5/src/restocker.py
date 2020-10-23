@@ -67,7 +67,7 @@ def verify_restock_order(data):
     try:
         jsonschema.validate(instance=data, schema=restock_schema)
     except Exception as inst:
-        logging.info("Restock request rejected, failed validation:\n" + json.dumps(data, indent=4))
+        logging.info("restock-order rejected, failed validation:\n" + json.dumps(data, indent=4))
         valid = False
         mess = inst.args[0]
     return valid, mess
@@ -81,25 +81,23 @@ def restocker():
     
     store_id = restock_dict["storeID"]
     if store_id not in workflows:
-        logging.info("Restock request is valid, but Workflow does not exist: " + store_id)
-        return Response(status=422, response="Restock request is valid, but Workflow does not exist.\n")
+        logging.info("restock-order is valid, but workflow does not exist: " + store_id)
+        return Response(status=422, response="restock-order is valid, but workflow does not exist.\n")
 
-    if restock_dict != None :
+    if restock_dict != None:
         valid, mess = verify_restock_order(restock_dict)
-
-        if valid :
+        if valid:
             try: 
                 storeID = uuid.UUID(restock_dict["storeID"])
                 for item_dict in restock_dict["restock-list"]:
-                    session.execute(add_stock_prepared, (item_dict["quantity"],
-                        storeID, item_dict["item-name"]))
+                    session.execute(add_stock_prepared, (item_dict["quantity"], storeID, item_dict["item-name"]))
                 response = Response(status=200, response="Filled out the following restock order:\n" + json.dumps(restock_dict))
             except ValueError:
-                logging.info("Exception: badly formed hexadecimal UUID\
-                    string")
+                logging.info("Exception: badly formed hexadecimal UUID string")
                 response = Response(status=400, response="Restocking order ill formated.\n'storeID' is not in valid UUID format\n")
         else:
-            response = Response(status=400, response="Restocking order ill formated.\n"+mess)
+            logging.info("restock-order request ill formatted")
+            response = Response(status=400, response="restock-order ill formated.\n"+mess)
 
     logging.info(response)
     return response
@@ -133,7 +131,7 @@ def setup_workflow(storeId):
 
     workflows[storeId] = data
 
-    logging.info("Workflow Deployed: Restocker started for Store " + storeId)
+    logging.info("Restocker started for Store " + storeId)
     logging.info(json.dumps(workflows[storeId], indent=4))
 
     return Response(status=201, response="Restocker deployed for {}\n".format(storeId))    
@@ -147,16 +145,16 @@ def update_workflow(storeId):
     valid, mess = verify_workflow(data)
 
     if not valid:
-        logging.info("Workflow request ill formatted")
-        return Response(status=400, response="Workflow request ill formatted\n" + mess)
+        logging.info("workflow-request ill formatted")
+        return Response(status=400, response="workflow-request ill formatted\n" + mess)
 
     if not ("cass" in data["component-list"]):
-        logging.info("Rejecting workflow update, cassandra is a required workflow component")
-        return Response(status=422, response="Rejecting workflow update, cassandra is a required workflow component\n")
+        logging.info("Update rejected, cass is a required workflow component")
+        return Response(status=422, response="Update rejected, cass is a required workflow component\n")
 
     workflows[storeId] = data
 
-    logging.info("Workflow Updated: Restocker updated for Store " + storeId)
+    logging.info("Restocker updated for Store " + storeId)
     logging.info(json.dumps(workflows[storeId], indent=4))
 
     return Response(status=200, response="Restocker updated for {}\n".format(storeId))
@@ -168,7 +166,7 @@ def teardown_workflow(storeId):
         return Response(status=404, response="Workflow doesn't exist. Nothing to teardown.\n")
     else:
         del workflows[storeId]
-        logging.info("Workflow Torn Down: Restocker stopped for {}\n".format(storeId))
+        logging.info("Restocker stopped for {}\n".format(storeId))
         return Response(status=204)
 
 

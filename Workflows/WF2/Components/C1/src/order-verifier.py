@@ -222,12 +222,12 @@ def check_stock(order_dict):
 def order_manager(order_dict):
     store_id = order_dict["storeId"]
     if not (store_id in workflows):
-        logging.info("Request is valid, but workflow {} does not exist".format(store_id))
+        logging.info("Request is valid, but workflow does not exist.")
         return Response(status=422, response="Order request is valid, but Workflow does not exist.")
 
     order_dict["orderId"] = str(uuid.uuid4())  # Assign order_id to order_dict
     order_id = order_dict["orderId"]
-    logging.info("Order request received and assigned ID " + order_id)
+    logging.info("Order assigned ID " + order_id)
 
     # Check stock to see if order can be placed. If not, restock and check again
     while True:
@@ -236,13 +236,12 @@ def order_manager(order_dict):
             if "restocker" in workflows[store_id]["component-list"]:    
                 restock_dict = {"storeID": store_id, "restock-list": restock_list}
                 response = requests.post("http://restocker:5000/restock", json=json.dumps(restock_dict))
-                logging.info("Request Restock - {} {}".format(str(response.status_code), response.text))
+                logging.info("Restocker - {}, {}".format(response.status_code, response.text))
                 if response.status_code != 200:
                     # Restock unsuccesful, must reject order request
-                    logging.info("Request {} rejected, restock failed for {}".format(order_id, store_id))
-                    return Response(status=424, response="{} {}".format(response.status_code, response.text))
+                    return Response(status=424, response="{}, {}".format(response.status_code, response.text))
             else:
-                logging.info("Request {} rejected, insufficient stock at {}".format(order_id, store_id))
+                logging.info("{} rejected, insufficient stock at {}".format(order_id, store_id))
                 return Response(status=404, response="Insufficient stock at {}\n".format(store_id))
         else:
             break
@@ -254,12 +253,12 @@ def order_manager(order_dict):
     # TODO: Send pizza order to auto-restocker
     if "auto-restocker" in workflows[store_id]["component-list"]:
         response = requests.post("http://restocker:4000/order", json=json.dumps(order_dict))
-        logging.info("Auto-Restocker - {} {}".format(str(response.status_code), response.text))
+        logging.info("Auto-Restocker - {} {}".format(response.status_code, response.text))
 
     # TODO: Assign delivery entity
     if "delivery-assigner" in workflows[store_id]["component-list"]:
         response = requests.post("http://delivery-assigner:3000/assign-entity", json=json.dumps(order_dict))
-        logging.info("Delivery Assigner - {} {}".format(str(response.status_code), response.text))
+        logging.info("Delivery Assigner - {} {}".format(response.status_code, response.text))
         if response.status_code != 200:
             # Could not assign delivery entity, but order has been created
             logging.info("Order {} created, but failed to assign delivery entity".format(order_id))
@@ -287,8 +286,8 @@ def order_funct():
     data = json.loads(request.get_json())
     valid, mess = verify_order(data)
     if not valid:
-        logging.info("Pizza order request ill formatted")
-        return Response(status=400, response="Pizza order request ill formatted\n" + mess)
+        logging.info("pizza-order request ill formatted")
+        return Response(status=400, response="pizza-order request ill formatted\n" + mess)
     return order_manager(data)
 
 
@@ -313,21 +312,20 @@ def setup_workflow(storeId):
     valid, mess = verify_workflow(data)
 
     if not valid:
-        logging.info("Workflow request ill formatted")
-        return Response(status=400, response="Workflow request ill formatted\n" + mess)
+        logging.info("workflow-request ill formatted")
+        return Response(status=400, response="workflow-request ill formatted\n" + mess)
 
     if storeId in workflows:
         logging.info("Workflow " + storeId + " already exists")
         return Response(status=409, response="Workflow " + storeId + " already exists\n")
     
     if not ("cass" in data["component-list"]):
-        logging.info("Rejecting workflow-request, cassandra is a required workflow component")
-        return Response(status=422, response="Rejecting workflow-request, cassandra is a required workflow component\n")
+        logging.info("workflow-request rejected, cass is a required workflow component")
+        return Response(status=422, response="workflow-request rejected, cass is a required workflow component\n")
 
     workflows[storeId] = data
 
-    logging.info("Workflow Deployed: Order Verifier started for Store " + storeId)
-    logging.info(json.dumps(workflows[storeId], indent=4))
+    logging.info("Workflow started for {}\n".format(storeId))
     
     return Response(status=201, response="Order Verifier deployed for {}\n".format(storeId))    
 
@@ -344,13 +342,12 @@ def update_workflow(storeId):
         return Response(status=400, response="Workflow request ill formatted\n" + mess)
 
     if not ("cass" in data["component-list"]):
-        logging.info("Rejecting workflow update, cassandra is a required workflow component")
-        return Response(status=422, response="Rejecting workflow update, cassandra is a required workflow component\n")
+        logging.info("workflow-request rejected, cass is a required workflow component")
+        return Response(status=422, response="workflow-request rejected, cass is a required workflow component\n")
 
     workflows[storeId] = data
 
-    logging.info("Workflow Updated: Order Verifier updated for Store " + storeId)
-    logging.info(json.dumps(workflows[storeId], indent=4))
+    logging.info("Workflow updated for {}\n".format(storeId))
 
     return Response(status=200, response="Order Verifier updated for {}\n".format(storeId))
 
