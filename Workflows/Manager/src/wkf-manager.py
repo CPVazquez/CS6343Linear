@@ -144,9 +144,10 @@ def start_cass(workflow_json, response_list):
     # send update to the restaurant owner
     message_dict = {"message": message}
     requests.post(origin_url, json=json.dumps(message_dict))
-    thread_lock.acquire(blocking=True)
-    response_list.append(resp)
-    thread_lock.release()
+    if resp.status_code != 201:
+        thread_lock.acquire(blocking=True)
+        response_list.append("cass")
+        thread_lock.release()
 
 
 def start_component(component, storeId, data, response_list):
@@ -276,7 +277,7 @@ def stop_component(component, storeId, response_list):
     )
     logging.info(
         "recieved response " + str(comp_response.status_code) +
-        + comp_response.text + " from " + component
+        comp_response.text + " from " + component
     )
     thread_lock.acquire(blocking=True)
     response_list.append(comp_response)
@@ -328,13 +329,17 @@ def setup_workflow(storeId):
     component_list = data["component-list"].copy()
     failed_list = start_up(storeId, data, component_list)
 
-    if failed_list.count == 0:
+    if len(failed_list) != 0:
+        logging.info("failed_list: " + failed_list[0])
+
+    if len(failed_list) == 0:
         logging.info("{:*^74}".format(" Request SUCCEEDED "))
         return Response(
             status=201
         )
     else:
         teardown(storeId, component_list)
+        del workflows[storeId]
         logging.info("{:*^74}".format(" Request FAILED "))
         return Response(
             status=403,
