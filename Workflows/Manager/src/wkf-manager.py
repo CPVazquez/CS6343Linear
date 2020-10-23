@@ -445,6 +445,7 @@ def update_workflow(storeId):
             teardown(storeId, list_teardown)
 
     if success:
+        workflows[storeId] = data
         logging.info("{:*^74}".format(" Request SUCCEEDED "))
         return Response(
             status=200
