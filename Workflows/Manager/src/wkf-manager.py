@@ -80,6 +80,8 @@ def start_component(component, storeId, data, response_list):
     service_filter = client.services.list(filters={'name': component})
     origin_url = "http://" + data["origin"] + ":8080/results"
 
+    component_service = None
+
     # if not exists
     if len(service_filter) == 0:
         logging.info(component + " doesn't exist")
@@ -132,7 +134,7 @@ def spinup_component(component, origin_url, component_service):
         except Exception:
             if count < 4:
                 logging.info(
-                    "Attempt " + count + ", " + component +
+                    "Attempt " + str(count) + ", " + component +
                     " is not ready"
                 )
                 message = "Attempting to spin up " + component
@@ -169,7 +171,7 @@ def spinup_cass(component, component_service):
         if not healthy:
             if count < 9:  # request has not timed out
                 logging.info(
-                    "Attempt " + count + ", " + component +
+                    "Attempt " + str(count) + ", " + component +
                     " is not ready"
                 )
                 # message = "Attempting to spin up cass"
