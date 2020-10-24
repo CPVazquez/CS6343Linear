@@ -138,7 +138,7 @@ def insert_pizzas(pizza_list):
 
 
 # Insert order info into DB
-def create_order(order_dict, req_item_dict):
+def create_order(order_dict):
     order_uuid = uuid.UUID(order_dict["orderId"])
     store_uuid = uuid.UUID(order_dict["storeId"])
     pay_uuid = uuid.UUID(order_dict["paymentToken"])
@@ -248,7 +248,7 @@ def order_manager(order_dict):
 
     # Decrement stock and create the order
     decrement_stock(uuid.UUID(store_id), in_stock_dict, req_item_dict)
-    create_order(order_dict, req_item_dict)
+    create_order(order_dict)
 
     # TODO: Send pizza order to auto-restocker
     if "auto-restocker" in workflows[store_id]["component-list"]:
