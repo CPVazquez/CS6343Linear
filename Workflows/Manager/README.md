@@ -1,10 +1,10 @@
-# Delivery Assigner
+# Workflow Manager
 
 ## Written By
-Daniel Garcia
+Daniel Garcia(left) and Carla Vazquez
 
 ## Description
-This component acts as the central manager for the workflow. It recieves the original requests from outside the system, from clients, and passes the data to the other components in the system. It maintains the inter-operation data flow between the order-verifier, delivery-assigner, and restocker components
+This component acts as the central manager for the workflow. It receives the original requests from outside the system, from clients.
 
 ## Setup
 Machine requirements:
@@ -17,7 +17,8 @@ Package requirements:
 Packages installed on pipenv virtual environment:
 * flask
 * gunicorn
-* cassandra-driver
+* jsonschema
+* requests
 
 ## Commands
 To build the image:
@@ -30,54 +31,117 @@ To update the repository:
 sudo docker login
 docker push trishaire/wkf-manager:tag
 ```
-To create the service type the following command:
+To create the service, type the following command:
 ```
 ./service.sh
 ```
 
 ## Endpoints
 
-### `POST /orders
+### `PUT /workflow-requests/<storeId>`
 
-requires a [`pizza-order`](https://github.com/CPVazquez/CS6343/blob/master/Workflows/WF2/Components/C1/src/pizza-order.schema.json) json object
+#### Parameters
 
-`pizza-order` 
+| parameter | type | required | description |
+|-------|------|----|---|
+|storeId | string| true| the id of the store issuing the workflow request|
 
-| field | type | required | description |
-|-------|------|-----------|--------------|
-| storeId | string - format uuid | true | A base64 ID given to each store to identify it|
-| custName | string | true | The name of the customer, as a single string for both first/last name |
-| paymentToken | string - format uuid | true |The token for the third-party payment service that the customer is paying with|
-| paymentTokenType | string | true |The type of token accepted (paypal, google pay, etc) |
-| custLocation | `location` | true | The location of the customer, in degrees latitude and longitude |
-| pizzaList | `pizza` array | true | The list of pizzas that have been ordered|
+#### Body
 
-`location`
+requires a `workflow-request` json object. 
 
-| field | type | required | description |
-|-------|------|----------|---|
-| lat | number | false | latitude |
-| lon | number | false | longitude |
-
-`pizza`
+`workflow-request`
 | field | type | options | required | description |
 |-------|------|---------|----|---|
-| crustType | enum | Thin, Traditional | false | The type of crust |
-| sauceType | enum | Spicy, Traditional | false | The type of sauce |
-| cheeseAmt | enum | None, Light, Normal, Extra | false | The amount of cheese on the pizza |
-| toppingList | enum array | Pepperoni, Sausage, Beef, Onion, Chicken, Peppers, Olives, Bacon, Pineapple, Mushrooms | false | The list of toppings added at extra cost. Cost verified by server |
+| method | enum | persistent, edge | true | the workflow deployment method |
+| component-list| enum array| order-verifier, cass, delivery-assigner, auto-restocker, restocker | true | the components the workflow is requesting|
+| origin | string - format ip | N/A| true | the ip of the host issuing the request|
 
-Will return a `200 OK` if the pizza order has been accepted.
+#### Responses
+
+| status code | status | meaning|
+|---|---|---|
+|201|Created| workflow successfully created|
+|400|Bad Request| indicates the workflow-request was ill formatted|
+|403|Forbidden|the desired workflow could not be deployed due to component dependencies|
+|409|Conflict|a workflow already exists for the specified store, and thus a new one cannot be created|
+|422|Unprocessable Entity| json is valid, but contains unsupported specifications, like edge deployment method|
+
+### `DELETE /workflow-requests/<storeId>`
+
+#### Parameters
+
+| parameter | type | required | description |
+|-------|------|----|---|
+|storeId | string| true| the id of the store whose workflow we want to delete|
+
+#### Responses
+
+| status code | status | meaning|
+|---|---|---|
+|204|No Content| the specified workflow was deleted successfully |
+|404|Not Found| the specified workflow does not exist or has already been deleted
+
+### `GET /workflow-requests/<storeId>`
+
+#### Parameters
+
+| parameter | type | required | description |
+|-------|------|----|---|
+|storeId | string| true| the id of the store whose workflow we want to retrieve|
+
+#### Responses
+
+| status code | status | meaning|
+|---|---|---|
+|200| OK | returns the `workflow-request`|
+|404| Not Found| the specified `workflow-request` does not exist and could not be retrieved|
+
+### `PUT /workflow-update/<storeId>`
+
+#### Parameters
+
+| parameter | type | required | description |
+|-------|------|----|---|
+|storeId | string| true| the id of the store issuing the workflow update|
+
+#### Body
+
+requires a `workflow-request` json object. 
+
+`workflow-request`
+| field | type | options | required | description |
+|-------|------|---------|----|---|
+| method | enum | persistent, edge | true | the workflow deployment method |
+| component-list| enum array| order-verifier, cass, delivery-assigner, auto-restocker, restocker | true | the components the workflow is requesting|
+| origin | string - format ip | N/A| true | the ip of the host issuing the request|
+
+#### Responses
+
+| status code | status | meaning|
+|---|---|---|
+|200|OK| workflow successfully updated|
+|400|Bad Request| indicates the workflow-request was ill formatted|
+|403|Forbidden|the desired workflow could not be deployed due to component dependencies|
+|409|Conflict|a workflow does not exists for the specified store, and thus it cannot be updated|
+|422|Unprocessable Entity| json is valid, but contains unsupported specifications, like edge deployment method|
 
 
-requires a json object with order_id
+### `GET /workflow-requests`
 
-| field | type | required | description |
-|-------|------|----------|---|
-| order_id |string - format uuid| true |the id of the order that we are assigning an entity to|
+#### Responses
+
+| status code | status | meaning|
+|---|---|---|
+|200| OK | returns all the `workflow-request`s on the workflow manager|
 
 ### `GET /health`
+
+#### Responses
+| status code | status | meaning|
+|---|---|---|
+|200| OK | the server is up and running|
+
 returns string `healthy` if the service is healthy
 
 [Main README](https://github.com/CPVazquez/CS6343)
-

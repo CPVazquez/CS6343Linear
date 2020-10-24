@@ -1,10 +1,10 @@
 # Restocker
 
 ## Written By
-Carla Patricia Vazquez
+Carla Vazquez
 
 ## Description
-This component receives restocking orders sent to the workflow manager. The restock orders follow the format of the restock-order.shema.json file in the schema folder. The component also scans the database every 5 minutes to check for items that might need to be restocked.
+This component receives restock-orders. The restock-orders follow the format of the restock-order.shema.json file in the schema folder. The component also scans the database every 5 minutes to check for items that might need to be restocked.
 
 ## Setup
 Machine requirements:
@@ -49,19 +49,21 @@ To run locally make sure you have environment variables `CASS_DB=0.0.0.0` and `F
 
 ### `POST /restock`
 
+#### Body
+
 requires a [`restock-order`](https://github.com/CPVazquez/CS6343/blob/master/Workflows/WF2/Components/C5/src/restock-order.schema.json) json object
  
 
 `restock-order` 
 
 | field | type | required | description |
-|-------|------|-----------|---|
-| storeID|string - format uuid|true|the store that needs restocking|
-|restock-list| `restock-item` array|true| A list of items to restock and their quantities|
+|-------|------|----------|-------------|
+| storeID | string - format uuid | true | The store that needs the restocking order filled |
+| restock-list | [`restock-item`](#restock-item) array | true | A list of items to restock and their quantities|
 
-`restock-item` 
-| field | type | required| description |
-|-------|------|----------|---|
+<a name="restock-item">`restock-item`</a>
+| field | type | required | description |
+|-------|------|----------|-------------|
 | item-name | string | true |the item that needs restocking|
 | quantity | integer | true |the number of the item we want restocked |
 
