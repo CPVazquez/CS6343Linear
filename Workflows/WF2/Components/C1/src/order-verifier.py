@@ -223,7 +223,7 @@ def order_manager(order_dict):
     store_id = order_dict["storeId"]
     if not (store_id in workflows):
         logging.info("Request is valid, but workflow does not exist.")
-        return Response(status=422, response="Order request is valid, but Workflow does not exist.")
+        return Response(status=422, response="Order request is valid, but workflow does not exist.")
 
     order_dict["orderId"] = str(uuid.uuid4())  # Assign order_id to order_dict
     order_id = order_dict["orderId"]
@@ -253,12 +253,12 @@ def order_manager(order_dict):
     # TODO: Send pizza order to auto-restocker
     if "auto-restocker" in workflows[store_id]["component-list"]:
         response = requests.post("http://restocker:4000/order", json=json.dumps(order_dict))
-        logging.info("Auto-Restocker - {} {}".format(response.status_code, response.text))
+        logging.info("Auto-Restocker - {}, {}".format(response.status_code, response.text))
 
     # TODO: Assign delivery entity
     if "delivery-assigner" in workflows[store_id]["component-list"]:
         response = requests.post("http://delivery-assigner:3000/assign-entity", json=json.dumps(order_dict))
-        logging.info("Delivery Assigner - {} {}".format(response.status_code, response.text))
+        logging.info("Delivery Assigner - {}, {}".format(response.status_code, response.text))
         if response.status_code != 200:
             # Could not assign delivery entity, but order has been created
             logging.info("Order {} created, but failed to assign delivery entity".format(order_id))
@@ -338,8 +338,8 @@ def update_workflow(storeId):
     valid, mess = verify_workflow(data)
 
     if not valid:
-        logging.info("Workflow request ill formatted")
-        return Response(status=400, response="Workflow request ill formatted\n" + mess)
+        logging.info("workflow-request ill formatted")
+        return Response(status=400, response="workflow-request ill formatted\n" + mess)
 
     if not ("cass" in data["component-list"]):
         logging.info("workflow-request rejected, cass is a required workflow component")

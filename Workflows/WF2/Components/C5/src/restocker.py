@@ -131,7 +131,7 @@ def setup_workflow(storeId):
 
     workflows[storeId] = data
 
-    logging.info("Restocker started for Store " + storeId)
+    logging.info("Workflow started for Store " + storeId)
     logging.info(json.dumps(workflows[storeId], indent=4))
 
     return Response(status=201, response="Restocker deployed for {}\n".format(storeId))    
@@ -155,7 +155,6 @@ def update_workflow(storeId):
     workflows[storeId] = data
 
     logging.info("Restocker updated for Store " + storeId)
-    logging.info(json.dumps(workflows[storeId], indent=4))
 
     return Response(status=200, response="Restocker updated for {}\n".format(storeId))
 
@@ -175,7 +174,7 @@ def teardown_workflow(storeId):
 def retrieve_workflow(storeId):
     logging.info("GET /workflow-requests/" + storeId)
     if not (storeId in workflows):
-        return Response(status=404, response="Workflow doesn't exist. Nothing to retrieve\n")
+        return Response(status=404, response="Workflow doesn't exist. Nothing to retrieve.\n")
     else:
         return Response(status=200, response=json.dumps(workflows[storeId]))
 

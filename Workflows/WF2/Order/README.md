@@ -14,15 +14,18 @@ Chris Scott
     * Randomly generating customer details, such as name, location coordinates, and payment information
     * Randomly constructs pizza orders from the valid pizza attributes
   * The script prompts the user for the following information:
-    * URL - Dependent on workflow, could be Order Verifier, Delivery Assigner, or Auto-Restocker
     * A pizza store location from the 3 preset locations:
       * 0 for StoreID 7098813e-4624-462a-81a1-7e0e4e67631d
       * 1 for StoreID 5a2bb99f-88d2-4612-ac60-774aea9b8de4
       * 2 for StoreID b18b3932-a4ef-485c-a182-8e67b04c208c
-    * Total number of orders to generate:
+    * Workflow component(s) to receive pizza-order (Order Verifier XOR (Delivery Assigner OR Auto-Restocker))
+    * Number of days to generate orders
       * Min: 1
-      * Max: 10000
-    * Upper limit for the number of pizzas allowed per order:
+      * Max: 365
+    * Number of orders to generate per day:
+      * Min: 1
+      * Max: 1000
+    * Limit on the number of pizzas allowed per order:
       * Min: 1
       * Max: 20
 
