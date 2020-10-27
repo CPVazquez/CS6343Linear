@@ -48,7 +48,22 @@ store_info_query = session.prepare("Select latitude, " +
     "longitude from stores where storeID=?")
 update_order_query = session.prepare("Update orderTable set deliveredBy=?, " + 
     "estimatedDeliveryTime=? where orderID=?")
-insert_order_query = session.prepare
+select_items_query = session.prepare('Select * from items where name=?')
+insert_pizzas_query = session.prepare("Insert into pizzas " + 
+    "(pizzaID, toppings, cost) values (?, ?, ?)")
+insert_customers_query = session.prepare("Insert into customers " +
+    "(customerName, latitude, longitude) values (?, ?, ?)")
+insert_payments_query = session.prepare("Insert into payments " +
+    "(paymentToken, method) values (?, ?)")
+insert_order_query = session.prepare("Insert into orderTable " +
+    "(orderID, orderedFrom, orderedBy, deliveredBy, containsPizzas, " +
+    "containsItems, paymentID, placedAt, active, estimatedDeliveryTime) " +
+    "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+insert_order_by_store_query = session.prepare("Insert into orderByStore (orderedFrom, " +
+    "placedAt, orderID) values (?, ?, ?)")
+insert_order_by_customer_query = session.prepare("Insert into orderByCustomer (orderedBy, " +
+    "placedAt, orderID) values (?, ?, ?)")
+
 
 def _convert_time_str(time):
     time = time.split()        
@@ -105,6 +120,72 @@ def _get_store_info(store_id):
 
 def _update_order(order_id, entity, time):
     session.execute(update_order_query, (entity, time, order_id))
+
+def _calc_pizza_cost(ingredient_set):
+    cost = 0.0
+    for ingredient in ingredient_set:
+        result = session.execute(select_items_query, (ingredient[0],))
+        for (name, price) in result:
+            cost += price * ingredient[1] 
+    return cost
+
+def _insert_pizzas(pizza_list):
+    pizza_uuid_set = set()
+
+    for pizza in pizza_list:
+        pizza_uuid = uuid.uuid4()
+        pizza_uuid_set.add(pizza_uuid)
+        ingredient_set = set()
+
+        if pizza["crustType"] == "Thin":
+            ingredient_set.add(("Dough", 1))
+        elif pizza["crustType"] == "Traditional":
+            ingredient_set.add(("Dough", 2))
+
+        if pizza["sauceType"] == "Spicy":
+            ingredient_set.add(("SpicySauce", 1))
+        elif pizza["sauceType"] == "Traditional":
+            ingredient_set.add(("TraditionalSauce", 1))
+
+        if pizza["cheeseAmt"] == "Light":
+            ingredient_set.add(("Cheese", 1))
+        elif pizza["cheeseAmt"] == "Normal":
+            ingredient_set.add(("Cheese", 2))
+        elif pizza["cheeseAmt"] == "Extra":
+            ingredient_set.add(("Cheese", 3))
+
+        for topping in pizza["toppingList"]:
+            ingredient_set.add((topping, 1))
+        
+        cost = _calc_pizza_cost(ingredient_set)
+        session.execute(insert_pizzas_query, (pizza_uuid, ingredient_set, cost))
+    
+    return pizza_uuid_set
+
+def _create_order(order_dict):
+    order_uuid = uuid.UUID(order_dict["orderId"])
+    store_uuid = uuid.UUID(order_dict["storeId"])
+    pay_uuid = uuid.UUID(order_dict["paymentToken"])
+    cust_name = order_dict["custName"]
+    cust_lat = order_dict["custLocation"]["lat"]
+    cust_lon = order_dict["custLocation"]["lon"]
+    placed_at = datetime.strptime(order_dict["orderDate"], '%Y-%m-%dT%H:%M:%S')
+
+    # Insert customer information into 'customers' table
+    session.execute(insert_customers_query, (cust_name, cust_lat, cust_lon))
+    # Insert order payment information into 'payments' table
+    session.execute(insert_payments_query, (pay_uuid, order_dict["paymentTokenType"]))  
+    # Insert the ordered pizzas into 'pizzas' table
+    pizza_uuid_set = _insert_pizzas(order_dict["pizzaList"])
+    # Insert order into 'orderTable' table
+    session.execute(
+        insert_order_query, 
+        (order_uuid, store_uuid, cust_name, "", pizza_uuid_set, None, pay_uuid, placed_at, True, -1)
+    )
+    # Insert order into 'orderByStore' table
+    session.execute(insert_order_by_store_query, (store_uuid, placed_at, order_uuid))
+    # Insert order into 'orderByCustomer' table
+    session.execute(insert_order_by_customer_query, (cust_name, placed_at, order_uuid))
 
 
 def assign_entity(store_id, order):
@@ -250,19 +331,20 @@ def assign(storeId):
     order = request.get_json()   
     if orderId not in order:
        order['orderId'] = uuid.uuid4()       
+       _create_order(order)
 
     store_id = uuid.UUID(storeId)    
     entity, time, response = assign_entity(store_id, order)            
 
-    if 'order-verifier' in workflows[storeId]['component-list']:
-        try:
-    	    _update_order(order['orderId'], entity, time)
-        except:
-            return Response(
-                status=509,
-                response="Unable to update order with delivery entity and estimated time!" +
+    
+    try:
+        _update_order(order['orderId'], entity, time)
+    except:
+        return Response(
+            status=509,
+            response="Unable to update order with delivery entity and estimated time!" +
                          "Order does not exist."
-            )
+        )
     return response
 
 
