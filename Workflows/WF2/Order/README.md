@@ -12,7 +12,8 @@ Chris Scott
       * 0 for StoreID 7098813e-4624-462a-81a1-7e0e4e67631d
       * 1 for StoreID 5a2bb99f-88d2-4612-ac60-774aea9b8de4
       * 2 for StoreID b18b3932-a4ef-485c-a182-8e67b04c208c
-    * Workflow component(s) to receive pizza-order (Order Verifier XOR (Delivery Assigner OR Auto-Restocker))
+    * Workflow component(s) to receive pizza-order 
+      * Order Verifier XOR (Delivery Assigner OR Auto-Restocker)
     * Start date of order generation
       * Valid date in the format MM-DD-YYYY
     * Number of days to generate orders
