@@ -6,6 +6,7 @@ import requests
 
 from cassandra.query import dict_factory
 from cassandra.cluster import Cluster
+from cassandra.policies import RoundRobinPolicy
 from flask import Flask, request, Response
 
 from src.config import API_KEY
@@ -22,21 +23,24 @@ __status__ = "Development"
 app = Flask(__name__)
 
 logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s %(name)-12s ' + 
+                    format='%(asctime)s ' + 
                         '%(levelname)-8s %(message)s')
 
 logger = logging.getLogger(__name__)
+logging.getLogger('docker').setLevel(logging.INFO)
+logging.getLogger('requests').setLevel(logging.INFO)
+logging.getLogger('cassandra.cluster').setLevel(logging.ERROR)
+
 
 workflows = {}
 
 #Google API URL
-URL = "https://maps.googleapis.com/maps/api/directions/json?origin={}, " +
-    "{}&destination={},{}&key={}"
+URL = "https://maps.googleapis.com/maps/api/directions/json?origin={}, " + "{}&destination={},{}&key={}"
 
 #Connecting to Cassandra Cluster
     
 cass_IP = os.environ["CASS_DB"]
-cluster = Cluster([cass_IP])
+cluster = Cluster([cass_IP], load_balancing_policy=RoundRobinPolicy())
 session = cluster.connect('pizza_grocery')
 session.row_factory = dict_factory   
 
@@ -236,10 +240,9 @@ def assign_entity(store_id, order):
 
     order['deliveredBy'] = entity
     order['estimatedTime'] = time
-    logger.info("
-        For order of Customer {} to store {}, Delivery Entity::{}, " +
-            "Estimated Time::{} mins.".format(
-            order['custName'], storeId, entity, time
+    logger.info("For order of Customer {} to store {}, Delivery Entity::{}, " +
+        "Estimated Time::{} mins.".format(
+        order['custName'], storeId, entity, time
     ))
 
     response_json = {
@@ -255,64 +258,76 @@ def assign_entity(store_id, order):
     )
 
 
-@app.route('/workflow-request/<storeId>', methods=['PUT'])
+@app.route('/workflow-requests/<storeId>', methods=['PUT'])
 def register_workflow(storeId):
     '''REST API for registering workflow to delivery assigner service'''
     
     data = request.get_json()
 
+    logger.info("Received workflow request for store::{},\nspecs:{}\n".format(
+        storeId, data))
+
     if storeId in workflows:
+        logger.info("Workflow for store::{} already registered!!\nRequest Denied.\n".format(
+            storeId))
         return Response(
             status=409,
             response="Oops! A workflow already exists for this client!\n" +
                      "Please teardown existing workflow before deploying " +
-                     "a new one"
+                     "a new one\n"
         )
     
-    workflows[storeID] = data
+    workflows[storeId] = data
 
+    logger.info("Workflow request for store::{} accepted\n".format(storeId))
     return Response(
         status=201,
-        response='Valid Workflow registered to delivery assigner component')
+        response='Valid Workflow registered to delivery assigner component\n')
 
     
-@app.route('/workflow-request/<storeId>', methods=['DELETE'])
+@app.route('/workflow-requests/<storeId>', methods=['DELETE'])
 def teardown_workflow(storeId):
     '''REST API for tearing down workflow for delivery assigner service'''
-
+    logger.info('Received teardown request for store::{}\n'.format(storeId))
     if storeId not in workflows:
+        logger.info('Nothing to tear down, store::{} does not exist\n'.format(storeId))
         return Response(
             status=404, 
             response="Workflow does not exist for delivery assigner!\n" +
-                     "Nothing to tear down."
+                     "Nothing to tear down.\n"
         )
+
     del workflows[storeId]
     
+    logger.info('Store::{} deleted!!\n'.format(storeId))
     return Response(
         status=204,
-        response="Workflow removed from delivery assigner!"
+        response="Workflow removed from delivery assigner!\n"
     )
 
     
 @app.route("/workflow-requests/<storeId>", methods=["GET"])
 def retrieve_workflow(storeId):
     if not (storeId in workflows):
+        logger.info('Workflow not registered to delivery-assigner\n')
         return Response(
             status=404,
-            response="Workflow doesn't exist. Nothing to retrieve"
+            response="Workflow doesn't exist. Nothing to retrieve\n"
         )
     else:
+        logger.info('{} Workflow found on delivery-assigner\n'.format(storeId))
         return Response(
             status=200,
-            response=json.dumps(workflows[storeId])
+            response=json.dumps(workflows[storeId]) + '\n'
         )
 
 
 @app.route("/workflow-requests", methods=["GET"])
 def retrieve_workflows():
+    logger.info('Received request for workflows\n')
     return Response(
         status=200,
-        response=json.dumps(workflows)
+        response='worflows::' + json.dumps(workflows) + '\n'
     )
 
 
@@ -351,6 +366,6 @@ def assign(storeId):
 @app.route('/health', methods=['GET'])
 def health_check():
     '''REST API for checking health of task.'''
-    logger.info("Checking health of delivery assigner.")
-    return Response(status=200,response="Delivery Assigner is healthy!!")
+    logger.info("Checking health of delivery assigner.\n")
+    return Response(status=200,response="Delivery Assigner is healthy!!\n")
  
