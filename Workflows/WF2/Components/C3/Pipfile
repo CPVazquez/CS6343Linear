@@ -7,7 +7,7 @@ verify_ssl = true
 cassandra-driver = "*"
 gunicorn = "*"
 flask = "*"
-
+requests = "*"
 
 [requires]
 python_version = "3.8"

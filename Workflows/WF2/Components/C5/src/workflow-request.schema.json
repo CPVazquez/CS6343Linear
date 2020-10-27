@@ -16,10 +16,12 @@
                 "enum":  ["order-verifier", "delivery-assigner", "auto-restocker", "restocker", "cass"]
             }
         },
-        "orign": {
+        "origin": {
             "type":"string",
+            "format": "ipv4",
             "description":"host ip of the origin"
         }
     },
+    "additionalProperties": false,
     "required": ["method", "component-list", "origin"]
 }

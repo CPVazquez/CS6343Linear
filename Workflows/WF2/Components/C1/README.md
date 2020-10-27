@@ -1,13 +1,17 @@
 # Pizza Order Verifier
-  Workflow 2, Component 1
+
+Workflow 2, Component 1
 
 ## Written By
+
 Christopher Michael Scott
 
 ## Description
+
 Upon receiving a Pizza Order, this component validates the order and checks the store's stock. If sufficient stock exists, Order Verifier decrements the store's stock and creates the order. Otherwise, Order Verifier requests a restock before decrementing stock and creating the order.
 
 ## Setup
+
 Machine requirements:
 * Python 3.8
 * Docker
@@ -23,6 +27,7 @@ Packages installed on pipenv virtual environment:
 * requests
 
 ## Commands
+
   * To build the docker image, use the following command in the folder containing the Dockerfile:
     ```
     docker build --rm -t trishaire/order-verifier:tag path_to_c1_dockerfile
@@ -153,6 +158,7 @@ Requires a `workflow-request` json object.
 ### `GET /health`
 
 #### Responses
+
 | status code | status | meaning |
 |-------------|--------|---------|
 | 200 | OK | the server is up and running |

@@ -3,12 +3,6 @@
 ## Written By
 Chris Scott
 
-## Requirements:
-  * Python 3.8
-  * Install Faker Python package (https://pypi.org/project/Faker/)
-    * This program uses Faker to randomly generate customer names.
-  * Install Requests Python package (https://pypi.org/project/requests/2.7.0/)
-
 ## Description
   * This program generates fake pizza orders for Workflow 2 by:
     * Randomly generating customer details, such as name, location coordinates, and payment information
@@ -42,6 +36,19 @@ Packages installed on pipenv virtual environment:
   * Install Faker Python package (https://pypi.org/project/Faker/)
     * This program uses Faker to randomly generate customer names.
   * Install Requests Python package (https://pypi.org/project/requests/2.7.0/)
+
+## Setup
+Machine requirements:
+* Python 3.8
+
+Package requirements:
+* pipenv
+
+Packages installed on pipenv virtual environment:
+  * Install Faker Python package (https://pypi.org/project/Faker/)
+    * This program uses Faker to randomly generate customer names.
+  * Install Requests Python package (https://pypi.org/project/requests/2.7.0/)
+
 
 ## Commands
 ```

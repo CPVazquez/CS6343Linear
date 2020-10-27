@@ -213,8 +213,8 @@ def scan_out_of_stock():
                     session.execute(add_stock_prepared, (quantity_row.quantity + 20, store.storeid, item.name))
                     logging.info(str(store.storeid) + ", " + item.name +
                         " has " + str(quantity_row.quantity + 20.0))
-    if app.config["ENV"] == "production": 
-        threading.Timer(300, scan_out_of_stock).start()
+    #if app.config["ENV"] == "production": 
+    threading.Timer(300, scan_out_of_stock).start()
 
 # calls the scan_out_of stock function for the first time
 scan_out_of_stock()

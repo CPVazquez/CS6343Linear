@@ -19,6 +19,10 @@ import requests
 from cassandra.cluster import Cluster
 from flask import Flask, Response, request
 
+from flask import Flask, request, Response
+from cassandra.cluster import Cluster
+import jsonschema
+
 __author__ = "Chris Scott"
 __version__ = "2.0.0"
 __maintainer__ = "Chris Scott"

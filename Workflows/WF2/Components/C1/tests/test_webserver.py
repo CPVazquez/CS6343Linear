@@ -1,3 +1,8 @@
+"""Order Verifier Tester
+
+Tests that the order verifier functions as expected
+"""
+
 import json
 import unittest
 import os
@@ -5,6 +10,12 @@ import os
 from queue import Queue
 from threading import Thread
 from src.order-verifier import app
+
+__author__ = "Chris Scott"
+__version__ = "1.0.0"
+__maintainer__ = "Chris Scott"
+__email__ = "christopher.scott@utdallas.edu"
+__status__ = "Development"
 
 app.testing = True
 
