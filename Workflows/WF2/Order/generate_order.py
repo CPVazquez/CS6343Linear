@@ -11,12 +11,14 @@ import requests
 from faker import Faker
 
 __author__ = "Chris Scott"
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 __maintainer__ = "Chris Scott"
 __email__ = "christopher.scott@utdallas.edu"
 __status__ = "Development"
 
 fake = Faker('en_US')
+
+cluster = "cluster1-1.utdallas.edu"
 
 
 class PizzaOrder:
@@ -71,33 +73,92 @@ class PizzaOrder:
         return order_dict
 
 
-def request_order(q, url):
+def request_order(q, url_list):
     while True:
         order = q.get()
         order_dict = order.generate_order()
         print("\nPizza Order Request:\n" + json.dumps(order_dict, indent=4))
-        response = requests.post(url, json=json.dumps(order_dict))
-        if response.status_code == 200:
-            print("Request Accepted - {} {}".format(str(response.status_code), response.text))
-        else:
-            print("Request Rejected - {} {}".format(str(response.status_code), response.text))
-        q.task_done()
+        for url in url_list:
+            response = requests.post(url, json=json.dumps(order_dict))
+            if (response.status_code == 201) or (response.status_code == 200):
+                print("Request Accepted - {} {}".format(str(response.status_code), response.text))
+            else:
+                print("Request Rejected - {} {}".format(str(response.status_code), response.text))
+        q.task_done()      
 
 
 if __name__ == "__main__":
     print("\n*** Pizza Order Generator Script - User Input Required ***\n")
-    url = input("Enter Order Verifier URL: ")
-    print("\n0 - StoreID 7098813e-4624-462a-81a1-7e0e4e67631d")
+
+    print("0 - StoreID 7098813e-4624-462a-81a1-7e0e4e67631d")
     print("1 - StoreID 5a2bb99f-88d2-4612-ac60-774aea9b8de4")
     print("2 - StoreID b18b3932-a4ef-485c-a182-8e67b04c208c")
     while True:
         try:
-            store = int(input("Select a store from above by entering 0, 1, or 2: "))
+            store = int(input("Select a Store Workflow by entering 0, 1, or 2: "))
         except ValueError:
             print("Could not convert input data to integer. Please try again.")
         if (store >= 0) & (store <= 2):
             print()
             break
+        else:
+            print("Input data outside of valid input range. Please try again.")
+
+    url_list = list()
+    while True:
+        result = input("Is Order Verifier included in this Workflow (y/n)? ")
+        result = result.lower()
+        if result == "y":
+            url_list.append("http://"+cluster+":1000/order")
+            print()
+            break
+        elif result == "n":
+            print()
+            break
+        else:
+            print("Please respond 'y' for yes or 'n' for no. Please try again.")
+            continue
+    if result == "n":
+        while True:
+            result = input("Is Delivery Assigner included in this Workflow (y/n)? ")
+            result = result.lower()
+            if result == "y":
+                url_list.append("http://"+cluster+":3000/assign-entity")
+                print()
+                break
+            elif result == "n":
+                print()
+                break
+            else:
+                print("Please respond 'y' for yes or 'n' for no. Please try again.")
+                continue
+        while True:
+            result = input("Is Auto-Restocker included in this Workflow (y/n)? ")
+            result = result.lower()
+            if result == "y":
+                url_list.append("http://"+cluster+":4000/auto-restock")
+                print()
+                break
+            elif result == "n":
+                print()
+                break
+            else:
+                print("Please respond 'y' for yes or 'n' for no. Please try again.")
+                continue
+
+    while True:
+        valid = True
+        result = input("Please enter the start date in format MM-DD-YYYY: ")
+        try:
+            month, day, year = result.split("-")
+            start_date = datetime(int(year), int(month), int(day))
+        except:
+            valid = False
+            print("Invalid date. Please try again.")
+        if valid:
+            print()
+            break
+
     while True:
         try:
             num_days = int(input("Enter the number of days to generate orders (min: 1, max: 365): "))
@@ -106,6 +167,9 @@ if __name__ == "__main__":
         if (num_days >= 1) & (num_days <= 365):
             print()
             break
+        else:
+            print("Input data outside of valid input range. Please try again.")
+
     while True:
         try:
             orders_per_day = int(input("Enter the number of orders to generate per day (min: 1, max: 1000): "))
@@ -114,6 +178,9 @@ if __name__ == "__main__":
         if (orders_per_day >= 1) & (orders_per_day <= 1000):
             print()
             break
+        else:
+            print("Input data outside of valid input range. Please try again.")
+
     while True:
         try:
             max_pizzas = int(input("Enter the maximum number of pizzas per order (min: 1, max: 20): "))
@@ -122,13 +189,16 @@ if __name__ == "__main__":
         if (max_pizzas >= 1) & (max_pizzas <= 20):
             print()
             break
-    print("\n*** Pizza Order Generator Script - Generating Orders ***\n")
+        else:
+            print("Input data outside of valid input range. Please try again.")
+
+    print("\n*** Pizza Order Generator Script - Generating Orders ***")
 
     total_orders = num_days * orders_per_day
 
     q = Queue(total_orders)
 
-    t = threading.Thread(target=request_order, args=(q,url))
+    t = threading.Thread(target=request_order, args=(q,url_list))
     t.daemon = True
     t.start()
 
@@ -136,9 +206,9 @@ if __name__ == "__main__":
     for i in range(total_orders):
         if (i % orders_per_day) == 0:
             offset += 1
-        date_str = (datetime(2020, 1, 1) + timedelta(days=offset)).isoformat()
+        date_str = (start_date + timedelta(days=offset)).isoformat()
         pizza_order = PizzaOrder(store, date_str, max_pizzas)
         q.put(pizza_order)
         time.sleep(1)
-
+        
     q.join()    # Wait for all PizzaOrder objects to be processed from the queue

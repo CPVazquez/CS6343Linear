@@ -16,7 +16,7 @@ import docker
 import jsonschema
 import uuid
 
-__author__ = "Carla Vazquez"
+__author__ = "Carla Vazquez, Chris Scott"
 __version__ = "2.0.0"
 __maintainer__ = "Chris Scott"
 __email__ = "cms190009@utdallas.edu"
@@ -42,8 +42,7 @@ get_stores = session.prepare("SELECT storeID FROM stores")
 get_items = session.prepare("SELECT name FROM items")
 
 # set up logging
-logging.basicConfig(level=logging.DEBUG, 
-    format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # create flask app
 app = Flask(__name__)
@@ -61,16 +60,14 @@ workflows = dict()
 
 
 # checks the recieved restock-order against the jsonschema
-def verify_restock_order(order):
+def verify_restock_order(data):
     global restock_schema
     valid = True
     mess = None
     try:
-        jsonschema.validate(instance=order, schema=restock_schema)
+        jsonschema.validate(instance=data, schema=restock_schema)
     except Exception as inst:
-        logging.debug(type(inst))    # the exception instance
-        logging.debug(inst.args[0])          # __str__ allows args to be loggin.debuged directly,
-        logging.debug(order)
+        logging.info("restock-order rejected, failed validation:\n" + json.dumps(data, indent=4))
         valid = False
         mess = inst.args[0]
     return valid, mess
@@ -84,34 +81,26 @@ def restocker():
     
     store_id = restock_dict["storeID"]
     if store_id not in workflows:
-        logging.debug("Restock request is valid, but Workflow does not exist: " + store_id)
-        return Response(status=422, response="Restock request is valid, but Workflow does not exist.")
+        logging.info("restock-order is valid, but workflow does not exist: " + store_id)
+        return Response(status=422, response="restock-order is valid, but workflow does not exist.\n")
 
-    if restock_dict != None :
+    if restock_dict != None:
         valid, mess = verify_restock_order(restock_dict)
-
-        if valid :
+        if valid:
             try: 
                 storeID = uuid.UUID(restock_dict["storeID"])
                 for item_dict in restock_dict["restock-list"]:
-                    session.execute(add_stock_prepared, (item_dict["quantity"],
-                        storeID, item_dict["item-name"]))
+                    session.execute(add_stock_prepared, (item_dict["quantity"], storeID, item_dict["item-name"]))
                 response = Response(status=200, response="Filled out the following restock order:\n" + json.dumps(restock_dict))
             except ValueError:
-                logging.debug("Exception: badly formed hexadecimal UUID\
-                    string")
-                response = Response(status=400, response="Restocking order ill formated.\n'storeID' is not in valid UUID format")
+                logging.info("Exception: badly formed hexadecimal UUID string")
+                response = Response(status=400, response="Restocking order ill formated.\n'storeID' is not in valid UUID format\n")
         else:
-            response = Response(status=400, response="Restocking order ill formated.\n"+mess)
+            logging.info("restock-order request ill formatted")
+            response = Response(status=400, response="restock-order ill formated.\n"+mess)
 
-    logging.debug(response)
+    logging.info(response)
     return response
-
-
-# the health endpoint, so that users can verify that the server is up and running
-@app.route('/health', methods=['GET'])
-def health_check():
-    return Response(status=200,response="healthy\n")
 
 
 def verify_workflow(data):
@@ -121,49 +110,71 @@ def verify_workflow(data):
     try:
         jsonschema.validate(instance=data, schema=workflow_schema)
     except Exception as inst:
-        logging.debug("Workflow request rejected, failed validation:\n" + json.dumps(data, indent=4))
         valid = False
         mess = inst.args[0]
     return valid, mess
 
 
+# if workflow-request is valid and does not exist, create it
 @app.route("/workflow-requests/<storeId>", methods=['PUT'])
 def setup_workflow(storeId):
-    if storeId in workflows:
-        logging.debug("Workflow " + storeId + " already exists")
-        return Response(status=409, response="Workflow " + storeId + " already exists\n")
-
     data = json.loads(request.get_json())
-    logging.debug("workflow-requests data: " + json.dumps(data, indent=4))
     valid, mess = verify_workflow(data)
+
     if not valid:
+        logging.info("workflow-request ill formatted")
         return Response(status=400, response="workflow-request ill formatted\n" + mess)
+
+    if storeId in workflows:
+        logging.info("Workflow " + storeId + " already exists")
+        return Response(status=409, response="Workflow " + storeId + " already exists\n")
 
     workflows[storeId] = data
 
-    logging.debug("Workflow Deployed: Restocker started for Store " + storeId)
+    logging.info("Workflow started for Store " + storeId)
+    logging.info(json.dumps(workflows[storeId], indent=4))
 
     return Response(status=201, response="Restocker deployed for {}\n".format(storeId))    
+
+
+# if the recource exists, update it
+@app.route("/workflow-update/<storeId>", methods=['PUT'])
+def update_workflow(storeId):
+    logging.info("PUT /workflow-update/" + storeId)
+    data = json.loads(request.get_json())
+    valid, mess = verify_workflow(data)
+
+    if not valid:
+        logging.info("workflow-request ill formatted")
+        return Response(status=400, response="workflow-request ill formatted\n" + mess)
+
+    if not ("cass" in data["component-list"]):
+        logging.info("Update rejected, cass is a required workflow component")
+        return Response(status=422, response="Update rejected, cass is a required workflow component\n")
+
+    workflows[storeId] = data
+
+    logging.info("Restocker updated for Store " + storeId)
+
+    return Response(status=200, response="Restocker updated for {}\n".format(storeId))
 
 
 @app.route("/workflow-requests/<storeId>", methods=["DELETE"])
 def teardown_workflow(storeId):
     if storeId not in workflows:
         return Response(status=404, response="Workflow doesn't exist. Nothing to teardown.\n")
-
-    del workflows[storeId]
-
-    logging.debug("Workflow Torn Down: Restocker stopped for Store " + storeId)
-
-    return Response(status=204)
+    else:
+        del workflows[storeId]
+        logging.info("Restocker stopped for {}\n".format(storeId))
+        return Response(status=204)
 
 
 # retrieve the specified resource, if it exists
 @app.route("/workflow-requests/<storeId>", methods=["GET"])
 def retrieve_workflow(storeId):
-    logging.debug("GET /workflow-requests/" + storeId)
+    logging.info("GET /workflow-requests/" + storeId)
     if not (storeId in workflows):
-        return Response(status=404, response="Workflow doesn't exist. Nothing to retrieve")
+        return Response(status=404, response="Workflow doesn't exist. Nothing to retrieve.\n")
     else:
         return Response(status=200, response=json.dumps(workflows[storeId]))
 
@@ -171,8 +182,15 @@ def retrieve_workflow(storeId):
 # retrieve all resources
 @app.route("/workflow-requests", methods=["GET"])
 def retrieve_workflows():
-    logging.debug("GET /workflow-requests")
+    logging.info("GET /workflow-requests")
     return Response(status=200, response=json.dumps(workflows))
+
+
+# the health endpoint, so that users can verify that the server is up and running
+@app.route('/health', methods=['GET'])
+def health_check():
+    logging.info("GET /health")
+    return Response(status=200,response="healthy\n")
 
 
 # scan the database for items that are out of stock or close to it
@@ -192,8 +210,8 @@ def scan_out_of_stock():
                 # and it is low in quantity
                 if quantity_row.quantity < 5.0 :
                     # restock it
-                    session.execute(add_stock_prepared, ( quantity_row.quantity + 20, store.storeid, item.name))
-                    logging.debug(str(store.storeid) + ", " + item.name +
+                    session.execute(add_stock_prepared, (quantity_row.quantity + 20, store.storeid, item.name))
+                    logging.info(str(store.storeid) + ", " + item.name +
                         " has " + str(quantity_row.quantity + 20.0))
     #if app.config["ENV"] == "production": 
     threading.Timer(300, scan_out_of_stock).start()

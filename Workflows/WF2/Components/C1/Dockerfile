@@ -18,4 +18,4 @@ RUN pipenv install --system --deploy
 
 EXPOSE 1000
 
-CMD gunicorn -b 0.0.0.0:1000 --log-level debug src.order-verifier:app
+CMD gunicorn -b 0.0.0.0:1000 src.order-verifier:app
