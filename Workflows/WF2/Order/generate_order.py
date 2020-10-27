@@ -84,7 +84,7 @@ def request_order(q, url_list):
                 print("Request Accepted - {} {}".format(str(response.status_code), response.text))
             else:
                 print("Request Rejected - {} {}".format(str(response.status_code), response.text))
-        q.task_done()
+        q.task_done()      
 
 
 if __name__ == "__main__":
@@ -101,6 +101,8 @@ if __name__ == "__main__":
         if (store >= 0) & (store <= 2):
             print()
             break
+        else:
+            print("Input data outside of valid input range. Please try again.")
 
     url_list = list()
     while True:
@@ -145,6 +147,19 @@ if __name__ == "__main__":
                 continue
 
     while True:
+        valid = True
+        result = input("Please enter the start date in format MM-DD-YYYY: ")
+        try:
+            month, day, year = result.split("-")
+            start_date = datetime(int(year), int(month), int(day))
+        except:
+            valid = False
+            print("Invalid date. Please try again.")
+        if valid:
+            print()
+            break
+
+    while True:
         try:
             num_days = int(input("Enter the number of days to generate orders (min: 1, max: 365): "))
         except ValueError:
@@ -152,6 +167,8 @@ if __name__ == "__main__":
         if (num_days >= 1) & (num_days <= 365):
             print()
             break
+        else:
+            print("Input data outside of valid input range. Please try again.")
 
     while True:
         try:
@@ -161,6 +178,8 @@ if __name__ == "__main__":
         if (orders_per_day >= 1) & (orders_per_day <= 1000):
             print()
             break
+        else:
+            print("Input data outside of valid input range. Please try again.")
 
     while True:
         try:
@@ -170,6 +189,8 @@ if __name__ == "__main__":
         if (max_pizzas >= 1) & (max_pizzas <= 20):
             print()
             break
+        else:
+            print("Input data outside of valid input range. Please try again.")
 
     print("\n*** Pizza Order Generator Script - Generating Orders ***")
 
@@ -185,9 +206,9 @@ if __name__ == "__main__":
     for i in range(total_orders):
         if (i % orders_per_day) == 0:
             offset += 1
-        date_str = (datetime(2020, 1, 1) + timedelta(days=offset)).isoformat()
+        date_str = (start_date + timedelta(days=offset)).isoformat()
         pizza_order = PizzaOrder(store, date_str, max_pizzas)
         q.put(pizza_order)
         time.sleep(1)
-
+        
     q.join()    # Wait for all PizzaOrder objects to be processed from the queue
