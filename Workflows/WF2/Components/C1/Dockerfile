@@ -1,5 +1,11 @@
 FROM python:alpine3.11
 
+LABEL author = "Chris Scott"
+LABEL version = "1.0.0"
+LABEL maintainer = "Chris Scott"
+LABEL email = "christopher.scott@utdallas.edu"
+LABEL status = "Development"
+
 ENV PYTHONBUFFERED 1
 ENV PYTHONFAULTHANDLER 1
 

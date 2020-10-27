@@ -1,9 +1,16 @@
 #!/usr/bin/python3
-
+'''Tests that jsonschema validator works as expected'''
 import json
 import sys
+
 import jsonschema
 from jsonschema import validate
+
+LABEL author = "Daniel Garcia"
+LABEL version = "1.0.0"
+LABEL maintainer = "Daniel Garcia"
+LABEL email = "Daniel.Garcia6@utdallas.edu"
+LABEL status = "Development"
 
 # verify that we are actually supplied a json string
 # note: this method may clobber quote characters depending on how it is read
