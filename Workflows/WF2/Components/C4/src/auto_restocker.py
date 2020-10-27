@@ -4,6 +4,7 @@ import json
 from threading import Timer
 
 from cassandra.query import dict_factory
+from cassandra.policies import RoundRobinPolicy
 from cassandra.cluster import Cluster
 from flask import Flask, request, Response
 import pandas as pd
@@ -25,12 +26,17 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
 
 logger = logging.getLogger(__name__)
+logging.getLogger('docker').setLevel(logging.INFO)
+logging.getLogger('requests').setLevel(logging.INFO)
+logging.getLogger('cassandra.cluster').setLevel(logging.ERROR)
 
 workflows = {}
+
 history = {}
 
 #Connecting to Cassandra Cluster    
-cluster = Cluster(['cass'])
+cass_IP = os.environ["CASS_DB"]
+cluster = Cluster([cass_IP], load_balancing_policy=RoundRobinPolicy())
 session = cluster.connect('pizza_grocery')
 
 #Prepared Queries
@@ -94,6 +100,17 @@ def _predict_item_stocks(store_id, item_name, history):
 	return prediction, today + datetime.timedelta(days=1)
 
 
+def periodic_auto_restock():
+	Timer(420.0, periodic_auto_restocker).start()
+	items = ['Dough', 'Cheese']
+        for item in items:
+		for store_id in workflows:
+			prediction, date = auto_restock(store_id, item, 7, 1)
+                        requests.put('http://' + worflows[store_id]['origin'] +
+				'/auto-restock', json=json.dumps({"item": item,
+					"prediction" : prediction, 'date': date)
+
+
 def auto_restock(store_id, item_name, history):
 	'''Forecasts the demand for a item in a store using previous sale data and automatically restocks.
 
@@ -111,7 +128,7 @@ def auto_restock(store_id, item_name, history):
 		
 	return predictions, date
 
-
+'''
 def periodic_auto_restock():
 	Timer(420.0, periodic_auto_restocker).start()
 	items = ['Dough', 'Cheese']
@@ -126,133 +143,89 @@ def periodic_auto_restock():
 
 t = Timer(420.0, periodic_auto_restocker)
 t.start()
+'''
 
 
-@app.route('/workflow-request/<storeId>', methods=['PUT'])
+
+
+@app.route('/workflow-requests/<storeId>', methods=['PUT'])
 def register_workflow(storeId):
-	'''REST API for registering workflow to auto restocker service'''
+    '''REST API for registering workflow to auto-restocker service'''
     
-	data = request.get_json()
+    data = request.get_json()
 
-	if storeId in workflows:
-		return Response(
-		status=409,
-		response="Oops! A workflow already exists for this client!\n" +
-			"Please teardown existing workflow before deploying " +
-			"a new one"
-	)
+    logger.info("Received workflow request for store::{},\nspecs:{}\n".format(
+        storeId, data))
+
+    if storeId in workflows:
+        logger.info("Workflow for store::{} already registered!!\nRequest Denied.\n".format(
+            storeId))
+        return Response(
+            status=409,
+            response="Oops! A workflow already exists for this client!\n" +
+                     "Please teardown existing workflow before deploying " +
+                     "a new one\n"
+        )
     
-	workflows[storeId] = data
-	history[storeId] = {}
+    workflows[storeId] = data
 
-	return Response(
-		status=201,
-		response='Valid Workflow registered to auto-restocker component')
+    logger.info("Workflow request for store::{} accepted\n".format(storeId))
+    return Response(
+        status=201,
+        response='Valid Workflow registered to auto-restocker component\n')
 
     
-@app.route('/workflow-request/<storeId>', methods=['DELETE'])
-def teardown_workflow(storeId);
-	'''REST API for tearing down workflow for auto-restocker service'''
+@app.route('/workflow-requests/<storeId>', methods=['DELETE'])
+def teardown_workflow(storeId):
+    '''REST API for tearing down workflow for auto-restocker service'''
 
-	if storeId not in workflows:
-		return Response(
-			status=404, 
-			response="Workflow does not exist for auto-restocker!\n" +
-				"Nothing to tear down."
-		)
+    logger.info('Received teardown request for store::{}\n'.format(storeId))
+    if storeId not in workflows:
+        logger.info('Nothing to tear down, store::{} does not exist\n'.format(storeId))
+        return Response(
+            status=404, 
+            response="Workflow does not exist for delivery assigner!\n" +
+                     "Nothing to tear down.\n"
+        )
 
-	del workflows[storeId]
-	del history[storeId]
+    del workflows[storeId]
     
-	return Response(
-		status=204,
-		response="Workflow removed from auto-restocker!"
-	)
+    logger.info('Store::{} deleted!!\n'.format(storeId))
+    return Response(
+        status=204,
+        response="Workflow removed from auto-restocker!\n"
+    )
 
     
 @app.route("/workflow-requests/<storeId>", methods=["GET"])
 def retrieve_workflow(storeId):
-	if not (storeId in workflows):
-		return Response(
-			status=404,
-			response="Workflow doesn't exist. Nothing to retrieve"
-		)
-	else:
-		return Response(
-			status=200,
-			response=json.dumps(workflows[storeId])
-		)
+    if not (storeId in workflows):
+        logger.info('Workflow not registered to auto-restocker\n')
+        return Response(
+            status=404,
+            response="Workflow doesn't exist. Nothing to retrieve\n"
+        )
+    else:
+        logger.info('{} Workflow found on auto-restocker\n'.format(storeId))
+        return Response(
+            status=200,
+            response=json.dumps(workflows[storeId]) + '\n'
+        )
 
 
 @app.route("/workflow-requests", methods=["GET"])
 def retrieve_workflows():
-	return Response(
-		status=200,
-		response=json.dumps(workflows)
-	)
-
-@app.route("/workflow-update/<storeId>", methods=['PUT']):
-def update_workflow(storeId)
-	'''REST API for updating a workflow'''
-	
-	data = request.get_json()
-	components = data['component-list']
-	if 'cass' not in components:
-		return Response(
-			status=400,
-			response="Cassandra DB is required for Auto-Restocker.\n" +
-				"Please add Cassandra to the workflow"
-		)
-	else:
-		workflows[storeId] = data
-		return Response(
-			status=200,
-			response="Workflow updated in Auto-Restocker"
-		)
+    logger.info('Received request for workflows\n')
+    return Response(
+        status=200,
+        response='worflows::' + json.dumps(workflows) + '\n'
+    )		
 
 
-@app.route('/order', methods=['POST']):
-def order():
-	'''REST API for storing recent orders'''
-	data = request.get_json()
-	storeId = data['storeId']
-	timestamp = data['orderDate']
-	if timestamp not in history[storeId]:
-		history[storeId][timestamp] = {
-        		'Dough': 0,         'SpicySauce': 0,        'TraditionalSauce': 0,  'Cheese': 0,
-        		'Pepperoni': 0,     'Sausage': 0,           'Beef': 0,              'Onion': 0,
-        		'Chicken': 0,       'Peppers': 0,           'Olives': 0,            'Bacon': 0,
-        		'Pineapple': 0,     'Mushrooms': 0
-    		}
-		
-	_aggregate_ingredients(data['pizzaList'], history[storeId][timestamp])
-	
-
-	
-	
-
-@app.route('/auto-restock/<storeId>', methods=['GET'])
-def restock(storeId):
-	'''REST API for auto-restocking an item in a store.'''
-
-	data = request.get_json()
-	store_id = uuid.UUID(storeId)
-	item_name = data['itemName']
-	history = data['history']	
-	prediction, date = auto_restock(store_id, item_name, history)	
-        return Response(
-		status=200,
-		response=json.dumps({"storeId": store_id,
-			"itemName": item_name,
-			"prediction": prediction,
-			"date": date})
-		)
-
-	
 @app.route('/health', methods=['GET'])
 def health_check():
-	'''REST API for checking health of task.'''
+    '''REST API for checking health of task.'''
 
-	return Response(status=200,response="healthy")
-
-		
+    logger.info("Checking health of auto-restocker.\n")
+    return Response(status=200,response="Auto-Restocker is healthy!!\n")
+ 
