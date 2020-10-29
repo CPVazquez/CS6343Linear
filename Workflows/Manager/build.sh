@@ -1,3 +1,3 @@
 #/bin/bash
 
-docker build --rm -t trishaire/wkf-manager .
+docker build --rm -t trishaire/wkf-manager:edge .

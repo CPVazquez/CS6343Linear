@@ -21,11 +21,11 @@ __status__ = "Development"
 
 # set up logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
-logging.getLogger('docker').setLevel(logging.INFO)
-logging.getLogger('requests').setLevel(logging.INFO)
+logging.getLogger('docker').setLevel(logging.DEBUG)
+logging.getLogger('requests').setLevel(logging.DEBUG)
 
 # set up necessary docker clients
 client = docker.from_env()
@@ -85,7 +85,10 @@ def start_component(component, storeId, data, response_list):
         (data["workflow-offset"] if data["method"] == "edge" else 0)
     service_filter = client.services.list(filters={'name': comp_name})
     origin_url = "http://" + data["origin"] + ":8080/results"
+    cass_name = "cass" +\
+        (str(data["workflow-offset"]) if data["method"] == "edge" else "")
 
+    logging.debug("cassname is: " + cass_name)
     component_service = None
 
     # if not exists
@@ -96,15 +99,15 @@ def start_component(component, storeId, data, response_list):
         # create the service
         component_service = client.services.create(
             "trishaire/" + component + ":latest",  # the name of the image
-            name=component,  # name of service
+            name=comp_name,  # name of service
             endpoint_spec=docker.types.EndpointSpec(
                 mode="vip", ports={pubPort: portDict[component]}
             ),
-            env=["CASS_DB=cass"],  # set environment var
+            env=["CASS_DB="+cass_name],  # set environment var
             networks=['myNet'])  # set network
 
     if component == "cass":
-        count = spinup_cass(component, component_service)
+        count = spinup_cass(component, component_service, cass_name)
     else:
         count = spinup_component(
             component, data, origin_url, component_service
@@ -133,15 +136,16 @@ def spinup_component(component, data, origin_url, component_service):
     count = 0
     comp_name = component +\
         (str(data["workflow-offset"]) if data["method"] == "edge" else "")
-    pubPort = portDict[component] +\
-        (data["workflow-offset"] if data["method"] == "edge" else 0)
-    service_url = "http://" + comp_name + ":" + str(pubPort)
+    service_url = "http://" + comp_name + ":" + str(portDict[component])
 
     # wait for component to spin up
     while True:
         try:
+            logging.debug(service_url)
             requests.get(service_url+"/health")
-        except Exception:
+        except Exception as ex:
+            logging.debug(type(ex))
+            logging.debug(ex)
             if count < 4:
                 logging.info(
                     "Attempt " + str(count) + ", " + component +
@@ -160,14 +164,14 @@ def spinup_component(component, data, origin_url, component_service):
     return count
 
 
-def spinup_cass(component, component_service):
+def spinup_cass(component, component_service, cass_name):
     healthy = False
     count = 0
 
     # keep pinging the service
     while not healthy:
         # retrieve the tasks of the cass servcie
-        tasks = client.services.get(component).tasks()
+        tasks = client.services.get(cass_name).tasks()
 
         # see if at least one of the tasks is healthy
         for task in tasks:
@@ -195,13 +199,11 @@ def spinup_cass(component, component_service):
     return count
 
 
-def comp_action(action, component, storeId, data=None, response_list=None):
+def comp_action(action, component, storeId, data, response_list=None):
     # check if service exists
     comp_name = component +\
         (str(data["workflow-offset"]) if data["method"] == "edge" else "")
-    # pubPort = portDict[component] +\
-    #     (data["workflow-offset"] if data["method"] == "edge" else 0)
-    # service_url = "http://" + comp_name + ":" + str(pubPort)
+    # service_url = "http://" + comp_name + ":" + str(portDict[component])
     service_filter = None
 
     if action == "teardown":
@@ -228,9 +230,10 @@ def comp_action(action, component, storeId, data=None, response_list=None):
     #         json=json.dumps(data)
     #     )
     # else:
-    #     comp_response = requests.delete(
-    #         service_url + "/workflow-requests/" + storeId,
-    #     )
+    #   if component != "cass:
+    #       comp_response = requests.delete(
+    #           service_url + "/workflow-requests/" + storeId,
+    #       )
     if action == "teardown":
         if data["method"] == "edge":
             service_filter[0].remove()
@@ -254,11 +257,12 @@ def start_threads(action, storeId, component_list, data):
     # check if the workflow request specifies cass
     if "cass" in component_list:
         # remove cass from the component-list
-        component_list.remove("cass")
-        # if starting or updating
-        if action == "start" or action == "update":
-            # startup cass first and foremost
-            comp_action("start", "cass", storeId, data, response_list)
+        if not (data["method"] == "edge" and action == "teardown"):
+            component_list.remove("cass")
+            # if starting or updating
+            if action == "start" or action == "update":
+                # startup cass first and foremost
+                comp_action("start", "cass", storeId, data, response_list)
 
     # start threads for the rest of the components
     for comp in component_list:
