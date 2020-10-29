@@ -99,8 +99,8 @@ def _predict_item_stocks(storeId, item_name):
 	return prediction, date
 
   
-def _asdasd_stocks(store_id, item_name, history):
-	logger.info("***predicting stocks*****")
+def _predict_stocks(store_id, item_name, history, days):
+	
 	today = date.today()
 	rows = session.execute(get_item_stock_query, (store_id, item_name, today))
 	df = rows._current_rows
@@ -109,11 +109,13 @@ def _asdasd_stocks(store_id, item_name, history):
 	df = df.rename(columns={'datesold':'ds', 'quantitysold':'y'})	
 	m = Prophet()
 	m.fit(df)
-	future = m.make_future_dataframe(periods=1, freq='d', include_history=False)
+	future = m.make_future_dataframe(periods=days, freq='d', include_history=False)
 	forecast = m.predict(future)
-	prediction = forecast['yhat'].tolist()	
-	logger.info('Auto Restock - Precdiction:: Date: {}, Quantity: {}'.format(forecast['ds'],sum(prediction)))
-	return prediction, today + datetime.timedelta(days=1)
+	predictions = forecast['yhat'].tolist()	
+	dates = forecast['ds'].tolist()
+	result = {date: prediction for data, prediction in zip(dates, predictions)}}
+	
+	return result
 
 
 def _update_stock_tracker(ingredients, storeId, date):
@@ -135,11 +137,15 @@ def _insert_stock_tracker(ingredients, storeId, date):
 
 
 def periodic_auto_restock():
+	'''Function to periodically predict weekly sales for items'''
+	
+	logger.info("Weekly analysis of items initiating\n")
+
 	Timer(420.0, periodic_auto_restocker).start()
 	items = ['Dough', 'TraditionalSauce']
         for store_id in workflows:
 		for item in items:
-			prediction, date = auto_restock(store_id, item, 7)
+			prediction, date = _predict_item_stocks(store_id, item)
                         requests.put('http://' + worflows[store_id]['origin'] +
 				'/auto-restock', json=json.dumps({"item": item,
 					"prediction" : prediction, 'date': date)
@@ -150,21 +156,26 @@ t = Timer(420.0, periodic_auto_restocker)
 t.start()
 
 
-def auto_restock(store_id, item_name, days):
-	'''Forecasts the demand for a item in a store using previous sale data and automatically restocks.
+@app.route('/predict-stocks/<storeId>', methods=['GET'])
+def predict_stocks(storeId):
+	'''REST API for requesting future sales of an item'''
 
-		Parameters:
-			store_id (UUID): ID of the store
-			item_name (string): Name of the item
-			days (int): Number of days of sale data to be used 			
-		Returns:
-			Prediction, Date (tuple): Prediction and Date of prediction
-	'''
-	logger.info("Starting Auto-Restock Store:{}, Item:{}, History:{}, Days:{}\n".format(store_id, item_name, history, days))
+	logger.info("Received request by {} for predicting sales for" +
+		"{} using {} days for the next {} days\n".format(
+			storeId, data['itemName'], data['history'], data['days']
+	))
+
+	storeId = uuid.UUID(storeId)
+	data = request.get_json()
 	
-	predictions, date = _predict_item_stocks(store_id, item_name, days)
-		
-	return predictions, date
+	result = _predict_stocks(storeId, data['itemName'], data['history'], data['days'])
+	logger.info("Predictions for item {}, for storeId {}::{}".format(
+		data['itemName'], storeId, result))
+
+	return Response(
+		status=200,
+		response=json.dumps(result) + '/n'
+	)
 
 
 @app.route('/order/<storeId>', methods=['POST'])
@@ -172,7 +183,8 @@ def get_order(storeId):
 	'''REST API for storing order'''
 
 	logger.info("Received order for aggregation by Auto-Restocker\n")
-
+	
+	storeId = uuid.UUID(storeId)
 	order = request.get_json()
 	pizza_list = order['pizzaList']
 	order_date = order['orderDate']
@@ -182,12 +194,16 @@ def get_order(storeId):
 	if order_date not in history[storeId]:
 		history[storeId][order_date] = _get_ingredients_dict()
 		new_date = True
-
+	
+	
 	history[storeId][order_date] = _aggregate_ingredients(pizza_list, history[storeId][order_date])
-
+	
+	
 	if new_date:
+		logger.info("Insert new row into stockTracker\n")
 		_insert_stock_tracker(history[storeId][order_date], storeId, order_date)
 	else:
+		logger.info("Updating row in stockTracker\n")
 		_update_stock_tracker(history[storeId][order_date], storeId, order_date)
 
 	return Response(
@@ -200,6 +216,8 @@ def get_order(storeId):
 def register_workflow(storeId):
 	'''REST API for registering workflow to auto-restocker service'''
     
+	storeId = uuid.UUID(storeId)
+
 	data = request.get_json()
 
 	logger.info("Received workflow request for store::{},\nspecs:{}\n".format(
@@ -227,8 +245,11 @@ def register_workflow(storeId):
 @app.route('/workflow-requests/<storeId>', methods=['DELETE'])
 def teardown_workflow(storeId):
 	'''REST API for tearing down workflow for auto-restocker service'''
-
+	
 	logger.info('Received teardown request for store::{}\n'.format(storeId))
+
+	storeId = uuid.UUID(storeId)
+
 	if storeId not in workflows:
 		logger.info('Nothing to tear down, store::{} does not exist\n'.format(storeId))
 	return Response(
@@ -249,6 +270,7 @@ def teardown_workflow(storeId):
     
 @app.route("/workflow-requests/<storeId>", methods=["GET"])
 def retrieve_workflow(storeId):
+	storeId = uuid.UUID(storeId)
 	if not (storeId in workflows):
 		logger.info('Workflow not registered to auto-restocker\n')
 		return Response(
