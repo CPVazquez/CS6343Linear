@@ -263,7 +263,7 @@ def register_workflow(storeId):
     '''REST API for registering workflow to delivery assigner service'''
     
     data = request.get_json()
-
+    storeId = uuid.UUID(storeId)
     logger.info("Received workflow request for store::{},\nspecs:{}\n".format(
         storeId, data))
 
@@ -288,7 +288,11 @@ def register_workflow(storeId):
 @app.route('/workflow-requests/<storeId>', methods=['DELETE'])
 def teardown_workflow(storeId):
     '''REST API for tearing down workflow for delivery assigner service'''
+
     logger.info('Received teardown request for store::{}\n'.format(storeId))
+
+    storeId = uuid.UUID(storeId)
+
     if storeId not in workflows:
         logger.info('Nothing to tear down, store::{} does not exist\n'.format(storeId))
         return Response(
@@ -308,6 +312,10 @@ def teardown_workflow(storeId):
     
 @app.route("/workflow-requests/<storeId>", methods=["GET"])
 def retrieve_workflow(storeId):
+    '''REST API for requesting details of registered store'''
+
+    storeId = uuid.UUID(storeId)
+
     if not (storeId in workflows):
         logger.info('Workflow not registered to delivery-assigner\n')
         return Response(
@@ -334,6 +342,8 @@ def retrieve_workflows():
 @app.route('/assign-entity/<storeId>', methods=['GET'])
 def assign(storeId):
     '''REST API for assigning best delivery entity.'''
+    
+    storeId = uuid.UUID(storeId)
 
     if storeId not in workflows:
         logger.info("StoreId not in workflows of delivery assigner.")
@@ -343,10 +353,14 @@ def assign(storeId):
                      "Please add delivery assigner to the Workflow or " + 
                      "create the workflow if it doesnt exist."
 	)
+
     order = request.get_json()   
-    if orderId not in order:
+
+    if 'orderId' not in order:
        order['orderId'] = uuid.uuid4()       
        _create_order(order)
+    else:
+       order['orderId'] = uuid.UUID(order['orderId']
 
     store_id = uuid.UUID(storeId)    
     entity, time, response = assign_entity(store_id, order)            
