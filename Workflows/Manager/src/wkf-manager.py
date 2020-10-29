@@ -43,6 +43,8 @@ portDict = {
     "restocker": 5000
 }
 
+workflowOffset = 1
+
 # set up thread lock
 thread_lock = threading.Lock()
 
@@ -77,7 +79,11 @@ def verify_workflow(data):
 def start_component(component, storeId, data, response_list):
     timeOut = False
     # check if service exists
-    service_filter = client.services.list(filters={'name': component})
+    comp_name = component +\
+        (str(data["workflow-offset"]) if data["method"] == "edge" else "")
+    pubPort = portDict[component] +\
+        (data["workflow-offset"] if data["method"] == "edge" else 0)
+    service_filter = client.services.list(filters={'name': comp_name})
     origin_url = "http://" + data["origin"] + ":8080/results"
 
     component_service = None
@@ -92,7 +98,7 @@ def start_component(component, storeId, data, response_list):
             "trishaire/" + component + ":latest",  # the name of the image
             name=component,  # name of service
             endpoint_spec=docker.types.EndpointSpec(
-                mode="vip", ports={portDict[component]: portDict[component]}
+                mode="vip", ports={pubPort: portDict[component]}
             ),
             env=["CASS_DB=cass"],  # set environment var
             networks=['myNet'])  # set network
@@ -101,7 +107,7 @@ def start_component(component, storeId, data, response_list):
         count = spinup_cass(component, component_service)
     else:
         count = spinup_component(
-            component, origin_url, component_service
+            component, data, origin_url, component_service
         )
 
     if (component == "cass" and count < 9) or\
@@ -123,9 +129,13 @@ def start_component(component, storeId, data, response_list):
     return timeOut
 
 
-def spinup_component(component, origin_url, component_service):
+def spinup_component(component, data, origin_url, component_service):
     count = 0
-    service_url = "http://" + component + ":" + str(portDict[component])
+    comp_name = component +\
+        (str(data["workflow-offset"]) if data["method"] == "edge" else "")
+    pubPort = portDict[component] +\
+        (data["workflow-offset"] if data["method"] == "edge" else 0)
+    service_url = "http://" + comp_name + ":" + str(pubPort)
 
     # wait for component to spin up
     while True:
@@ -186,11 +196,17 @@ def spinup_cass(component, component_service):
 
 
 def comp_action(action, component, storeId, data=None, response_list=None):
-    service_url = "http://" + component + ":" + str(portDict[component])
+    # check if service exists
+    comp_name = component +\
+        (str(data["workflow-offset"]) if data["method"] == "edge" else "")
+    # pubPort = portDict[component] +\
+    #     (data["workflow-offset"] if data["method"] == "edge" else 0)
+    # service_url = "http://" + comp_name + ":" + str(pubPort)
+    service_filter = None
 
     if action == "teardown":
         # check if service exists
-        service_filter = client.services.list(filters={'name': component})
+        service_filter = client.services.list(filters={'name': comp_name})
         if len(service_filter) == 0:
             return
 
@@ -200,34 +216,38 @@ def comp_action(action, component, storeId, data=None, response_list=None):
             return
 
     # send workflow_request to component
-    logging.info("sent workflow " + action + " to " + component)
-    if action == "start":
-        comp_response = requests.put(
-            service_url + "/workflow-requests/" + storeId,
-            json=json.dumps(data)
-        )
-    elif action == "update":
-        comp_response = requests.put(
-            service_url + "/workflow-update/" + storeId,
-            json=json.dumps(data)
-        )
-    else:
-        comp_response = requests.delete(
-            service_url + "/workflow-requests/" + storeId,
-        )
-    logging.info(
-        "recieved response " + str(comp_response.status_code) +
-        " " + comp_response.text + " from " + component
-    )
+    # logging.info("sent workflow " + action + " to " + component)
+    # if action == "start":
+    #     comp_response = requests.put(
+    #         service_url + "/workflow-requests/" + storeId,
+    #         json=json.dumps(data)
+    #     )
+    # elif action == "update":
+    #     comp_response = requests.put(
+    #         service_url + "/workflow-update/" + storeId,
+    #         json=json.dumps(data)
+    #     )
+    # else:
+    #     comp_response = requests.delete(
+    #         service_url + "/workflow-requests/" + storeId,
+    #     )
+    if action == "teardown":
+        if data["method"] == "edge":
+            service_filter[0].remove()
 
-    if (action == "update" and comp_response.status_code != 200) or\
-       (action == "start" and comp_response.status_code != 201):
-        thread_lock.acquire(blocking=True)
-        response_list.append(component)
-        thread_lock.release()
+    # logging.info(
+    #     "recieved response " + str(comp_response.status_code) +
+    #     " " + comp_response.text + " from " + component
+    # )
+
+    # if (action == "update" and comp_response.status_code != 200) or\
+    #    (action == "start" and comp_response.status_code != 201):
+    #     thread_lock.acquire(blocking=True)
+    #     response_list.append(component)
+    #     thread_lock.release()
 
 
-def start_threads(action, storeId, component_list, data=None):
+def start_threads(action, storeId, component_list, data):
     thread_list = []
     response_list = []
 
@@ -261,6 +281,8 @@ def start_threads(action, storeId, component_list, data=None):
 ###############################################################################
 @app.route("/workflow-requests/<storeId>", methods=["PUT"])
 def setup_workflow(storeId):
+    global workflowOffset
+
     logging.info("{:*^74}".format(
         " PUT /workflow-requests/"
         + storeId + " "
@@ -278,15 +300,6 @@ def setup_workflow(storeId):
             status=400,
             response="workflow-request ill formatted\n" + mess
         )
-    # unsuported specifications
-    if data["method"] != "persistent":
-        logging.info("Unsupported specifications")
-        logging.info("{:*^74}".format(" Request FAILED "))
-        return Response(
-            status=422,
-            response="Sorry, edge deployment method is not yet supported!\n" +
-                     "Entity could not be processed"
-        )
     # conflict
     if storeId in workflows:
         logging.info("workflow already exists")
@@ -298,6 +311,9 @@ def setup_workflow(storeId):
                      "a new one"
         )
 
+    if data["method"] == "edge":
+        data["workflow-offset"] = workflowOffset
+        workflowOffset += 1
     workflows[storeId] = data
 
     # get the list of components for the workflow
@@ -310,7 +326,7 @@ def setup_workflow(storeId):
             status=201
         )
     else:
-        start_threads("teardown", storeId, component_list)
+        start_threads("teardown", storeId, component_list, data)
         del workflows[storeId]
         logging.info("{:*^74}".format(" Request FAILED "))
         return Response(
@@ -339,15 +355,6 @@ def update_workflow(storeId):
             status=400,
             response="workflow-request ill formatted\n" + mess
         )
-    # unsuported specifications
-    if data["method"] != "persistent":
-        logging.info("Unsupported specifications")
-        logging.info("{:*^74}".format(" Request FAILED "))
-        return Response(
-            status=422,
-            response="Sorry, edge deployment method is not yet supported!\n" +
-                     "Entity could not be processed"
-        )
     if not (storeId in workflows):
         logging.info("workflow does not exists! Nothing to update")
         logging.info("{:*^74}".format(" Request FAILED "))
@@ -372,7 +379,7 @@ def update_workflow(storeId):
 
     if len(failed_list) != 0:
         logging.info("failed to start new components")
-        start_threads("teardown", storeId, list_start)
+        start_threads("teardown", storeId, list_start, data)
         success = False
     else:
         logging.info("updating components in previous workflow")
@@ -387,11 +394,13 @@ def update_workflow(storeId):
                 "update", storeId, undo_update_list, workflows[storeId]
             )
             # tear down the list_start components
-            start_threads("teardown", storeId, list_start)
+            start_threads("teardown", storeId, list_start, data)
             success = False
         else:
             logging.info("removing components no longer needed")
-            start_threads("teardown", storeId, list_teardown)
+            start_threads(
+                "teardown", storeId, list_teardown, workflows[storeId]
+            )
 
     if success:
         workflows[storeId] = data
@@ -425,7 +434,7 @@ def teardown_workflow(storeId):
     # get the list of components for the workflow
     component_list = workflows[storeId]["component-list"].copy()
     # teardown components
-    start_threads("teardown", storeId, component_list)
+    start_threads("teardown", storeId, component_list, workflows[storeId])
     # delete the given workflow from the dictionary
     del workflows[storeId]
 
