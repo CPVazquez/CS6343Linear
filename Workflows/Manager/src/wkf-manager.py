@@ -378,6 +378,9 @@ def update_workflow(storeId):
 
     success = True
 
+    if data["method"] == "edge":
+        data["workflow-offset"] = workflows[storeId]["workflow-offset"]
+
     logging.info("starting components not in previous workflow")
     failed_list = start_threads("start", storeId, list_start, data)
 
