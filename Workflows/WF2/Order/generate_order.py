@@ -18,8 +18,6 @@ __status__ = "Development"
 
 fake = Faker('en_US')
 
-cluster = "cluster1-1.utdallas.edu"
-
 
 class PizzaOrder:
     # Order Attribute Lists
@@ -88,6 +86,13 @@ def request_order(q, url_list):
 
 
 if __name__ == "__main__":
+    cluster = "cluster1-1.utdallas.edu"
+    port_dict = {
+        "order-verifier": 1000,
+        "delivery-assigner": 3000,
+        "auto-restocker": 4000
+    }
+
     print("\n*** Pizza Order Generator Script - User Input Required ***\n")
 
     print("0 - StoreID 7098813e-4624-462a-81a1-7e0e4e67631d")
@@ -104,12 +109,35 @@ if __name__ == "__main__":
         else:
             print("Input data outside of valid input range. Please try again.")
 
+    while True:
+        result = input("Is the Workflow utilizing the edge deployment method (y/n)? ")
+        result = result.lower()
+        if (result == "y") or (result == "n"):
+            print()
+            break
+        else:
+            print("Please respond 'y' for yes or 'n' for no. Please try again.")
+            continue
+    if result == "y":
+        while True:
+            try:
+                wkf_offset = int(input("Please enter the workflow-offset (1-3): "))
+            except ValueError:
+                print("Could not convert input data to integer. Please try again.")
+            if (wkf_offset >= 1) & (wkf_offset <= 3):
+                for comp in port_dict:
+                    port_dict[comp] += wkf_offset
+                print()
+                break
+            else:
+                print("Input data outside of valid input range. Please try again.")  
+
     url_list = list()
     while True:
         result = input("Is Order Verifier included in this Workflow (y/n)? ")
         result = result.lower()
         if result == "y":
-            url_list.append("http://"+cluster+":1000/order")
+            url_list.append("http://" + cluster + ":" + str(port_dict["order-verifier"]) + "/order")
             print()
             break
         elif result == "n":
@@ -123,7 +151,7 @@ if __name__ == "__main__":
             result = input("Is Delivery Assigner included in this Workflow (y/n)? ")
             result = result.lower()
             if result == "y":
-                url_list.append("http://"+cluster+":3000/assign-entity")
+                url_list.append("http://" + cluster + ":" + str(port_dict["delivery-assigner"]) + "/order")
                 print()
                 break
             elif result == "n":
@@ -136,7 +164,7 @@ if __name__ == "__main__":
             result = input("Is Auto-Restocker included in this Workflow (y/n)? ")
             result = result.lower()
             if result == "y":
-                url_list.append("http://"+cluster+":4000/auto-restock")
+                url_list.append("http://" + cluster + ":" + str(port_dict["auto-restocker"]) + "/order")
                 print()
                 break
             elif result == "n":
@@ -202,11 +230,11 @@ if __name__ == "__main__":
     t.daemon = True
     t.start()
 
-    offset = -1
+    date_offset = -1
     for i in range(total_orders):
         if (i % orders_per_day) == 0:
-            offset += 1
-        date_str = (start_date + timedelta(days=offset)).isoformat()
+            date_offset += 1
+        date_str = (start_date + timedelta(days=date_offset)).isoformat()
         pizza_order = PizzaOrder(store, date_str, max_pizzas)
         q.put(pizza_order)
         time.sleep(1)
