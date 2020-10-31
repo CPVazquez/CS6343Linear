@@ -203,7 +203,7 @@ def comp_action(action, component, storeId, data, response_list=None):
     # check if service exists
     comp_name = component +\
         (str(data["workflow-offset"]) if data["method"] == "edge" else "")
-    # service_url = "http://" + comp_name + ":" + str(portDict[component])
+    service_url = "http://" + comp_name + ":" + str(portDict[component])
     service_filter = None
 
     if action == "teardown":
@@ -218,36 +218,34 @@ def comp_action(action, component, storeId, data, response_list=None):
             return
 
     # send workflow_request to component
-    # logging.info("sent workflow " + action + " to " + component)
-    # if action == "start":
-    #     comp_response = requests.put(
-    #         service_url + "/workflow-requests/" + storeId,
-    #         json=json.dumps(data)
-    #     )
-    # elif action == "update":
-    #     comp_response = requests.put(
-    #         service_url + "/workflow-update/" + storeId,
-    #         json=json.dumps(data)
-    #     )
-    # else:
-    #   if component != "cass:
-    #       comp_response = requests.delete(
-    #           service_url + "/workflow-requests/" + storeId,
-    #       )
-    if action == "teardown":
+    logging.info("sent workflow " + action + " to " + component)
+    if action == "start":
+        comp_response = requests.put(
+            service_url + "/workflow-requests/" + storeId,
+            json=json.dumps(data)
+        )
+    elif action == "update":
+        comp_response = requests.put(
+            service_url + "/workflow-update/" + storeId,
+            json=json.dumps(data)
+        )
+    else:
+        if component != "cass":
+            comp_response = requests.delete(
+              service_url + "/workflow-requests/" + storeId)
         if data["method"] == "edge":
             service_filter[0].remove()
 
-    # logging.info(
-    #     "recieved response " + str(comp_response.status_code) +
-    #     " " + comp_response.text + " from " + component
-    # )
+    logging.info(
+       "recieved response " + str(comp_response.status_code) +
+        " " + comp_response.text + " from " + component
+    )
 
-    # if (action == "update" and comp_response.status_code != 200) or\
-    #    (action == "start" and comp_response.status_code != 201):
-    #     thread_lock.acquire(blocking=True)
-    #     response_list.append(component)
-    #     thread_lock.release()
+    if (action == "update" and comp_response.status_code != 200) or\
+       (action == "start" and comp_response.status_code != 201):
+        thread_lock.acquire(blocking=True)
+        response_list.append(component)
+        thread_lock.release()
 
 
 def start_threads(action, storeId, component_list, data):
