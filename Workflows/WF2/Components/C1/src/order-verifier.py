@@ -35,39 +35,50 @@ cluster = Cluster([cass_IP])
 session = cluster.connect('pizza_grocery')
 
 # Cassandra prepared statements
-select_stock_prepared = session.prepare('SELECT * FROM stock WHERE storeID=?')
-select_items_prepared = session.prepare('SELECT * FROM items WHERE name=?')
-update_stock_prepared = session.prepare('\
-    UPDATE stock \
-    SET quantity=? \
-    WHERE storeID=? AND itemName=?\
-')
-insert_customers_prepared = session.prepare('\
-    INSERT INTO customers (customerName, latitude, longitude) \
-    VALUES (?, ?, ?)\
-')
-insert_payments_prepared = session.prepare('\
-    INSERT INTO payments (paymentToken, method) \
-    VALUES (?, ?)\
-')
-insert_pizzas_prepared = session.prepare('\
-    INSERT INTO pizzas (pizzaID, toppings, cost) \
-    VALUES (?, ?, ?)\
-')
-insert_order_prepared = session.prepare('\
-    INSERT INTO orderTable \
-        (orderID, orderedFrom, orderedBy, deliveredBy, containsPizzas, \
-            containsItems, paymentID, placedAt, active, estimatedDeliveryTime) \
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\
-')
-insert_order_by_store_prepared = session.prepare('\
-    INSERT INTO orderByStore (orderedFrom, placedAt, orderID) \
-    VALUES (?, ?, ?)\
-')
-insert_order_by_customer_prepared = session.prepare('\
-    INSERT INTO orderByCustomer (orderedBy, placedAt, orderID) \
-    VALUES (?, ?, ?)\
-')
+count = 0
+while True:
+    try:
+        select_stock_prepared = session.prepare('SELECT * FROM stock WHERE storeID=?')
+        select_items_prepared = session.prepare('SELECT * FROM items WHERE name=?')
+        update_stock_prepared = session.prepare('\
+            UPDATE stock \
+            SET quantity=? \
+            WHERE storeID=? AND itemName=?\
+        ')
+        insert_customers_prepared = session.prepare('\
+            INSERT INTO customers (customerName, latitude, longitude) \
+            VALUES (?, ?, ?)\
+        ')
+        insert_payments_prepared = session.prepare('\
+            INSERT INTO payments (paymentToken, method) \
+            VALUES (?, ?)\
+        ')
+        insert_pizzas_prepared = session.prepare('\
+            INSERT INTO pizzas (pizzaID, toppings, cost) \
+            VALUES (?, ?, ?)\
+        ')
+        insert_order_prepared = session.prepare('\
+            INSERT INTO orderTable \
+                (orderID, orderedFrom, orderedBy, deliveredBy, containsPizzas, \
+                    containsItems, paymentID, placedAt, active, estimatedDeliveryTime) \
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\
+        ')
+        insert_order_by_store_prepared = session.prepare('\
+            INSERT INTO orderByStore (orderedFrom, placedAt, orderID) \
+            VALUES (?, ?, ?)\
+        ')
+        insert_order_by_customer_prepared = session.prepare('\
+            INSERT INTO orderByCustomer (orderedBy, placedAt, orderID) \
+            VALUES (?, ?, ?)\
+        ')
+    except:
+        count += 1
+        if count <= 5:
+            time.sleep(5)
+        else:
+            exit()
+    else:
+        break
 
 # Create Flask app
 app = Flask(__name__)
