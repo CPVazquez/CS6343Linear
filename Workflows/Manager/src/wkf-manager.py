@@ -236,10 +236,11 @@ def comp_action(action, component, storeId, data, response_list=None):
         if data["method"] == "edge":
             service_filter[0].remove()
 
-    logging.info(
-       "recieved response " + str(comp_response.status_code) +
-        " " + comp_response.text + " from " + component
-    )
+    if component != "cass":
+        logging.info(
+            "recieved response " + str(comp_response.status_code) +
+            " " + comp_response.text + " from " + component
+        ) 
 
     if (action == "update" and comp_response.status_code != 200) or\
        (action == "start" and comp_response.status_code != 201):
@@ -328,6 +329,7 @@ def setup_workflow(storeId):
             status=201
         )
     else:
+        component_list = data["component-list"].copy()
         start_threads("teardown", storeId, component_list, data)
         del workflows[storeId]
         logging.info("{:*^74}".format(" Request FAILED "))
