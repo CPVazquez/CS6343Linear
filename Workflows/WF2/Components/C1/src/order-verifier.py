@@ -290,7 +290,8 @@ def order_manager(order_dict):
     # TODO: Assign delivery entity
     if "delivery-assigner" in workflows[store_id]["component-list"]:
         url = service_url("delivery-assigner", workflows[store_id])
-        logging.info("SERVICE URL: " + url)
+        url = url + "/" + store_id
+        logging.info("D.A. URL: " + url)
         response = requests.post(url, json=json.dumps(order_dict))
         logging.info("Delivery Assigner - {}, {}".format(response.status_code, response.text))
         if response.status_code != 200:
