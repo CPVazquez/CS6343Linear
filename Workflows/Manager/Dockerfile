@@ -6,7 +6,7 @@ ENV PYTHONFAULTHANDLER 1
 COPY . /app
 WORKDIR /app
 
-# RUN apk add gcc
+RUN apk add curl curl-doc
 
 RUN pip install pipenv
 RUN echo python3 --version

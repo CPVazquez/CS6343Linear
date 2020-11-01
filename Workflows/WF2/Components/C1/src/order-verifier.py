@@ -35,39 +35,50 @@ cluster = Cluster([cass_IP])
 session = cluster.connect('pizza_grocery')
 
 # Cassandra prepared statements
-select_stock_prepared = session.prepare('SELECT * FROM stock WHERE storeID=?')
-select_items_prepared = session.prepare('SELECT * FROM items WHERE name=?')
-update_stock_prepared = session.prepare('\
-    UPDATE stock \
-    SET quantity=? \
-    WHERE storeID=? AND itemName=?\
-')
-insert_customers_prepared = session.prepare('\
-    INSERT INTO customers (customerName, latitude, longitude) \
-    VALUES (?, ?, ?)\
-')
-insert_payments_prepared = session.prepare('\
-    INSERT INTO payments (paymentToken, method) \
-    VALUES (?, ?)\
-')
-insert_pizzas_prepared = session.prepare('\
-    INSERT INTO pizzas (pizzaID, toppings, cost) \
-    VALUES (?, ?, ?)\
-')
-insert_order_prepared = session.prepare('\
-    INSERT INTO orderTable \
-        (orderID, orderedFrom, orderedBy, deliveredBy, containsPizzas, \
-            containsItems, paymentID, placedAt, active, estimatedDeliveryTime) \
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\
-')
-insert_order_by_store_prepared = session.prepare('\
-    INSERT INTO orderByStore (orderedFrom, placedAt, orderID) \
-    VALUES (?, ?, ?)\
-')
-insert_order_by_customer_prepared = session.prepare('\
-    INSERT INTO orderByCustomer (orderedBy, placedAt, orderID) \
-    VALUES (?, ?, ?)\
-')
+count = 0
+while True:
+    try:
+        select_stock_prepared = session.prepare('SELECT * FROM stock WHERE storeID=?')
+        select_items_prepared = session.prepare('SELECT * FROM items WHERE name=?')
+        update_stock_prepared = session.prepare('\
+            UPDATE stock \
+            SET quantity=? \
+            WHERE storeID=? AND itemName=?\
+        ')
+        insert_customers_prepared = session.prepare('\
+            INSERT INTO customers (customerName, latitude, longitude) \
+            VALUES (?, ?, ?)\
+        ')
+        insert_payments_prepared = session.prepare('\
+            INSERT INTO payments (paymentToken, method) \
+            VALUES (?, ?)\
+        ')
+        insert_pizzas_prepared = session.prepare('\
+            INSERT INTO pizzas (pizzaID, toppings, cost) \
+            VALUES (?, ?, ?)\
+        ')
+        insert_order_prepared = session.prepare('\
+            INSERT INTO orderTable \
+                (orderID, orderedFrom, orderedBy, deliveredBy, containsPizzas, \
+                    containsItems, paymentID, placedAt, active, estimatedDeliveryTime) \
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\
+        ')
+        insert_order_by_store_prepared = session.prepare('\
+            INSERT INTO orderByStore (orderedFrom, placedAt, orderID) \
+            VALUES (?, ?, ?)\
+        ')
+        insert_order_by_customer_prepared = session.prepare('\
+            INSERT INTO orderByCustomer (orderedBy, placedAt, orderID) \
+            VALUES (?, ?, ?)\
+        ')
+    except:
+        count += 1
+        if count <= 5:
+            time.sleep(5)
+        else:
+            exit()
+    else:
+        break
 
 # Create Flask app
 app = Flask(__name__)
@@ -222,6 +233,19 @@ def check_stock(order_dict):
     return in_stock_dict, req_item_dict, restock_list
 
 
+def service_url(component, data):
+    comp_name = component +\
+        (str(data["workflow-offset"]) if data["method"] == "edge" else "")
+    url = "http://" + comp_name + ":"
+    if component == "restocker":
+        url += "5000/restock"
+    elif component == "delivery-assigner":
+        url += "3000/assign-entity"
+    elif component == "auto-restocker":
+        url += "4000/order"
+    return url
+
+
 # Manages order creation and restock, if needed
 def order_manager(order_dict):
     store_id = order_dict["storeId"]
@@ -237,15 +261,17 @@ def order_manager(order_dict):
     while True:
         in_stock_dict, req_item_dict, restock_list = check_stock(order_dict)
         if restock_list:
-            if "restocker" in workflows[store_id]["component-list"]:    
+            if "restocker" in workflows[store_id]["component-list"]:
+                url = service_url("restocker", workflows[store_id])
+                logging.info("SERVICE URL: " + url)
                 restock_dict = {"storeID": store_id, "restock-list": restock_list}
-                response = requests.post("http://restocker:5000/restock", json=json.dumps(restock_dict))
+                response = requests.post(url, json=json.dumps(restock_dict))
                 logging.info("Restocker - {}, {}".format(response.status_code, response.text))
                 if response.status_code != 200:
                     # Restock unsuccesful, must reject order request
                     return Response(status=424, response="{}, {}".format(response.status_code, response.text))
             else:
-                logging.info("{} rejected, insufficient stock at {}".format(order_id, store_id))
+                logging.info("{} rejected, {} insufficient stock".format(order_id, store_id))
                 return Response(status=404, response="Insufficient stock at {}\n".format(store_id))
         else:
             break
@@ -256,12 +282,18 @@ def order_manager(order_dict):
 
     # TODO: Send pizza order to auto-restocker
     if "auto-restocker" in workflows[store_id]["component-list"]:
-        response = requests.post("http://restocker:4000/order", json=json.dumps(order_dict))
+        url = service_url("auto-restocker", workflows[store_id])
+        url = url + "/" + store_id
+        logging.info("A.R. URL: " + url)
+        response = requests.post(url, json=json.dumps(order_dict))
         logging.info("Auto-Restocker - {}, {}".format(response.status_code, response.text))
 
     # TODO: Assign delivery entity
     if "delivery-assigner" in workflows[store_id]["component-list"]:
-        response = requests.post("http://delivery-assigner:3000/assign-entity", json=json.dumps(order_dict))
+        url = service_url("delivery-assigner", workflows[store_id])
+        url = url + "/" + store_id
+        logging.info("D.A. URL: " + url)
+        response = requests.get(url, json=json.dumps(order_dict))
         logging.info("Delivery Assigner - {}, {}".format(response.status_code, response.text))
         if response.status_code != 200:
             # Could not assign delivery entity, but order has been created
@@ -287,6 +319,7 @@ def verify_order(data):
 # if pizza-order is valid, try to create it
 @app.route('/order', methods=['POST'])
 def order_funct():
+    logging.info("POST /order")
     data = json.loads(request.get_json())
     valid, mess = verify_order(data)
     if not valid:
