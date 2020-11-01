@@ -13,8 +13,6 @@ __maintainer__ = "Chris Scott"
 __email__ = "christopher.scott@utdallas.edu"
 __status__ = "Development"
 
-cluster = "cluster1-1.utdallas.edu"
-
 
 class Restock:
     # Restock Attribute Lists
@@ -64,6 +62,8 @@ def request_restock(q, url):
 
 
 if __name__ == "__main__":
+    cluster = "cluster1-1.utdallas.edu"
+
     print("\n*** Restock Generator Script - User Input Required ***\n")
     
     print("0 - StoreID 7098813e-4624-462a-81a1-7e0e4e67631d")
@@ -79,6 +79,30 @@ if __name__ == "__main__":
             break
 
     while True:
+        result = input("Is the Workflow utilizing the edge deployment method (y/n)? ")
+        result = result.lower()
+        if (result == "y") or (result == "n"):
+            print()
+            break
+        else:
+            print("Please respond 'y' for yes or 'n' for no. Please try again.")
+            continue
+    if result == "y":
+        while True:
+            try:
+                wkf_offset = int(input("Please enter the workflow-offset (1-3): "))
+            except ValueError:
+                print("Could not convert input data to integer. Please try again.")
+            if (wkf_offset >= 1) & (wkf_offset <= 3):
+                url = "http://" + cluster + ":" + str(5000 + wkf_offset) + "/restock"
+                print()
+                break
+            else:
+                print("Input data outside of valid input range. Please try again.")
+    else:
+        url = "http://" + cluster + ":5000/restock"
+
+    while True:
         try:
             max_restocks = int(input("Enter the number of restocks to generate (min: 1, max: 1000): "))
         except ValueError:
@@ -89,17 +113,15 @@ if __name__ == "__main__":
 
     print("\n*** Restock Generator Script - Generating Restocks ***\n")
 
-    url = "http://"+cluster+":5000/restock"
-
     q = Queue(max_restocks)
 
-    t = Thread(target=request_restock, args=(q,url))
+    t = Thread(target=request_restock, args=(q, url))
     t.daemon = True
     t.start()
 
     for _ in range(max_restocks):
         restock = Restock(store)
         q.put(restock)
-        time.sleep(3)
+        time.sleep(5)
 
     q.join()    # Wait for all Restock objects to be processed from the queue
