@@ -112,7 +112,7 @@ def _predict_stocks(store_id, item_name, history, days):
 	forecast = m.predict(future)
 	predictions = forecast['yhat'].tolist()	
 	dates = forecast['ds'].tolist()
-	result = {date: prediction for data, prediction in zip(dates, predictions)}}
+	result = {date: prediction for date, prediction in zip(dates, predictions)}
 	
 	return result
 
@@ -142,17 +142,17 @@ def periodic_auto_restock():
 
 	Timer(420.0, periodic_auto_restocker).start()
 	items = ['Dough', 'TraditionalSauce']
-        for store_id in workflows:
+	for store_id in workflows:
 		for item in items:
 			prediction, date = _predict_item_stocks(store_id, item)
-                        requests.put('http://' + worflows[store_id]['origin'] +
+                	requests.put('http://' + worflows[store_id]['origin'] +
 				'/auto-restock', json=json.dumps({"item": item,
 					"prediction" : prediction, 'date': date)
 		history[store_id] = {}
 			
 
-t = Timer(420.0, periodic_auto_restocker)
-t.start()
+#t = Timer(420.0, periodic_auto_restocker)
+#t.start()
 
 
 @app.route('/predict-stocks/<storeId>', methods=['GET'])

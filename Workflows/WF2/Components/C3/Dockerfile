@@ -16,5 +16,7 @@ RUN pip install pipenv
 RUN echo python3 --version
 RUN pipenv install --system --deploy
 
+EXPOSE 3000
+
 CMD gunicorn  -b 0.0.0.0:3000 --log-level info src.delivery_assigner:app
  

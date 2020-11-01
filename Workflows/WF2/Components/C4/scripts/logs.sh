@@ -1,2 +1,2 @@
 #!/bin/bash
-docker service logs --follow delivery-assigner
+docker service logs --follow auto-restocker
