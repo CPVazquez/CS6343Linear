@@ -235,16 +235,16 @@ def assign_entity(store_id, order):
     
     customer_info = (order['custLocation']['lat'], order['custLocation']['lon'])
    
-    #try:
-    time, entity = _get_delivery_time(entities, customer_info, store_info)
-    #except:
-    '''
+    try:
+        time, entity = _get_delivery_time(entities, customer_info, store_info)
+    except:
+    
         return (Response(
             status=502,
             response="Error in Google API!\n" +
                      "Please contact admin."
             ),)
-    '''
+    
     order['deliveredBy'] = entity
     order['estimatedTime'] = time
     logger.info("For order of Customer {} to store {}, Delivery Entity::{}, " +
@@ -373,16 +373,16 @@ def assign(storeId):
     else:
         entity, time, response = res
     
-    #try:
-    _update_order(order['orderId'], entity, time)
-    #except:
-    '''
-    return Response(
-        status=509,
-        response="Unable to update order with delivery entity and estimated time!" +
+    try:
+        _update_order(order['orderId'], entity, time)
+    except:
+    
+        return Response(
+            status=509,
+            response="Unable to update order with delivery entity and estimated time!" +
                          "Order does not exist."
-    )
-    '''
+        )
+    
     return response
 
 
