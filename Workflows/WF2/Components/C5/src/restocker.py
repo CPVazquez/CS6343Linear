@@ -28,18 +28,28 @@ cluster = Cluster([cass_IP])
 session = cluster.connect('pizza_grocery')
 
 # prepared statements
-get_quantity = session.prepare('\
-    SELECT quantity \
-    FROM stock  \
-    WHERE storeID = ? AND itemName = ?\
-')
-add_stock_prepared = session.prepare('\
-    UPDATE stock \
-    SET quantity = ?  \
-    WHERE storeID = ? AND itemName = ?\
-')
-get_stores = session.prepare("SELECT storeID FROM stores")
-get_items = session.prepare("SELECT name FROM items")
+while True:
+    try:
+        get_quantity = session.prepare('\
+            SELECT quantity \
+            FROM stock  \
+            WHERE storeID = ? AND itemName = ?\
+        ')
+        add_stock_prepared = session.prepare('\
+            UPDATE stock \
+            SET quantity = ?  \
+            WHERE storeID = ? AND itemName = ?\
+        ')
+        get_stores = session.prepare("SELECT storeID FROM stores")
+        get_items = session.prepare("SELECT name FROM items")
+    except:
+        count += 1
+        if count <= 5:
+            time.sleep(5)
+        else:
+            exit()
+    else:
+        break
 
 # set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -217,4 +227,4 @@ def scan_out_of_stock():
     threading.Timer(300, scan_out_of_stock).start()
 
 # calls the scan_out_of stock function for the first time
-scan_out_of_stock()
+#scan_out_of_stock()
