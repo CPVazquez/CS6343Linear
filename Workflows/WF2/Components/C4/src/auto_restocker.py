@@ -45,8 +45,7 @@ get_current_stock_query = session.prepare("Select quantity from stock where stor
 update_tracker_query = session.prepare("Update stockTracker set quantitySold=? where storeID=? and itemName=? and dateSold=?")
 insert_tracker_query = session.prepare('Insert into stockTracker (storeID, itemName, quantitySold, dateSold) +'
 	'VALUES (?, ?, ?, ?)')
-update_tracker_query = session.prepare('UPDATE stockTracker SET quantitySold=? WHERE storeID=? AND ' + 
-	'itemName=? AND dateSold=?')
+
 
 def pandas_factory(colnames, rows):
 	return pd.DataFrame(rows, columns=colnames)
@@ -165,10 +164,10 @@ def predict_stocks(storeId):
 			storeId, data['itemName'], data['history'], data['days']
 	))
 
-	storeId = uuid.UUID(storeId)
+	storeID = uuid.UUID(storeId)
 	data = request.get_json()
 	
-	result = _predict_stocks(storeId, data['itemName'], data['history'], data['days'])
+	result = _predict_stocks(storeID, data['itemName'], data['history'], data['days'])
 	logger.info("Predictions for item {}, for storeId {}::{}".format(
 		data['itemName'], storeId, result))
 
@@ -184,7 +183,7 @@ def get_order(storeId):
 
 	logger.info("Received order for aggregation by Auto-Restocker\n")
 	
-	storeId = uuid.UUID(storeId)
+	storeID = uuid.UUID(storeId)
 	order = request.get_json()
 	pizza_list = order['pizzaList']
 	order_date = order['orderDate']
@@ -201,10 +200,10 @@ def get_order(storeId):
 	
 	if new_date:
 		logger.info("Insert new row into stockTracker\n")
-		_insert_stock_tracker(history[storeId][order_date], storeId, order_date)
+		_insert_stock_tracker(history[storeId][order_date], storeID, order_date)
 	else:
 		logger.info("Updating row in stockTracker\n")
-		_update_stock_tracker(history[storeId][order_date], storeId, order_date)
+		_update_stock_tracker(history[storeId][order_date], storeID, order_date)
 
 	return Response(
 		status=200,
@@ -216,8 +215,6 @@ def get_order(storeId):
 def register_workflow(storeId):
 	'''REST API for registering workflow to auto-restocker service'''
     
-	storeId = uuid.UUID(storeId)
-
 	data = request.get_json()
 
 	logger.info("Received workflow request for store::{},\nspecs:{}\n".format(
@@ -248,8 +245,6 @@ def teardown_workflow(storeId):
 	
 	logger.info('Received teardown request for store::{}\n'.format(storeId))
 
-	storeId = uuid.UUID(storeId)
-
 	if storeId not in workflows:
 		logger.info('Nothing to tear down, store::{} does not exist\n'.format(storeId))
 	return Response(
@@ -270,7 +265,7 @@ def teardown_workflow(storeId):
     
 @app.route("/workflow-requests/<storeId>", methods=["GET"])
 def retrieve_workflow(storeId):
-	storeId = uuid.UUID(storeId)
+	
 	if not (storeId in workflows):
 		logger.info('Workflow not registered to auto-restocker\n')
 		return Response(
