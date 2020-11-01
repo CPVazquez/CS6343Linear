@@ -283,7 +283,8 @@ def order_manager(order_dict):
     # TODO: Send pizza order to auto-restocker
     if "auto-restocker" in workflows[store_id]["component-list"]:
         url = service_url("auto-restocker", workflows[store_id])
-        logging.info("SERVICE URL: " + url)
+        url = url + "/" + store_id
+        logging.info("A.R. URL: " + url)
         response = requests.post(url, json=json.dumps(order_dict))
         logging.info("Auto-Restocker - {}, {}".format(response.status_code, response.text))
 
@@ -292,7 +293,7 @@ def order_manager(order_dict):
         url = service_url("delivery-assigner", workflows[store_id])
         url = url + "/" + store_id
         logging.info("D.A. URL: " + url)
-        response = requests.post(url, json=json.dumps(order_dict))
+        response = requests.get(url, json=json.dumps(order_dict))
         logging.info("Delivery Assigner - {}, {}".format(response.status_code, response.text))
         if response.status_code != 200:
             # Could not assign delivery entity, but order has been created
