@@ -3,6 +3,7 @@ import logging
 import uuid
 import json
 import requests
+from datetime import datetime
 
 from cassandra.query import dict_factory
 from cassandra.cluster import Cluster
@@ -84,7 +85,8 @@ def _get_time(origin, destination):
         destination[1], API_KEY)        
     response = requests.get(url)
     content = json.loads(response.content.decode())            
-    
+    if len(content['routes']) == 0:
+        return 0 
     time = (content['routes'][0]['legs'][0]['duration']['text'])        
     return _convert_time_str(time)
        
@@ -103,8 +105,10 @@ def _get_delivery_time(delivery_entities, customer, store):
         if time < best_time:
             best_time = time
             best_entity = name 
-    
-    time = _get_time(store, customer) + best_time    
+   	
+    store_to_cust = _get_time(store, customer)
+     
+    time = store_to_cust + best_time
 
     return time, best_entity
     
@@ -129,8 +133,8 @@ def _calc_pizza_cost(ingredient_set):
     cost = 0.0
     for ingredient in ingredient_set:
         result = session.execute(select_items_query, (ingredient[0],))
-        for (name, price) in result:
-            cost += price * ingredient[1] 
+        for row in result:
+            cost += row['price'] * ingredient[1] 
     return cost
 
 def _insert_pizzas(pizza_list):
@@ -160,7 +164,7 @@ def _insert_pizzas(pizza_list):
 
         for topping in pizza["toppingList"]:
             ingredient_set.add((topping, 1))
-        
+         
         cost = _calc_pizza_cost(ingredient_set)
         session.execute(insert_pizzas_query, (pizza_uuid, ingredient_set, cost))
     
@@ -174,7 +178,7 @@ def _create_order(order_dict):
     cust_lat = order_dict["custLocation"]["lat"]
     cust_lon = order_dict["custLocation"]["lon"]
     placed_at = datetime.strptime(order_dict["orderDate"], '%Y-%m-%dT%H:%M:%S')
-
+    
     # Insert customer information into 'customers' table
     session.execute(insert_customers_query, (cust_name, cust_lat, cust_lon))
     # Insert order payment information into 'payments' table
@@ -182,10 +186,12 @@ def _create_order(order_dict):
     # Insert the ordered pizzas into 'pizzas' table
     pizza_uuid_set = _insert_pizzas(order_dict["pizzaList"])
     # Insert order into 'orderTable' table
+    
     session.execute(
         insert_order_query, 
         (order_uuid, store_uuid, cust_name, "", pizza_uuid_set, None, pay_uuid, placed_at, True, -1)
     )
+    
     # Insert order into 'orderByStore' table
     session.execute(insert_order_by_store_query, (store_uuid, placed_at, order_uuid))
     # Insert order into 'orderByCustomer' table
@@ -205,44 +211,45 @@ def assign_entity(store_id, order):
     try:
         store_info = _get_store_info(store_id)
     except:
-        return Response(
+        return (Response(
             status=409,
             response="Store ID not found in Database!\n" +
                      "Please request with valid store ID."   
-        )
+        ),)
     try:	
         entities = _get_entities(store_id)    
         if len(entities) == 0:
-            return Response(
+            return (Response(
                 status=204,
                 response="No Avaiblabe delivery entities for storeID::" + 
                          str(storeID) + "\n" +
                          "Please update delivery entities or " + 
                          "wait for entities to finish active deliveries!"            
-            )
+            ),)
     except:
-        return Response(
+        return (Response(
             status=502,
             response="Entities table in database corrupted!\n" +
                      "Please recreate delivery entities table."
-        )
+        ),)
     
-    customer_info = (order['custLocation']['lat'], order['custLocation']['long'])
+    customer_info = (order['custLocation']['lat'], order['custLocation']['lon'])
    
-    try:
-        time, entity = _get_delivery_time(entities, customer_info, store_info)
-    except:
-        return Response(
+    #try:
+    time, entity = _get_delivery_time(entities, customer_info, store_info)
+    #except:
+    '''
+        return (Response(
             status=502,
             response="Error in Google API!\n" +
                      "Please contact admin."
-            )
-
+            ),)
+    '''
     order['deliveredBy'] = entity
     order['estimatedTime'] = time
     logger.info("For order of Customer {} to store {}, Delivery Entity::{}, " +
         "Estimated Time::{} mins.".format(
-        order['custName'], storeId, entity, time
+        order['custName'], store_id, entity, time
     ))
 
     response_json = {
@@ -250,8 +257,8 @@ def assign_entity(store_id, order):
         "deliveredBy": entity,
         "estimatedTime": time
     }
-
-    return Response(
+    
+    return entity, time, Response(
         status=200,
         mimetype='application/json',
         response=json.dumps(response_json)
@@ -263,7 +270,7 @@ def register_workflow(storeId):
     '''REST API for registering workflow to delivery assigner service'''
     
     data = request.get_json()
-    storeId = uuid.UUID(storeId)
+
     logger.info("Received workflow request for store::{},\nspecs:{}\n".format(
         storeId, data))
 
@@ -291,8 +298,6 @@ def teardown_workflow(storeId):
 
     logger.info('Received teardown request for store::{}\n'.format(storeId))
 
-    storeId = uuid.UUID(storeId)
-
     if storeId not in workflows:
         logger.info('Nothing to tear down, store::{} does not exist\n'.format(storeId))
         return Response(
@@ -313,8 +318,6 @@ def teardown_workflow(storeId):
 @app.route("/workflow-requests/<storeId>", methods=["GET"])
 def retrieve_workflow(storeId):
     '''REST API for requesting details of registered store'''
-
-    storeId = uuid.UUID(storeId)
 
     if not (storeId in workflows):
         logger.info('Workflow not registered to delivery-assigner\n')
@@ -343,7 +346,7 @@ def retrieve_workflows():
 def assign(storeId):
     '''REST API for assigning best delivery entity.'''
     
-    storeId = uuid.UUID(storeId)
+    storeID = uuid.UUID(storeId)
 
     if storeId not in workflows:
         logger.info("StoreId not in workflows of delivery assigner.")
@@ -357,24 +360,49 @@ def assign(storeId):
     order = request.get_json()   
 
     if 'orderId' not in order:
-       order['orderId'] = uuid.uuid4()       
+       order['orderId'] = str(uuid.uuid4())
        _create_order(order)
     else:
-       order['orderId'] = uuid.UUID(order['orderId']
+       order['orderId'] = uuid.UUID(order['orderId'])
 
-    store_id = uuid.UUID(storeId)    
-    entity, time, response = assign_entity(store_id, order)            
-
+        
+    res = assign_entity(storeID, order)            
     
-    try:
-        _update_order(order['orderId'], entity, time)
-    except:
-        return Response(
-            status=509,
-            response="Unable to update order with delivery entity and estimated time!" +
+    if len(res) == 1:
+        return res[0]
+    else:
+        entity, time, response = res
+    
+    #try:
+    _update_order(order['orderId'], entity, time)
+    #except:
+    '''
+    return Response(
+        status=509,
+        response="Unable to update order with delivery entity and estimated time!" +
                          "Order does not exist."
-        )
+    )
+    '''
     return response
+
+
+@app.route("/workflow-update/<storeId>", methods=['PUT'])
+def update_workflow(storeId):
+    '''REST API for updating registered workflow'''
+
+    logging.info('Update request for workflow {} to delivery assigner\n'.format(storeId))
+
+    data = request.get_json()
+    
+    if not ("cass" in data["component-list"]):
+        logging.info("Workflow-request rejected, cass is a required workflow component\n")
+        return Response(status=422, response="workflow-request rejected, cass is a required workflow component\n")
+
+    workflows[storeId] = data
+
+    logging.info("Workflow updated for {}\n".format(storeId))
+
+    return Response(status=200, response="Delivery Assigner updated for {}\n".format(storeId))
 
 
 @app.route('/health', methods=['GET'])
