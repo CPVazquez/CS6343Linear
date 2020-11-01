@@ -21,11 +21,11 @@ __status__ = "Development"
 
 # set up logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
-logging.getLogger('docker').setLevel(logging.INFO)
-logging.getLogger('requests').setLevel(logging.INFO)
+logging.getLogger('docker').setLevel(logging.DEBUG)
+logging.getLogger('requests').setLevel(logging.DEBUG)
 
 # set up necessary docker clients
 client = docker.from_env()
@@ -42,6 +42,8 @@ portDict = {
     "auto-restocker": 4000,
     "restocker": 5000
 }
+
+workflowOffset = 1
 
 # set up thread lock
 thread_lock = threading.Lock()
@@ -77,9 +79,16 @@ def verify_workflow(data):
 def start_component(component, storeId, data, response_list):
     timeOut = False
     # check if service exists
-    service_filter = client.services.list(filters={'name': component})
+    comp_name = component +\
+        (str(data["workflow-offset"]) if data["method"] == "edge" else "")
+    pubPort = portDict[component] +\
+        (data["workflow-offset"] if data["method"] == "edge" else 0)
+    service_filter = client.services.list(filters={'name': comp_name})
     origin_url = "http://" + data["origin"] + ":8080/results"
+    cass_name = "cass" +\
+        (str(data["workflow-offset"]) if data["method"] == "edge" else "")
 
+    logging.debug("cassname is: " + cass_name)
     component_service = None
 
     # if not exists
@@ -90,18 +99,18 @@ def start_component(component, storeId, data, response_list):
         # create the service
         component_service = client.services.create(
             "trishaire/" + component + ":latest",  # the name of the image
-            name=component,  # name of service
+            name=comp_name,  # name of service
             endpoint_spec=docker.types.EndpointSpec(
-                mode="vip", ports={portDict[component]: portDict[component]}
+                mode="vip", ports={pubPort: portDict[component]}
             ),
-            env=["CASS_DB=cass"],  # set environment var
+            env=["CASS_DB="+cass_name],  # set environment var
             networks=['myNet'])  # set network
 
     if component == "cass":
-        count = spinup_cass(component, component_service)
+        count = spinup_cass(component, component_service, cass_name)
     else:
         count = spinup_component(
-            component, origin_url, component_service
+            component, data, origin_url, component_service
         )
 
     if (component == "cass" and count < 9) or\
@@ -123,15 +132,20 @@ def start_component(component, storeId, data, response_list):
     return timeOut
 
 
-def spinup_component(component, origin_url, component_service):
+def spinup_component(component, data, origin_url, component_service):
     count = 0
-    service_url = "http://" + component + ":" + str(portDict[component])
+    comp_name = component +\
+        (str(data["workflow-offset"]) if data["method"] == "edge" else "")
+    service_url = "http://" + comp_name + ":" + str(portDict[component])
 
     # wait for component to spin up
     while True:
         try:
+            logging.debug(service_url)
             requests.get(service_url+"/health")
-        except Exception:
+        except Exception as ex:
+            logging.debug(type(ex))
+            logging.debug(ex)
             if count < 4:
                 logging.info(
                     "Attempt " + str(count) + ", " + component +
@@ -150,14 +164,14 @@ def spinup_component(component, origin_url, component_service):
     return count
 
 
-def spinup_cass(component, component_service):
+def spinup_cass(component, component_service, cass_name):
     healthy = False
     count = 0
 
     # keep pinging the service
     while not healthy:
         # retrieve the tasks of the cass servcie
-        tasks = client.services.get(component).tasks()
+        tasks = client.services.get(cass_name).tasks()
 
         # see if at least one of the tasks is healthy
         for task in tasks:
@@ -185,12 +199,16 @@ def spinup_cass(component, component_service):
     return count
 
 
-def comp_action(action, component, storeId, data=None, response_list=None):
-    service_url = "http://" + component + ":" + str(portDict[component])
+def comp_action(action, component, storeId, data, response_list=None):
+    # check if service exists
+    comp_name = component +\
+        (str(data["workflow-offset"]) if data["method"] == "edge" else "")
+    service_url = "http://" + comp_name + ":" + str(portDict[component])
+    service_filter = None
 
     if action == "teardown":
         # check if service exists
-        service_filter = client.services.list(filters={'name': component})
+        service_filter = client.services.list(filters={'name': comp_name})
         if len(service_filter) == 0:
             return
 
@@ -212,13 +230,17 @@ def comp_action(action, component, storeId, data=None, response_list=None):
             json=json.dumps(data)
         )
     else:
-        comp_response = requests.delete(
-            service_url + "/workflow-requests/" + storeId,
-        )
-    logging.info(
-        "recieved response " + str(comp_response.status_code) +
-        " " + comp_response.text + " from " + component
-    )
+        if component != "cass":
+            comp_response = requests.delete(
+              service_url + "/workflow-requests/" + storeId)
+        if data["method"] == "edge":
+            service_filter[0].remove()
+
+    if component != "cass":
+        logging.info(
+            "recieved response " + str(comp_response.status_code) +
+            " " + comp_response.text + " from " + component
+        ) 
 
     if (action == "update" and comp_response.status_code != 200) or\
        (action == "start" and comp_response.status_code != 201):
@@ -227,18 +249,19 @@ def comp_action(action, component, storeId, data=None, response_list=None):
         thread_lock.release()
 
 
-def start_threads(action, storeId, component_list, data=None):
+def start_threads(action, storeId, component_list, data):
     thread_list = []
     response_list = []
 
     # check if the workflow request specifies cass
     if "cass" in component_list:
         # remove cass from the component-list
-        component_list.remove("cass")
-        # if starting or updating
-        if action == "start" or action == "update":
-            # startup cass first and foremost
-            comp_action("start", "cass", storeId, data, response_list)
+        if not (data["method"] == "edge" and action == "teardown"):
+            component_list.remove("cass")
+            # if starting or updating
+            if action == "start" or action == "update":
+                # startup cass first and foremost
+                comp_action("start", "cass", storeId, data, response_list)
 
     # start threads for the rest of the components
     for comp in component_list:
@@ -261,6 +284,8 @@ def start_threads(action, storeId, component_list, data=None):
 ###############################################################################
 @app.route("/workflow-requests/<storeId>", methods=["PUT"])
 def setup_workflow(storeId):
+    global workflowOffset
+
     logging.info("{:*^74}".format(
         " PUT /workflow-requests/"
         + storeId + " "
@@ -278,15 +303,6 @@ def setup_workflow(storeId):
             status=400,
             response="workflow-request ill formatted\n" + mess
         )
-    # unsuported specifications
-    if data["method"] != "persistent":
-        logging.info("Unsupported specifications")
-        logging.info("{:*^74}".format(" Request FAILED "))
-        return Response(
-            status=422,
-            response="Sorry, edge deployment method is not yet supported!\n" +
-                     "Entity could not be processed"
-        )
     # conflict
     if storeId in workflows:
         logging.info("workflow already exists")
@@ -298,6 +314,9 @@ def setup_workflow(storeId):
                      "a new one"
         )
 
+    if data["method"] == "edge":
+        data["workflow-offset"] = workflowOffset
+        workflowOffset += 1
     workflows[storeId] = data
 
     # get the list of components for the workflow
@@ -310,7 +329,8 @@ def setup_workflow(storeId):
             status=201
         )
     else:
-        start_threads("teardown", storeId, component_list)
+        component_list = data["component-list"].copy()
+        start_threads("teardown", storeId, component_list, data)
         del workflows[storeId]
         logging.info("{:*^74}".format(" Request FAILED "))
         return Response(
@@ -339,15 +359,6 @@ def update_workflow(storeId):
             status=400,
             response="workflow-request ill formatted\n" + mess
         )
-    # unsuported specifications
-    if data["method"] != "persistent":
-        logging.info("Unsupported specifications")
-        logging.info("{:*^74}".format(" Request FAILED "))
-        return Response(
-            status=422,
-            response="Sorry, edge deployment method is not yet supported!\n" +
-                     "Entity could not be processed"
-        )
     if not (storeId in workflows):
         logging.info("workflow does not exists! Nothing to update")
         logging.info("{:*^74}".format(" Request FAILED "))
@@ -367,12 +378,15 @@ def update_workflow(storeId):
 
     success = True
 
+    if data["method"] == "edge":
+        data["workflow-offset"] = workflows[storeId]["workflow-offset"]
+
     logging.info("starting components not in previous workflow")
     failed_list = start_threads("start", storeId, list_start, data)
 
     if len(failed_list) != 0:
         logging.info("failed to start new components")
-        start_threads("teardown", storeId, list_start)
+        start_threads("teardown", storeId, list_start, data)
         success = False
     else:
         logging.info("updating components in previous workflow")
@@ -387,11 +401,13 @@ def update_workflow(storeId):
                 "update", storeId, undo_update_list, workflows[storeId]
             )
             # tear down the list_start components
-            start_threads("teardown", storeId, list_start)
+            start_threads("teardown", storeId, list_start, data)
             success = False
         else:
             logging.info("removing components no longer needed")
-            start_threads("teardown", storeId, list_teardown)
+            start_threads(
+                "teardown", storeId, list_teardown, workflows[storeId]
+            )
 
     if success:
         workflows[storeId] = data
@@ -425,7 +441,7 @@ def teardown_workflow(storeId):
     # get the list of components for the workflow
     component_list = workflows[storeId]["component-list"].copy()
     # teardown components
-    start_threads("teardown", storeId, component_list)
+    start_threads("teardown", storeId, component_list, workflows[storeId])
     # delete the given workflow from the dictionary
     del workflows[storeId]
 

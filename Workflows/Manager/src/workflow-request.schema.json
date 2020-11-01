@@ -16,6 +16,10 @@
                 "enum":  ["order-verifier", "delivery-assigner", "auto-restocker", "restocker", "cass"]
             }
         },
+        "workflow-offset" : {
+            "type": "integer",
+            "description": "a way to distinguish which services are attached to which workflow in edge deployement"
+        },
         "origin": {
             "type":"string",
             "description":"host ip of the origin"
