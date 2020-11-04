@@ -240,7 +240,7 @@ def comp_action(action, component, storeId, data, response_list=None):
         logging.info(
             "recieved response " + str(comp_response.status_code) +
             " " + comp_response.text + " from " + component
-        ) 
+        )
 
     if (action == "update" and comp_response.status_code != 200) or\
        (action == "start" and comp_response.status_code != 201):
