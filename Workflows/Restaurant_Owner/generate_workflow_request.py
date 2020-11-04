@@ -131,18 +131,27 @@ def request_prediction():
         itemName = input("invalid item. please enter valid item: ")
 
     history = input("how far back do you want to look (in days): ")
+    history = str(history, "utf-8")
     while not history.isnumeric:
         history = input("thats not a number. please enter an int: ")
+        history = str(history, "utf-8")
 
     days = input("how far in advance do you want to predict (in days): ")
+    days = str(days, "utf-8")
     while not days.isnumeric:
         days = input("thats not a number. please enter an int: ")
+        days = str(days, "utf-8")
 
     predictor_json = {
         "itemName": itemName,
         "history": int(history),
         "days": int(days)
     }
+
+    logging.info(
+        "Prediction Request Generated:\n" +
+        json.dumps(predictor_json, sort_keys=True, indent=4)
+    )
 
     try:
         response = requests.get(
@@ -151,7 +160,8 @@ def request_prediction():
             json=json.dumps(predictor_json)
         )
     except Exception:
-        pass
+        logging.info(
+            "error connecting to restocker, not prediction retrieved.")
     else:
         if response.code == 200:
             logging.info("Prediction recieved!")
@@ -305,7 +315,7 @@ def startup():
           "\t3. Teardown workflow\n" +
           "\t4. Get workflow\n" +
           "\t5. Get all workflows\n"
-          "\t6. Get prediction"
+          "\t6. Get prediction\n"
           "\t0. Exit")
 
     # get the user's choice
