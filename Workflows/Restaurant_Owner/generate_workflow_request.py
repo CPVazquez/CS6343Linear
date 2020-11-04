@@ -146,7 +146,7 @@ def request_prediction():
             int(days)
         except Exception:
             days = input("thats not a number. please enter an int: ")
-        else:
+        else: 
             break
 
     predictor_json = {
