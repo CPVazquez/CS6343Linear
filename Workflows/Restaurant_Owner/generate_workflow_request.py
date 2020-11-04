@@ -131,7 +131,6 @@ def request_prediction():
         itemName = input("invalid item. please enter valid item: ")
 
     history = input("how far back do you want to look (in days): ")
-    history = history.decode("utf-8")
     while True:
         try:
             int(history)
