@@ -28,7 +28,8 @@ logging.getLogger('requests').setLevel(logging.WARNING)
 url = "http://cluster1-1.utdallas.edu:8080/workflow-requests"
 predict_url = "http://cluster1-1.utdallas.edu:"
 itemArr = ["Pepperoni", "Sausage", "Beef", "Onion", "Chicken",
-           "Peppers", "Olives", "Bacon", "Pineapple", "Mushrooms"]
+           "Peppers", "Olives", "Bacon", "Pineapple", "Mushrooms",
+           "Dough", "Cheese", "SpicySauce", "TraditionalSauce"]
 
 # set up flask app
 app = Flask(__name__)
@@ -175,7 +176,7 @@ def issue_workflow_request():
           "\t* delivery-assigner\n" +
           "\t* cass\n" +
           "\t* restocker\n" +
-          "\t* auto-restocker")
+          "\t* auto-restocker\n")
     components = input("Enter a space separated list: ")
 
     while True:
