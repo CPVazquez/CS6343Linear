@@ -128,7 +128,7 @@ def request_prediction():
 
     itemName = input("what item do you want to predict for: ")
     while not(itemName in itemArr):
-        itemName = input("invalid item. please enter valid item")
+        itemName = input("invalid item. please enter valid item: ")
 
     history = input("how far back do you want to look (in days): ")
     while not history.isnumeric:
@@ -136,27 +136,30 @@ def request_prediction():
 
     days = input("how far in advance do you want to predict (in days): ")
     while not days.isnumeric:
-        history = input("thats not a number. please enter an int: ")
+        days = input("thats not a number. please enter an int: ")
 
     predictor_json = {
         "itemName": itemName,
-        "history": history,
-        "days": history
+        "history": int(history),
+        "days": int(days)
     }
 
-    response = requests.get(
-        predict_url + str(4000 + workflow_offset) +
-        "/predict-stock/" + storeSelect,
-        json=json.dumps(predictor_json)
-    )
-
-    if response.code == 200:
-        logging.info("Prediction recieved!")
-        logging.info(
-            json.dumps(json.loads(response.text), sort_keys=True, indent=4)
+    try:
+        response = requests.get(
+            predict_url + str(4000 + workflow_offset) +
+            "/predict-stock/" + storeSelect,
+            json=json.dumps(predictor_json)
         )
+    except Exception:
+        pass
     else:
-        logging.info("Prediction failed.")
+        if response.code == 200:
+            logging.info("Prediction recieved!")
+            logging.info(
+                json.dumps(json.loads(response.text), sort_keys=True, indent=4)
+            )
+        else:
+            logging.info("Prediction failed.")
 
 
 # create a workflow-request
