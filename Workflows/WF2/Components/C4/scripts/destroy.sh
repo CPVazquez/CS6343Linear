@@ -1,1 +1,1 @@
-docker service rm delivery-assigner
+docker service rm auto-restocker

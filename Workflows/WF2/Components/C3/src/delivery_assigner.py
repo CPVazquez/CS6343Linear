@@ -4,6 +4,7 @@ import uuid
 import json
 import requests
 from datetime import datetime
+import time
 
 from cassandra.query import dict_factory
 from cassandra.cluster import Cluster
@@ -45,29 +46,42 @@ cluster = Cluster([cass_IP], load_balancing_policy=RoundRobinPolicy())
 session = cluster.connect('pizza_grocery')
 session.row_factory = dict_factory   
 
+count = 0
 #Prepared queries
-entity_query = session.prepare("Select name, latitude, longitude from " + 
-    "deliveryEntitiesByStore where storeID=? and " +
-    "onDelivery=False ALLOW FILTERING")
-store_info_query = session.prepare("Select latitude, " + 
-    "longitude from stores where storeID=?")
-update_order_query = session.prepare("Update orderTable set deliveredBy=?, " + 
-    "estimatedDeliveryTime=? where orderID=?")
-select_items_query = session.prepare('Select * from items where name=?')
-insert_pizzas_query = session.prepare("Insert into pizzas " + 
-    "(pizzaID, toppings, cost) values (?, ?, ?)")
-insert_customers_query = session.prepare("Insert into customers " +
-    "(customerName, latitude, longitude) values (?, ?, ?)")
-insert_payments_query = session.prepare("Insert into payments " +
-    "(paymentToken, method) values (?, ?)")
-insert_order_query = session.prepare("Insert into orderTable " +
-    "(orderID, orderedFrom, orderedBy, deliveredBy, containsPizzas, " +
-    "containsItems, paymentID, placedAt, active, estimatedDeliveryTime) " +
-    "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-insert_order_by_store_query = session.prepare("Insert into orderByStore (orderedFrom, " +
-    "placedAt, orderID) values (?, ?, ?)")
-insert_order_by_customer_query = session.prepare("Insert into orderByCustomer (orderedBy, " +
-    "placedAt, orderID) values (?, ?, ?)")
+while True:
+    try:
+        entity_query = session.prepare("Select name, latitude, longitude from " + 
+            "deliveryEntitiesByStore where storeID=? and " +
+            "onDelivery=False ALLOW FILTERING")
+        store_info_query = session.prepare("Select latitude, " + 
+            "longitude from stores where storeID=?")
+        update_order_query = session.prepare("Update orderTable set deliveredBy=?, " + 
+            "estimatedDeliveryTime=? where orderID=?")
+        select_items_query = session.prepare('Select * from items where name=?')
+        insert_pizzas_query = session.prepare("Insert into pizzas " + 
+            "(pizzaID, toppings, cost) values (?, ?, ?)")
+        insert_customers_query = session.prepare("Insert into customers " +
+            "(customerName, latitude, longitude) values (?, ?, ?)")
+        insert_payments_query = session.prepare("Insert into payments " +
+            "(paymentToken, method) values (?, ?)")
+        insert_order_query = session.prepare("Insert into orderTable " +
+            "(orderID, orderedFrom, orderedBy, deliveredBy, containsPizzas, " +
+            "containsItems, paymentID, placedAt, active, estimatedDeliveryTime) " +
+            "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+        insert_order_by_store_query = session.prepare("Insert into orderByStore (orderedFrom, " +
+            "placedAt, orderID) values (?, ?, ?)")
+        insert_order_by_customer_query = session.prepare("Insert into orderByCustomer (orderedBy, " +
+            "placedAt, orderID) values (?, ?, ?)")
+    except:
+        count +=1 
+        if count <= 5:
+            time.sleep(5)
+        else:
+            exit()
+
+    else:
+        break
+
 
 
 def _convert_time_str(time):
@@ -269,7 +283,7 @@ def assign_entity(store_id, order):
 def register_workflow(storeId):
     '''REST API for registering workflow to delivery assigner service'''
     
-    data = request.get_json()
+    data = json.loads(request.get_json())
 
     logger.info("Received workflow request for store::{},\nspecs:{}\n".format(
         storeId, data))
@@ -357,7 +371,7 @@ def assign(storeId):
                      "create the workflow if it doesnt exist."
 	)
 
-    order = request.get_json()   
+    order = json.loads(request.get_json())
 
     if 'orderId' not in order:
        order['orderId'] = str(uuid.uuid4())
@@ -392,7 +406,7 @@ def update_workflow(storeId):
 
     logging.info('Update request for workflow {} to delivery assigner\n'.format(storeId))
 
-    data = request.get_json()
+    data = json.loads(request.get_json())
     
     if not ("cass" in data["component-list"]):
         logging.info("Workflow-request rejected, cass is a required workflow component\n")
