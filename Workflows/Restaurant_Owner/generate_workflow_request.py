@@ -132,15 +132,22 @@ def request_prediction():
 
     history = input("how far back do you want to look (in days): ")
     history = history.decode("utf-8")
-    while not history.isnumeric:
-        history = input("thats not a number. please enter an int: ")
-        history = history.decode("utf-8")
+    while True:
+        try:
+            int(history)
+        except Exception:
+            history = input("thats not a number. please enter an int: ")
+        else:
+            break
 
     days = input("how far in advance do you want to predict (in days): ")
-    days = days.decode("utf-8")
-    while not days.isnumeric:
-        days = input("thats not a number. please enter an int: ")
-        days = days.decode("utf-8")
+    while True:
+        try:
+            int(days)
+        except Exception:
+            days = input("thats not a number. please enter an int: ")
+        else:
+            break
 
     predictor_json = {
         "itemName": itemName,
