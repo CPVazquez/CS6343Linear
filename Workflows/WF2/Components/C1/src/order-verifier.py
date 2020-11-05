@@ -305,7 +305,7 @@ def order_manager(order_dict):
         if response.status_code == 200:
             delivery = json.loads(response.text)
             message = "Order " + order_id + " for " + cust_name + " from store " + store_id
-            message += " will be delivered in " + delivery["estimatedTime"]
+            message += " will be delivered in " + str(delivery["estimatedTime"])
             message += " minutes by delivery entity " + delivery["deliveredBy"]
             report_results(store_id, message)
             return
