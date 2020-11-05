@@ -79,7 +79,7 @@ def request_order(q, url_list):
         for url in url_list:
             response = requests.post(url, json=json.dumps(order_dict))
             print("URL: {}".format(url))
-            print("Resonse: {}, {}".format(response.status_code, response.text))
+            print("Response: {}, {}".format(response.status_code, response.text))
         q.task_done()
 
 

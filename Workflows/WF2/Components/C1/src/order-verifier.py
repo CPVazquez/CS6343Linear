@@ -246,9 +246,9 @@ def service_url(component, store_id):
     if component == "restocker":
         url += "5000/restock"
     elif component == "delivery-assigner":
-        url += "3000/order/"
+        url += "3000/order"
     elif component == "auto-restocker":
-        url += "4000/order/"
+        url += "4000/order"
     return url
 
 
