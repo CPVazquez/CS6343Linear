@@ -78,11 +78,9 @@ def request_order(q, url_list):
         print("\nPizza Order Request:\n" + json.dumps(order_dict, indent=4))
         for url in url_list:
             response = requests.post(url, json=json.dumps(order_dict))
-            if (response.status_code == 201) or (response.status_code == 200):
-                print("Request Accepted - {} {}".format(str(response.status_code), response.text))
-            else:
-                print("Request Rejected - {} {}".format(str(response.status_code), response.text))
-        q.task_done()      
+            print("URL: {}".format(url))
+            print("Resonse: {}, {}".format(response.status_code, response.text))
+        q.task_done()
 
 
 if __name__ == "__main__":

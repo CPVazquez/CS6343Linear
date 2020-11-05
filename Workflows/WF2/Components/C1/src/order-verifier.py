@@ -235,8 +235,8 @@ def check_stock(order_dict):
 
 def report_results(store_id, message):
     origin_url = "http://" + workflows[store_id]["origin"] + ":8080/results"
-    r = requests.post(origin_url, json=json.dumps({"message":message}))
-    logging.info("Client: {}, {}".format(r.status_code, r.text))
+    response = requests.post(origin_url, json=json.dumps({"message":message}))
+    logging.info("Client Response: {}".format(response.status_code))
 
 
 def service_url(component, store_id):
@@ -246,9 +246,9 @@ def service_url(component, store_id):
     if component == "restocker":
         url += "5000/restock"
     elif component == "delivery-assigner":
-        url += "3000/assign-entity/" + store_id
+        url += "3000/order/"
     elif component == "auto-restocker":
-        url += "4000/order/" + store_id
+        url += "4000/order/"
     return url
 
 
@@ -262,7 +262,7 @@ def order_manager(order_dict):
     order_dict["orderId"] = str(uuid.uuid4())
     order_id = order_dict["orderId"]
     cust_name = order_dict["custName"]
-    logging.info("Processing order" + order_id + " for " + cust_name + " at store " + store_id)
+    logging.info("Processing order " + order_id + " for " + cust_name + " at store " + store_id)
 
     # Check stock to see if order can be placed. If not, restock and check again
     while True:
@@ -272,7 +272,7 @@ def order_manager(order_dict):
                 url = service_url("restocker", store_id)
                 restock_dict = {"storeID": store_id, "restock-list": restock_list}
                 response = requests.post(url, json=json.dumps(restock_dict))
-                logging.info("Restocker: {}, {}".format(response.status_code, response.text))
+                logging.info("Restocker Response: {}".format(response.status_code))
                 if response.status_code != 200:
                     message = "Restock failed at store " + store_id + ", rejected order "
                     message += order_id + " for " + cust_name
@@ -295,13 +295,13 @@ def order_manager(order_dict):
     if "auto-restocker" in workflows[store_id]["component-list"]:
         url = service_url("auto-restocker", store_id)
         response = requests.post(url, json=json.dumps(order_dict))
-        logging.info("Auto-Restocker: {}, {}".format(response.status_code, response.text))
+        logging.info("Auto-Restocker Response: {}".format(response.status_code))
 
     # Assign delivery entity
     if "delivery-assigner" in workflows[store_id]["component-list"]:
         url = service_url("delivery-assigner", store_id)
         response = requests.get(url, json=json.dumps(order_dict))
-        logging.info("Delivery Assigner: {}, {}".format(response.status_code, response.text))
+        logging.info("Delivery Assigner Response: {}".format(response.status_code))
         if response.status_code == 200:
             delivery = json.loads(response.text)
             message = "Order " + order_id + " for " + cust_name + " from store " + store_id
