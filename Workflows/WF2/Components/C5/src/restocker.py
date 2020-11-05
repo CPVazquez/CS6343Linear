@@ -161,7 +161,7 @@ def update_workflow(storeId):
 
     if not ("cass" in data["component-list"]):
         logging.info("Update rejected, cass is a required workflow component")
-        return Response(status=422, response="Update rejected, cass is a required workflow component\n")
+        return Response(status=422, response="Update rejected, cass is a required workflow component.\n")
 
     workflows[storeId] = data
 
@@ -224,8 +224,8 @@ def scan_out_of_stock():
                     session.execute(add_stock_prepared, (quantity_row.quantity + 20, store.storeid, item.name))
                     logging.info(str(store.storeid) + ", " + item.name +
                         " has " + str(quantity_row.quantity + 20.0))
-    #if app.config["ENV"] == "production": 
-    threading.Timer(300, scan_out_of_stock).start()
+    if app.config["ENV"] == "production": 
+        threading.Timer(60, scan_out_of_stock).start()
 
 # calls the scan_out_of stock function for the first time
-#scan_out_of_stock()
+scan_out_of_stock()
