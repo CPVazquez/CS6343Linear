@@ -317,7 +317,7 @@ def order_manager(order_dict):
 
     # If it got to this point, delivery-assigner not in workflow
     message = "Order " + order_id + " placed at store "
-    message += store_id " for customer " + cust_name
+    message += store_id + " for customer " + cust_name
     report_results(store_id, message)
 
 
