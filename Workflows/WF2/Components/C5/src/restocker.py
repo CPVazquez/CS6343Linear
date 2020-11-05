@@ -77,7 +77,6 @@ def verify_restock_order(data):
     try:
         jsonschema.validate(instance=data, schema=restock_schema)
     except Exception as inst:
-        logging.info("restock-order rejected, failed validation:\n" + json.dumps(data, indent=4))
         valid = False
         mess = inst.args[0]
     return valid, mess
@@ -91,8 +90,9 @@ def restocker():
     
     store_id = restock_dict["storeID"]
     if store_id not in workflows:
-        logging.info("restock-order is valid, but workflow does not exist: " + store_id)
-        return Response(status=422, response="restock-order is valid, but workflow does not exist.\n")
+        message = "restock-order is valid, but {} doesn't exist".format(store_id)
+        logging.info(message)
+        return Response(status=422, response=message)
 
     if restock_dict != None:
         valid, mess = verify_restock_order(restock_dict)
@@ -101,13 +101,15 @@ def restocker():
                 storeID = uuid.UUID(restock_dict["storeID"])
                 for item_dict in restock_dict["restock-list"]:
                     session.execute(add_stock_prepared, (item_dict["quantity"], storeID, item_dict["item-name"]))
-                response = Response(status=200, response="Filled out the following restock order:\n" + json.dumps(restock_dict))
+                message = "Restock successful:\n" + json.dumps(restock_dict)
+                logging.info(message)
+                response = Response(status=200, response=message)
             except ValueError:
                 logging.info("Exception: badly formed hexadecimal UUID string")
-                response = Response(status=400, response="Restocking order ill formated.\n'storeID' is not in valid UUID format\n")
+                response = Response(status=400, response="restock-order 'storeID' is not in valid UUID format")
         else:
             logging.info("restock-order request ill formatted")
-            response = Response(status=400, response="restock-order ill formated.\n"+mess)
+            response = Response(status=400, response="restock-order ill formated\n"+mess)
 
     logging.info(response)
     return response
@@ -142,7 +144,6 @@ def setup_workflow(storeId):
     workflows[storeId] = data
 
     logging.info("Workflow started for Store " + storeId)
-    logging.info(json.dumps(workflows[storeId], indent=4))
 
     return Response(status=201, response="Restocker deployed for {}\n".format(storeId))    
 
@@ -160,7 +161,7 @@ def update_workflow(storeId):
 
     if not ("cass" in data["component-list"]):
         logging.info("Update rejected, cass is a required workflow component")
-        return Response(status=422, response="Update rejected, cass is a required workflow component\n")
+        return Response(status=422, response="Update rejected, cass is a required workflow component.\n")
 
     workflows[storeId] = data
 
@@ -223,8 +224,8 @@ def scan_out_of_stock():
                     session.execute(add_stock_prepared, (quantity_row.quantity + 20, store.storeid, item.name))
                     logging.info(str(store.storeid) + ", " + item.name +
                         " has " + str(quantity_row.quantity + 20.0))
-    #if app.config["ENV"] == "production": 
-    threading.Timer(300, scan_out_of_stock).start()
+    if app.config["ENV"] == "production": 
+        threading.Timer(60, scan_out_of_stock).start()
 
 # calls the scan_out_of stock function for the first time
-#scan_out_of_stock()
+scan_out_of_stock()

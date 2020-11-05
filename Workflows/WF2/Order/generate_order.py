@@ -78,11 +78,9 @@ def request_order(q, url_list):
         print("\nPizza Order Request:\n" + json.dumps(order_dict, indent=4))
         for url in url_list:
             response = requests.post(url, json=json.dumps(order_dict))
-            if (response.status_code == 201) or (response.status_code == 200):
-                print("Request Accepted - {} {}".format(str(response.status_code), response.text))
-            else:
-                print("Request Rejected - {} {}".format(str(response.status_code), response.text))
-        q.task_done()      
+            print("URL: {}".format(url))
+            print("Response: {}, {}".format(response.status_code, response.text))
+        q.task_done()
 
 
 if __name__ == "__main__":
@@ -95,145 +93,115 @@ if __name__ == "__main__":
 
     print("\n*** Pizza Order Generator Script - User Input Required ***\n")
 
-    print("0 - StoreID 7098813e-4624-462a-81a1-7e0e4e67631d")
-    print("1 - StoreID 5a2bb99f-88d2-4612-ac60-774aea9b8de4")
-    print("2 - StoreID b18b3932-a4ef-485c-a182-8e67b04c208c")
-    while True:
-        try:
-            store = int(input("Select a Store Workflow by entering 0, 1, or 2: "))
-        except ValueError:
-            print("Could not convert input data to integer. Please try again.")
-        if (store >= 0) & (store <= 2):
-            print()
-            break
-        else:
-            print("Input data outside of valid input range. Please try again.")
+    # User selection of store
+    print("Which store are you generating a workflow for? \n" +
+          "\tA. 7098813e-4624-462a-81a1-7e0e4e67631d\n" +
+          "\tB. 5a2bb99f-88d2-4612-ac60-774aea9b8de4\n" +
+          "\tC. b18b3932-a4ef-485c-a182-8e67b04c208c")
+    store_select = input("Pick a store (A-C): ")
+    
+    while (store_select != "A") and (store_select != "B") and (store_select != "C"):
+        store_select = input("Invalid input. Pick A-C: ")
 
-    while True:
-        result = input("Is the Workflow utilizing the edge deployment method (y/n)? ")
-        result = result.lower()
-        if (result == "y") or (result == "n"):
-            print()
-            break
-        else:
-            print("Please respond 'y' for yes or 'n' for no. Please try again.")
-            continue
-    if result == "y":
-        while True:
-            try:
-                wkf_offset = int(input("Please enter the workflow-offset (1-3): "))
-            except ValueError:
-                print("Could not convert input data to integer. Please try again.")
-            if (wkf_offset >= 1) & (wkf_offset <= 3):
-                for comp in port_dict:
-                    port_dict[comp] += wkf_offset
-                print()
-                break
-            else:
-                print("Input data outside of valid input range. Please try again.")  
+    if store_select == "A":
+        store = 0
+    elif store_select == "B":
+        store = 1
+    else:
+        store = 2
 
+    # Deployment method selection
+    deployment = input("\nWhat is the deployment method (persistent or edge)? ")
+
+    while (deployment != "persistent") and (deployment != "edge"):
+        deployment = input("Invalid input. Type persistent or edge: ")
+
+    if deployment == "edge":
+        wkf_offset = input("Please enter the workflow-offset (1-3): ")
+        while (wkf_offset != "1") and (wkf_offset != "2") and (wkf_offset != "3"):
+            wkf_offset = input("Invalid input. Type 1-3: ")
+        for comp in port_dict:
+            port_dict[comp] += int(wkf_offset)
+
+    # Component URL(s)
     url_list = list()
-    while True:
-        result = input("Is Order Verifier included in this Workflow (y/n)? ")
-        result = result.lower()
-        if result == "y":
-            url_list.append("http://" + cluster + ":" + str(port_dict["order-verifier"]) + "/order")
-            print()
-            break
-        elif result == "n":
-            print()
-            break
-        else:
-            print("Please respond 'y' for yes or 'n' for no. Please try again.")
-            continue
-    if result == "n":
-        while True:
-            result = input("Is Delivery Assigner included in this Workflow (y/n)? ")
-            result = result.lower()
-            if result == "y":
-                url_list.append("http://" + cluster + ":" + str(port_dict["delivery-assigner"]) + "/order")
-                print()
-                break
-            elif result == "n":
-                print()
-                break
-            else:
-                print("Please respond 'y' for yes or 'n' for no. Please try again.")
-                continue
-        while True:
-            result = input("Is Auto-Restocker included in this Workflow (y/n)? ")
-            result = result.lower()
-            if result == "y":
-                url_list.append("http://" + cluster + ":" + str(port_dict["auto-restocker"]) + "/order")
-                print()
-                break
-            elif result == "n":
-                print()
-                break
-            else:
-                print("Please respond 'y' for yes or 'n' for no. Please try again.")
-                continue
+    result = input("\nIs Order Verifier included in this Workflow (y/n)? ")
 
+    while (result != "y") and (result != "n"):
+        result = input("Invalid input. Type y or n: ") 
+
+    if result == "y":
+            url_list.append("http://" + cluster + ":" + str(port_dict["order-verifier"]) + "/order")
+    else:
+        result = input("\nIs Delivery Assigner included in this Workflow (y/n)? ")
+        while (result != "y") and (result != "n"):
+            result = input("Invalid input. Type y or n: ") 
+        if result == "y":
+            url_list.append("http://" + cluster + ":" + str(port_dict["delivery-assigner"]) + "/order")
+
+        result = input("\nIs Auto-Restocker included in this Workflow (y/n)? ")
+        while (result != "y") and (result != "n"):
+            result = input("Invalid input. Type y or n: ")
+        if result == "y":
+            url_list.append("http://" + cluster + ":" + str(port_dict["auto-restocker"]) + "/order")
+
+    # Start date selection
     while True:
-        valid = True
-        result = input("Please enter the start date in format MM-DD-YYYY: ")
+        result = input("\nPlease enter the start date in format MM-DD-YYYY: ")
         try:
             month, day, year = result.split("-")
             start_date = datetime(int(year), int(month), int(day))
+            break
         except:
-            valid = False
-            print("Invalid date. Please try again.")
-        if valid:
-            print()
-            break
+            print("Invalid input. Please try again.")
 
+    # Days to generate orders
     while True:
         try:
-            num_days = int(input("Enter the number of days to generate orders (min: 1, max: 365): "))
-        except ValueError:
-            print("Could not convert input data to integer. Please try again.")
-        if (num_days >= 1) & (num_days <= 365):
-            print()
-            break
-        else:
-            print("Input data outside of valid input range. Please try again.")
+            num_days = int(input("\nEnter the number of days to generate orders (min: 1, max: 365): "))
+            if 1 <= num_days <= 365:
+                break
+            else:
+                continue
+        except:
+            print("Invalid input. Please try again.")
 
+    # Order generated per day
     while True:
         try:
-            orders_per_day = int(input("Enter the number of orders to generate per day (min: 1, max: 1000): "))
-        except ValueError:
-            print("Could not convert input data to integer. Please try again.")
-        if (orders_per_day >= 1) & (orders_per_day <= 1000):
-            print()
-            break
-        else:
-            print("Input data outside of valid input range. Please try again.")
+            orders_per_day = int(input("\nEnter the number of orders to generate per day (min: 1, max: 60): "))
+            if 1 <= orders_per_day <= 60:
+                break
+            else:
+                continue
+        except:
+            print("Invalid input. Please try again.")
 
+    # Max pizzas per order
     while True:
         try:
-            max_pizzas = int(input("Enter the maximum number of pizzas per order (min: 1, max: 20): "))
-        except ValueError:
-            print("Could not convert input data to integer. Please try again.")
-        if (max_pizzas >= 1) & (max_pizzas <= 20):
-            print()
-            break
-        else:
-            print("Input data outside of valid input range. Please try again.")
+            max_pizzas = int(input("\nEnter the maximum number of pizzas per order (min: 1, max: 20): "))
+            if 1 <= max_pizzas <= 20:
+                break
+            else:
+                continue
+        except:
+            print("Invalid input. Please try again.")
 
     print("\n*** Pizza Order Generator Script - Generating Orders ***")
 
     total_orders = num_days * orders_per_day
-
     q = Queue(total_orders)
 
     t = threading.Thread(target=request_order, args=(q,url_list))
     t.daemon = True
     t.start()
 
-    date_offset = -1
+    date_offset = 0
     for i in range(total_orders):
-        if (i % orders_per_day) == 0:
+        if (i != 0) and ((i % orders_per_day) == 0):
             date_offset += 1
+            time.sleep(60 - orders_per_day)
         date_str = (start_date + timedelta(days=date_offset)).isoformat()
         pizza_order = PizzaOrder(store, date_str, max_pizzas)
         q.put(pizza_order)

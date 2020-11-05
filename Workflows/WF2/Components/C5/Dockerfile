@@ -8,7 +8,7 @@ LABEL status="Development"
 
 ENV PYTHONBUFFERED 1
 ENV PYTHONFAULTHANDLER 1
-ENV FLASK_ENV prodcution
+ENV FLASK_ENV production
 
 COPY . /app
 WORKDIR /app
