@@ -26,6 +26,10 @@ logging.getLogger('requests').setLevel(logging.WARNING)
 
 # create endpoint url
 url = "http://cluster1-1.utdallas.edu:8080/workflow-requests"
+predict_url = "http://cluster1-1.utdallas.edu:"
+itemArr = ["Pepperoni", "Sausage", "Beef", "Onion", "Chicken",
+           "Peppers", "Olives", "Bacon", "Pineapple", "Mushrooms",
+           "Dough", "Cheese", "SpicySauce", "TraditionalSauce"]
 
 # set up flask app
 app = Flask(__name__)
@@ -33,15 +37,17 @@ app = Flask(__name__)
 # create global var storeSelect
 storeSelect = None
 method = None
+workflow_offset = 0
+
 
 # create a workflow-request
 def update_workflow():
     global storeSelect, method
 
-    if method == None:
+    if method is None:
         # get deployment method
         method = input("What deployment method do you want to use "
-                    "(persistent or edge): ")
+                       "(persistent or edge): ")
 
         while method != "persistent" and method != "edge":
             method = input("Invalid selection. Pick persistent or edge: ")
@@ -95,7 +101,10 @@ def update_workflow():
         "\nWorkflow Request Generated:\n" +
         json.dumps(workflow_dict, sort_keys=True, indent=4)
     )
-    response = requests.put("http://cluster1-1.utdallas.edu:8080/workflow-update/" + storeSelect, json=workflow_json)
+    response = requests.put(
+        "http://cluster1-1.utdallas.edu:8080/workflow-update/" + storeSelect,
+        json=workflow_json
+    )
 
     # parse the response
     if response.status_code == 200:
@@ -107,6 +116,66 @@ def update_workflow():
             "Workflow update failed: " + str(response.status_code) + " " +
             response.text
         )
+
+
+# request prediction
+def request_prediction():
+    global storeSelect
+
+    if not(method is None) and method == "edge" and workflow_offset == 0:
+        logging.info("Method is edge, but offset is not set. getting offset")
+        get_workflow()
+
+    itemName = input("what item do you want to predict for: ")
+    while not(itemName in itemArr):
+        itemName = input("invalid item. please enter valid item: ")
+
+    history = input("how far back do you want to look (in days): ")
+    while True:
+        try:
+            int(history)
+        except Exception:
+            history = input("thats not a number. please enter an int: ")
+        else:
+            break
+
+    days = input("how far in advance do you want to predict (in days): ")
+    while True:
+        try:
+            int(days)
+        except Exception:
+            days = input("thats not a number. please enter an int: ")
+        else: 
+            break
+
+    predictor_json = {
+        "itemName": itemName,
+        "history": int(history),
+        "days": int(days)
+    }
+
+    logging.info(
+        "Prediction Request Generated:\n" +
+        json.dumps(predictor_json, sort_keys=True, indent=4)
+    )
+
+    try:
+        response = requests.get(
+            predict_url + str(4000 + workflow_offset) +
+            "/predict-stock/" + storeSelect,
+            json=json.dumps(predictor_json)
+        )
+    except Exception:
+        logging.info(
+            "error connecting to restocker, not prediction retrieved.")
+    else:
+        if response.code == 200:
+            logging.info("Prediction recieved!")
+            logging.info(
+                json.dumps(json.loads(response.text), sort_keys=True, indent=4)
+            )
+        else:
+            logging.info("Prediction failed.")
 
 
 # create a workflow-request
@@ -126,7 +195,7 @@ def issue_workflow_request():
           "\t* delivery-assigner\n" +
           "\t* cass\n" +
           "\t* restocker\n" +
-          "\t* auto-restocker")
+          "\t* auto-restocker\n")
     components = input("Enter a space separated list: ")
 
     while True:
@@ -199,8 +268,12 @@ def issue_workflow_teardown():
 
 # retreive an existing workflow-request
 def get_workflow():
+    global workflow_offset, method
     response = requests.get(url + "/" + storeSelect)
     if response.status_code == 200:
+        respJson = json.loads(response.text)
+        if not(method is None) and method == "edge":
+            workflow_offset = respJson["workflow-offset"]
         logging.info(
             json.dumps(json.loads(response.text), sort_keys=True, indent=4)
         )
@@ -248,13 +321,15 @@ def startup():
           "\t3. Teardown workflow\n" +
           "\t4. Get workflow\n" +
           "\t5. Get all workflows\n"
+          "\t6. Get prediction\n"
           "\t0. Exit")
 
     # get the user's choice
     while True:
-        choice = input("Pick an option (0-5): ")
+        choice = input("Pick an option (0-6): ")
         while choice != "1" and choice != "2" and choice != "3" and\
-                choice != "4" and choice != "5" and choice != "0":
+                choice != "4" and choice != "5" and choice != "6" and\
+                choice != "0":
 
             choice = input("Invalid selection. Pick 0-5: ")
 
@@ -268,6 +343,8 @@ def startup():
             get_workflow()
         elif choice == "5":  # retrieve all workflow-requests
             get_workflows()
+        elif choice == "6":
+            request_prediction()
         else:  # exit
             t.terminate()
             break
