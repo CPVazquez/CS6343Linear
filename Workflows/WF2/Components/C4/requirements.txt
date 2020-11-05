@@ -10,3 +10,4 @@ holidays
 setuptools-git
 python-dateutil
 tqdm
+requests

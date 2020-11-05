@@ -2,6 +2,9 @@ import logging
 import uuid
 import json
 from threading import Timer
+import os
+import time
+from datetime import datetime, date, timedelta
 
 from cassandra.query import dict_factory
 from cassandra.policies import RoundRobinPolicy
@@ -9,7 +12,8 @@ from cassandra.cluster import Cluster
 from flask import Flask, request, Response
 import pandas as pd
 from fbprophet import Prophet
-from datetime import date
+import requests
+
 
 __author__ = "Randeep Ahlawat"
 __version__ = "1.0.0"
@@ -40,11 +44,28 @@ cluster = Cluster([cass_IP], load_balancing_policy=RoundRobinPolicy())
 session = cluster.connect('pizza_grocery')
 
 #Prepared Queries
-get_item_stock_query = session.prepare("Select * from stockTracker where storeID=? and itemName=? and dateSold<=?")
-get_current_stock_query = session.prepare("Select quantity from stock where storeID=? and itemName=?")
-update_tracker_query = session.prepare("Update stockTracker set quantitySold=? where storeID=? and itemName=? and dateSold=?")
-insert_tracker_query = session.prepare('Insert into stockTracker (storeID, itemName, quantitySold, dateSold) +'
-	'VALUES (?, ?, ?, ?)')
+count = 0
+while True:
+	try:
+		get_item_stock_query = session.prepare("Select * from stockTracker \
+			where storeID=? and itemName=? and dateSold<=?")
+		get_current_stock_query = session.prepare("Select quantity from stock \
+			where storeID=? and itemName=?")
+		update_tracker_query = session.prepare("Update stockTracker \
+			set quantitySold=? where storeID=? and itemName=? and dateSold=?")
+		insert_tracker_query = session.prepare('Insert into stockTracker \
+			(storeID, itemName, quantitySold, dateSold) values (?, ?, ?, ?)')
+		
+	except:
+		count += 1
+		if count <= 5:
+			time.sleep(15)
+		else:
+			exit()
+	else:
+		break
+
+
 
 
 def pandas_factory(colnames, rows):
@@ -52,6 +73,7 @@ def pandas_factory(colnames, rows):
 
 
 session.row_factory = pandas_factory
+
 
 
 def _get_ingredients_dict():
@@ -83,11 +105,12 @@ def _aggregate_ingredients(pizza_list, ingredients):
 
 		for topping in pizza["toppingList"]:
 			ingredients[topping] += 1
+	return ingredients
 
 
 def _predict_item_stocks(storeId, item_name):
 	
-	values = [(key, value[item_name])for key, value in history[storeId].items()]
+	values = [(key, value[item_name]) for key, value in history[storeId].items()]
 	df = pd.DataFrame(values, columns=['ds', 'y'])
 	m = Prophet()
 	m.fit(df)
@@ -95,12 +118,12 @@ def _predict_item_stocks(storeId, item_name):
 	date = future.iloc[0,0]
 	forecast = m.predict(future)
 	prediction = forecast['yhat'].tolist()
+	logger.info("FORECAST::\n\t{}".format(forecast.to_string().replace('\n', '\n\t')))
 	return prediction, date
 
   
-def _predict_stocks(store_id, item_name, history, days):
+def _predict_stocks(store_id, item_name, history, days):	
 	
-	today = date.today()
 	rows = session.execute(get_item_stock_query, (store_id, item_name, today))
 	df = rows._current_rows
 	df = df[['datesold','quantitysold']].sort_values(['datesold'], ascending=False)	
@@ -119,53 +142,55 @@ def _predict_stocks(store_id, item_name, history, days):
 
 def _update_stock_tracker(ingredients, storeId, date):
 
-	ingredient_list = ['Dough', 'Traditional Sauce']
-
+	ingredient_list = ['Dough', 'TraditionalSauce']
+	
 	for ingredient in ingredient_list:
-		session.execute(update_tracker_query, ingredients[ingredient], 
-			storeId, ingredient, date)
+		session.execute(update_tracker_query, (ingredients[ingredient], 
+			storeId, ingredient, date))
 
 
 def _insert_stock_tracker(ingredients, storeId, date):
 	
-	ingredient_list = ['Dough', 'Traditional Sauce']
+	ingredient_list = ['Dough', 'TraditionalSauce']
 	
 	for ingredient in ingredient_list:
-		session.execute(insert_tracker_query, storeId, ingredient,
-			ingredients[ingredient], date)
+		session.execute(insert_tracker_query, (storeId, ingredient,
+			ingredients[ingredient], date))
 
 
 def periodic_auto_restock():
 	'''Function to periodically predict weekly sales for items'''
 	
 	logger.info("Weekly analysis of items initiating\n")
-
-	Timer(420.0, periodic_auto_restocker).start()
+	
+	Timer(420.0, periodic_auto_restock).start()
 	items = ['Dough', 'TraditionalSauce']
 	for store_id in workflows:
 		for item in items:
 			prediction, date = _predict_item_stocks(store_id, item)
-                	requests.put('http://' + worflows[store_id]['origin'] +
-				'/auto-restock', json=json.dumps({"item": item,
-					"prediction" : prediction, 'date': date)
+			logger.info("Prediction for item::{}, for date::{} for store::{} ::".format(
+				item, date, store_id, prediction))
+			requests.post('http://' + worflows[store_id]['origin'] + '/results',
+				json=json.dumps({"item": item, "prediction": prediction, 'date': date}))
 		history[store_id] = {}
+	today = today + timedelta(days=7)
 			
-
-#t = Timer(420.0, periodic_auto_restocker)
-#t.start()
+today = date.today() 
+t = Timer(420.0, periodic_auto_restock)
+t.start()
 
 
 @app.route('/predict-stocks/<storeId>', methods=['GET'])
 def predict_stocks(storeId):
 	'''REST API for requesting future sales of an item'''
 
+	data = json.loads(request.get_json())
 	logger.info("Received request by {} for predicting sales for" +
 		"{} using {} days for the next {} days\n".format(
 			storeId, data['itemName'], data['history'], data['days']
 	))
 
 	storeID = uuid.UUID(storeId)
-	data = request.get_json()
 	
 	result = _predict_stocks(storeID, data['itemName'], data['history'], data['days'])
 	logger.info("Predictions for item {}, for storeId {}::{}".format(
@@ -177,24 +202,24 @@ def predict_stocks(storeId):
 	)
 
 
-@app.route('/order/<storeId>', methods=['POST'])
-def get_order(storeId):
+@app.route('/order', methods=['POST'])
+def get_order():
 	'''REST API for storing order'''
 
 	logger.info("Received order for aggregation by Auto-Restocker\n")
 	
+	order = json.loads(request.get_json())
+	storeId = order['storeId']
 	storeID = uuid.UUID(storeId)
-	order = request.get_json()
 	pizza_list = order['pizzaList']
-	order_date = order['orderDate']
+	order_date = datetime.strptime(order["orderDate"], '%Y-%m-%dT%H:%M:%S').date()
 
 	new_date = False
-
+		
 	if order_date not in history[storeId]:
-		history[storeId][order_date] = _get_ingredients_dict()
+		history[storeId][order_date] = _get_ingredients_dict()		
 		new_date = True
-	
-	
+			
 	history[storeId][order_date] = _aggregate_ingredients(pizza_list, history[storeId][order_date])
 	
 	
@@ -205,6 +230,7 @@ def get_order(storeId):
 		logger.info("Updating row in stockTracker\n")
 		_update_stock_tracker(history[storeId][order_date], storeID, order_date)
 
+	
 	return Response(
 		status=200,
 		response="Order accepted and aggregated\n"
@@ -215,7 +241,7 @@ def get_order(storeId):
 def register_workflow(storeId):
 	'''REST API for registering workflow to auto-restocker service'''
     
-	data = request.get_json()
+	data = json.loads(request.get_json())
 
 	logger.info("Received workflow request for store::{},\nspecs:{}\n".format(
 		storeId, data))
@@ -247,12 +273,12 @@ def teardown_workflow(storeId):
 
 	if storeId not in workflows:
 		logger.info('Nothing to tear down, store::{} does not exist\n'.format(storeId))
-	return Response(
-		status=404, 
-		response="Workflow does not exist for delivery assigner!\n" +
+		return Response(
+			status=404, 
+			response="Workflow does not exist for delivery assigner!\n" +
 			"Nothing to tear down.\n"
-	)
-
+		)
+	
 	del workflows[storeId]
 	del history[storeId]    
 

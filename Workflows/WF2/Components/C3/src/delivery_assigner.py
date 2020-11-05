@@ -356,10 +356,12 @@ def retrieve_workflows():
     )
 
 
-@app.route('/assign-entity/<storeId>', methods=['GET'])
-def assign(storeId):
+@app.route('/order', methods=['GET'])
+def assign():
     '''REST API for assigning best delivery entity.'''
-    
+ 
+    order = json.loads(request.get_json())
+    storeId = order['storeId']
     storeID = uuid.UUID(storeId)
 
     if storeId not in workflows:
@@ -371,7 +373,6 @@ def assign(storeId):
                      "create the workflow if it doesnt exist."
 	)
 
-    order = json.loads(request.get_json())
 
     if 'orderId' not in order:
        order['orderId'] = str(uuid.uuid4())
