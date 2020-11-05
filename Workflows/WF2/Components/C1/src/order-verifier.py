@@ -233,16 +233,22 @@ def check_stock(order_dict):
     return in_stock_dict, req_item_dict, restock_list
 
 
-def service_url(component, data):
+def report_results(store_id, message):
+    origin_url = "http://" + workflows[store_id]["origin"] + ":8080/results"
+    r = requests.post(origin_url, json=json.dumps({"message":message}))
+    logging.info("Client: {}, {}".format(r.status_code, r.text))
+
+
+def service_url(component, store_id):
     comp_name = component +\
-        (str(data["workflow-offset"]) if data["method"] == "edge" else "")
+        (str(workflows[store_id]["workflow-offset"]) if workflows[store_id]["method"] == "edge" else "")
     url = "http://" + comp_name + ":"
     if component == "restocker":
         url += "5000/restock"
     elif component == "delivery-assigner":
-        url += "3000/assign-entity"
+        url += "3000/assign-entity/" + store_id
     elif component == "auto-restocker":
-        url += "4000/order"
+        url += "4000/order/" + store_id
     return url
 
 
@@ -250,29 +256,34 @@ def service_url(component, data):
 def order_manager(order_dict):
     store_id = order_dict["storeId"]
     if not (store_id in workflows):
-        logging.info("Request is valid, but workflow does not exist.")
-        return Response(status=422, response="Order request is valid, but workflow does not exist.")
-
-    order_dict["orderId"] = str(uuid.uuid4())  # Assign order_id to order_dict
+        logging.info("valid pizza-order, but {} doesn't exist".format(store_id))
+        return
+        
+    order_dict["orderId"] = str(uuid.uuid4())
     order_id = order_dict["orderId"]
-    logging.info("Order assigned ID " + order_id)
+    cust_name = order_dict["custName"]
+    logging.info("Processing order" + order_id + " for " + cust_name + " at store " + store_id)
 
     # Check stock to see if order can be placed. If not, restock and check again
     while True:
         in_stock_dict, req_item_dict, restock_list = check_stock(order_dict)
         if restock_list:
             if "restocker" in workflows[store_id]["component-list"]:
-                url = service_url("restocker", workflows[store_id])
-                logging.info("SERVICE URL: " + url)
+                url = service_url("restocker", store_id)
                 restock_dict = {"storeID": store_id, "restock-list": restock_list}
                 response = requests.post(url, json=json.dumps(restock_dict))
-                logging.info("Restocker - {}, {}".format(response.status_code, response.text))
+                logging.info("Restocker: {}, {}".format(response.status_code, response.text))
                 if response.status_code != 200:
-                    # Restock unsuccesful, must reject order request
-                    return Response(status=424, response="{}, {}".format(response.status_code, response.text))
+                    message = "Restock failed at store " + store_id + ", rejected order "
+                    message += order_id + " for " + cust_name
+                    report_results(store_id, message)
+                    return
             else:
-                logging.info("{} rejected, {} insufficient stock".format(order_id, store_id))
-                return Response(status=404, response="Insufficient stock at {}\n".format(store_id))
+                message = "Order " + order_id + " for " + cust_name + " rejected, store "
+                message += store_id + " has insufficient stock"
+                logging.info(message)
+                report_results(store_id, message)
+                return
         else:
             break
 
@@ -280,27 +291,34 @@ def order_manager(order_dict):
     decrement_stock(uuid.UUID(store_id), in_stock_dict, req_item_dict)
     create_order(order_dict)
 
-    # TODO: Send pizza order to auto-restocker
+    # Send pizza order to auto-restocker
     if "auto-restocker" in workflows[store_id]["component-list"]:
-        url = service_url("auto-restocker", workflows[store_id])
-        url = url + "/" + store_id
-        logging.info("A.R. URL: " + url)
+        url = service_url("auto-restocker", store_id)
         response = requests.post(url, json=json.dumps(order_dict))
-        logging.info("Auto-Restocker - {}, {}".format(response.status_code, response.text))
+        logging.info("Auto-Restocker: {}, {}".format(response.status_code, response.text))
 
-    # TODO: Assign delivery entity
+    # Assign delivery entity
     if "delivery-assigner" in workflows[store_id]["component-list"]:
-        url = service_url("delivery-assigner", workflows[store_id])
-        url = url + "/" + store_id
-        logging.info("D.A. URL: " + url)
+        url = service_url("delivery-assigner", store_id)
         response = requests.get(url, json=json.dumps(order_dict))
-        logging.info("Delivery Assigner - {}, {}".format(response.status_code, response.text))
-        if response.status_code != 200:
-            # Could not assign delivery entity, but order has been created
-            logging.info("Order {} created, but failed to assign delivery entity".format(order_id))
-            return Response(status=response.status_code, response=response.text)
+        logging.info("Delivery Assigner: {}, {}".format(response.status_code, response.text))
+        if response.status_code == 200:
+            delivery = json.loads(response.text)
+            message = "Order " + order_id + " for " + cust_name + " from store "
+            message += store_id + " will be delivered in " + delivery["estimatedTime"]
+            message += " minutes by delivery entity " + delivery["deliveredBy"]
+            report_results(store_id, message)
+            return
+        else:
+            message = "Order " + order_id + " for " + cust_name + " created, but "
+            message += "failed to assign delivery entity at store " + store_id
+            report_results(store_id, message)
+            return
 
-    return Response(status=201, response="Order {} has been accepted".format(order_id))
+    # If it got to this point, delivery-assigner not in workflow
+    message = "Order " + order_id + " placed at store "
+    message += store_id " for customer " + cust_name
+    report_results(store_id, message)
 
 
 # validate pizza-order against schema
@@ -322,10 +340,12 @@ def order_funct():
     logging.info("POST /order")
     data = json.loads(request.get_json())
     valid, mess = verify_order(data)
-    if not valid:
+    order_manager(data)
+    if valid:
+        return Response(status=200, response="valid pizza-order request")
+    else:
         logging.info("pizza-order request ill formatted")
         return Response(status=400, response="pizza-order request ill formatted\n" + mess)
-    return order_manager(data)
 
 
 # validate workflow-request against schema
