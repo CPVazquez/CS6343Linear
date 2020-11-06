@@ -227,5 +227,5 @@ def scan_out_of_stock():
     if app.config["ENV"] == "production": 
         threading.Timer(60, scan_out_of_stock).start()
 
-# calls the scan_out_of stock function for the first time
-scan_out_of_stock()
+# calls the scan_out_of_stock function for the first time
+# scan_out_of_stock()
