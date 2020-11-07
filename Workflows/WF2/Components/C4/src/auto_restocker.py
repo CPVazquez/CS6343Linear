@@ -23,6 +23,7 @@ __status__ = "Development"
 
 '''Component for forecasting the demand of an item and automatically restocking'''
 
+today = date.today() 
 #Flask application initialzation
 app = Flask(__name__)
 
@@ -135,7 +136,7 @@ def _predict_stocks(store_id, item_name, history, days):
 	forecast = m.predict(future)
 	predictions = forecast['yhat'].tolist()	
 	dates = forecast['ds'].tolist()
-	result = {date: prediction for date, prediction in zip(dates, predictions)}
+	result = {date.strftime("%m/%d/%Y"): prediction for date, prediction in zip(dates, predictions)}
 	
 	return result
 
@@ -162,7 +163,7 @@ def periodic_auto_restock():
 	'''Function to periodically predict weekly sales for items'''
 	
 	logger.info("Weekly analysis of items initiating\n")
-	
+	global today	
 	Timer(420.0, periodic_auto_restock).start()
 	items = ['Dough', 'TraditionalSauce']
 	for store_id in workflows:
@@ -170,12 +171,12 @@ def periodic_auto_restock():
 			prediction, date = _predict_item_stocks(store_id, item)
 			logger.info("Prediction for item::{}, for date::{} for store::{} ::".format(
 				item, date, store_id, prediction))
-			requests.post('http://' + worflows[store_id]['origin'] + '/results',
-				json=json.dumps({"item": item, "prediction": prediction, 'date': date}))
+			requests.post('http://' + workflows[store_id]['origin'] + ':8080/results',
+				json=json.dumps({"message": {"item": item, "prediction": prediction,
+				'date': date.strftime("%m/%d/%Y")}}))
 		history[store_id] = {}
 	today = today + timedelta(days=7)
 			
-today = date.today() 
 t = Timer(420.0, periodic_auto_restock)
 t.start()
 
@@ -198,7 +199,7 @@ def predict_stocks(storeId):
 
 	return Response(
 		status=200,
-		response=json.dumps(result) + '/n'
+		response=json.dumps(result)
 	)
 
 
