@@ -169,7 +169,7 @@ def request_prediction():
         logging.info(
             "error connecting to restocker, not prediction retrieved.")
     else:
-        if response.code == 200:
+        if response.status_code == 200:
             logging.info("Prediction recieved!")
             logging.info(
                 json.dumps(json.loads(response.text), sort_keys=True, indent=4)
