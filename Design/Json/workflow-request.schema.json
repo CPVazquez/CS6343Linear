@@ -1,0 +1,31 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "description": "A workflow request",
+    "properties": {
+        "method": {
+            "type": "string",
+            "enum": ["persistent", "edge"],
+            "description": "deployment method for the workflow"
+        },
+        "component-list": {
+            "type": "array",
+            "description": "A list of components to deploy for this workflow",
+            "items" : {
+                "type": "string",
+                "enum":  ["order-verifier", "delivery-assigner", "auto-restocker", "restocker", "cass"]
+            }
+        },
+        "workflow-offset" : {
+            "type": "integer",
+            "description": "a way to distinguish which services are attached to which workflow in edge deployement"
+        },
+        "origin": {
+            "type":"string",
+            "format": "ipv4",
+            "description":"host ip of the origin"
+        }
+    },
+    "additionalProperties": false,
+    "required": ["method", "component-list", "origin"]
+}

@@ -1,0 +1,13 @@
+{
+    "storeId": "str2020",
+    "custName": "Alex Mason",
+    "paymentToken": "usb2374",
+    "paymentTokenType": "google pay",
+    "custLocation": { "lat": 90, "lon": 181 },
+    "pizzaList": [{
+        "crustType": "Traditional",
+        "sauceType": "Traditional",
+        "cheeseAmt": "Light",
+        "toppingList": [ "Pineapple", "Chicken" ]
+    }]
+}

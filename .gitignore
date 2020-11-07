@@ -1,0 +1,8 @@
+.DS_Store
+*/.DS_Store
+*.pytest_cache
+*.coverage
+./Workflows/WF2/Components/C3/src/config.py
+*/.vscode
+.vscode
+wkf-commands.txt

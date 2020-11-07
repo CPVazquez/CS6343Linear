@@ -1,0 +1,13 @@
+{
+    "storeId": "plo1234",
+    "custName": "Max Verstappen",
+    "paymentToken": "abgb762",
+    "paymentTokenType": "mastercard",
+    "custLocation": { "lat": 91, "lon": -180 },
+    "pizzaList": [{
+        "crustType": "Traditional",
+        "sauceType": "Traditional",
+        "cheeseAmt": "None",
+        "toppingList": [ "Pepperoni", "Sausage", "Beef", "Onion", "Chicken", "Peppers", "Olives", "Bacon", "Pineapple", "Mushrooms" ]
+    }]
+}

@@ -1,0 +1,84 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Pizza Order",
+    "type": "object",
+    "properties": {
+    "orderId": {
+        "type": "string",
+        "format": "uuid",
+        "description": "A base64 ID given to each order to identify it"
+    },
+    "storeId": {
+        "type": "string",
+        "format": "uuid",
+        "description": "A base64 ID given to each store to identify it"
+    },
+    "custName": {
+        "type": "string",
+        "description": "The name of the customer, as a single string for both first/last name"
+    },
+    "paymentToken": {
+        "type": "string",
+        "format": "uuid",
+        "description": "The token for the third-party payment service that the customer is paying with"
+    },
+    "paymentTokenType": {
+        "type": "string",
+        "description": "The type of token accepted (paypal, google pay, etc)"
+    },
+    "custLocation": {
+        "type": "object",
+        "description": "The location of the customer, in degrees latitude and longitude",
+        "properties": {
+        "lat": {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+        },
+        "lon": {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+        }
+        }
+    },
+    "orderDate": {
+        "type": "string",
+        "format": "date-time",
+        "description": "The date of order creation"
+    },
+    "pizzaList": {
+        "type": "array",
+        "description": "The list of pizzas that have been ordered",
+        "items": {
+        "type": "object",
+        "description": "A single pizza",
+        "properties": {
+            "crustType": {
+            "type": "string",
+            "enum": ["Thin", "Traditional"]
+            }, 
+            "sauceType": {
+            "type": "string",
+            "enum": ["Spicy", "Traditional"]
+            }, 
+            "cheeseAmt": {
+            "type": "string",
+            "enum": ["None", "Light", "Normal", "Extra"]
+            }, 
+            "toppingList": {
+            "type": "array",
+            "description": "The list of toppings added at extra cost. Cost verified by server",
+            "items": { 
+                "type": "string",
+                "enum": ["Pepperoni", "Sausage", "Beef", "Onion", "Chicken", "Peppers", "Olives", "Bacon", "Pineapple", "Mushrooms"]    
+            }
+            }
+        },
+        "additionalProperties": false
+        }
+    }
+    },
+    "required": ["storeId", "custName", "paymentToken", "paymentTokenType", "custLocation", "orderDate", "pizzaList"],
+    "additionalProperties": false
+}
