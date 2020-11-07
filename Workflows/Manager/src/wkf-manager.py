@@ -98,7 +98,7 @@ def start_component(component, storeId, data, response_list):
 
         # create the service
         component_service = client.services.create(
-            "trishaire/" + component + ":latest",  # the name of the image
+            "trishaire/" + component + ":linear",  # the name of the image
             name=comp_name,  # name of service
             endpoint_spec=docker.types.EndpointSpec(
                 mode="vip", ports={pubPort: portDict[component]}

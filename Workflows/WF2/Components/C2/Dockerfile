@@ -1,6 +1,6 @@
 # https://stackoverflow.com/questions/32254497/create-keyspace-automatically-inside-docker-container-with-cassandra
 # Code for this Dockerfile and entry-wrap.sh inspired by two of the answers in this stack overflow
-FROM cassandra:latest
+FROM cassandra:linear
 
 LABEL author="Carla Patricia Vazquez"
 LABEL version="1.0.0"
