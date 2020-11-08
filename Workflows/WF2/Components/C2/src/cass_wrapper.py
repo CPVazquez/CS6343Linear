@@ -87,6 +87,19 @@ def verify_workflow(data):
     return valid, mess
 
 
+# get coords
+@app.route("/coordinates/<storeId>", methods=["GET"])
+def getCoordinates(storeId):
+    coords = dict()
+    storeUUID = uuid.UUID(storeId)
+    rows = session.execute(storeCheck, (storeUUID, ))
+    for row in rows:
+        coords["latitude"] = row.latitude
+        coords["longitude"] = row.longitude
+        return Response(status=200, response=json.dumps(coords))
+    return Response(status=404, response="no store found")
+
+
 # when recieveing a workflow request
 @app.route("/workflow-requests/<storeId>", methods=['PUT'])
 def setup_workflow(storeId):

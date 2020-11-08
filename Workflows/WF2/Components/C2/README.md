@@ -58,6 +58,28 @@ session.execute(query)
 
 ## Endpoints
 
+### `GET /coordinates/<storeId>`
+
+#### Parameters
+
+| parameter | type | required | description |
+|-----------|------|----------|-------------|
+| storeId | string | true | the id of the store issuing the workflow request |
+
+#### Responses
+
+| status code | status | meaning| returned |
+|-------------|--------|--------| -------- |
+| 200 | OK | Coordinates retreived | `coordinate` object |
+| 404 | Not Found | Store does not exist, could not retrieve coordinates | N/A|
+
+`coordinate`
+
+| field | type |
+|-------|------|
+| longitude | float |
+| latitude | float |
+
 ### `PUT /workflow-requests/<storeId>`
 
 #### Parameters
