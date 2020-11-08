@@ -196,7 +196,7 @@ def issue_workflow_request():
           "\t* delivery-assigner\n" +
           "\t* cass\n" +
           "\t* restocker\n" +
-          "\t* auto-restocker\n")
+          "\t* auto-restocker")
     components = input("Enter a space separated list: ")
 
     while True:
@@ -333,7 +333,8 @@ def startup():
             get_workflows()
         elif choice == "6":
             request_prediction()
-        else:  # exit
+        else:  # tear down workflow if it exists and exit
+            issue_workflow_teardown()
             t.terminate()
             break
 
