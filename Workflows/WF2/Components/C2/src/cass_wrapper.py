@@ -16,6 +16,7 @@ __status__ = "Development"
 # Connect to Cassandra service
 session = None
 stores = 0
+ready = False
 
 while True:
     try:
@@ -36,6 +37,7 @@ while True:
         sleep(5)
     else:
         logging.info("prepared statements loaded")
+        ready = True
         break
 
 items = ['Dough', 'SpicySauce', 'TraditionalSauce', 'Cheese',
@@ -150,7 +152,10 @@ def retrieve_workflows():
 @app.route('/health', methods=['GET'])
 def health_check():
     logging.info("GET /health")
-    return Response(status=200,response="healthy\n")
+    if ready:
+        return Response(status=200,response="healthy\n")
+    else:
+        return Response(status=400,response="unhealthy\n")
 
 if __name__ == "__main__":
     app.run("0.0.0.0", 2000, False)

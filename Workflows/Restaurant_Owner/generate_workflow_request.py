@@ -297,6 +297,7 @@ def startup():
     global storeSelect, t
 
     storeSelect = str(uuid.uuid4())
+    logging.info("Store UUID is: " + storeSelect)
 
     choice = None
 
