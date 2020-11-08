@@ -31,7 +31,7 @@ docker push trishaire/cass:tag
 ```
 To create cassandra service:
 ```
-docker service create --name cass --network myNet --publish 9042:9042 trishaire/cass
+docker service create --name cass --network myNet --publish 9042:9042 --publish 2000:2000 trishaire/cass:linear
 ```
 
 ## Connecting to Cass from a python component

@@ -10,4 +10,6 @@ if [ ! -d "$CASSANDRA_HOME/data/data/pizza_grocery" ] || [ -z "$(ls $CASSANDRA_H
     echo "$0: running /opt/data/schema.cql" && until cqlsh -f opt/data/schema.cql; do >&2 echo "Cassandra is unavailable - sleeping"; sleep 2; done &
 fi
 
+ python cass_wrapper.py &
+
 exec /docker-entrypoint.sh "$@"
