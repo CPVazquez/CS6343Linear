@@ -119,6 +119,10 @@ def start_component(component, storeId, data, response_list):
 
     if component == "cass":
         count = spinup_cass(component, component_service, cass_name)
+        if count < 9:
+            count = spinup_component(
+                component, data, origin_url, component_service
+            )
     else:
         count = spinup_component(
             component, data, origin_url, component_service
