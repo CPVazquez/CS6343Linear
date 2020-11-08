@@ -37,6 +37,7 @@ while True:
         sleep(5)
     else:
         logging.info("prepared statements loaded")
+        sleep(5)
         ready = True
         break
 
@@ -158,4 +159,5 @@ def health_check():
         return Response(status=400,response="unhealthy\n")
 
 if __name__ == "__main__":
+    
     app.run("0.0.0.0", 2000, False)
