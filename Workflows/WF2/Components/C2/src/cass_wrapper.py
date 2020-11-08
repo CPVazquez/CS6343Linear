@@ -102,7 +102,7 @@ def setup_workflow(storeId):
     for i in range(1,6):
         session.execute(insertEntity, (storeUUID, "de" + str(stores) + str(i) , x, y, "AVAILABLE", False ))
     
-    return Response(status=200, response="store entered into the database")
+    return Response(status=201, response="store entered into the database")
     
 
 @app.route("/workflow-update/<storeId>", methods=['PUT'])
