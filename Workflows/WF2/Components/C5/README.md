@@ -161,4 +161,4 @@ Use the following command to run tests:
 ```
 pytest --cov=src tests
 ```
-[Main README](https://github.com/CPVazquez/CS6343)
+[Main README](https://github.com/CPVazquez/CS6343Linear)

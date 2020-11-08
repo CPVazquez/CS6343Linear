@@ -34,4 +34,4 @@ python3 generate_restock.py
 ```
 Upon running the script, the user will be prompted for the information described above.
 
-[Main README](https://github.com/CPVazquez/CS6343)
+[Main README](https://github.com/CPVazquez/CS6343Linear)

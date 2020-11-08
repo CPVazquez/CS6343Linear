@@ -87,25 +87,25 @@ To exit the virtual environment, simply type `exit` as you would when leaving th
 
 Workflow 2 is the workflow of a pizza restaurant that takes online orders. It validates the order and creates the pizza order then assigns an entity to deliver the pizza. It scans periodically to check if it needs to restock. It also does analysis as to what the stock should be for each item at the start of the day.
 
-[OrderVerifier](https://github.com/CPVazquez/CS6343/tree/master/Workflows/WF2/Components/C1)
+[OrderVerifier](https://github.com/CPVazquez/CS6343Linear/tree/main/Workflows/WF2/Components/C1)
 
-[Cass](https://github.com/CPVazquez/CS6343/tree/master/Workflows/WF2/Components/C2)
+[Cass](https://github.com/CPVazquez/CS6343Linear/tree/main/Workflows/WF2/Components/C2)
 
-[DeliveryAssigner](https://github.com/CPVazquez/CS6343/tree/master/Workflows/WF2/Components/C3)
+[DeliveryAssigner](https://github.com/CPVazquez/CS6343Linear/tree/main/Workflows/WF2/Components/C3)
 
-[AutoRestocker](https://github.com/CPVazquez/CS6343/tree/master/Workflows/WF2/Components/C4)
+[AutoRestocker](https://github.com/CPVazquez/CS6343Linear/tree/main/Workflows/WF2/Components/C4)
 
-[Restocker](https://github.com/CPVazquez/CS6343/tree/master/Workflows/WF2/Components/C5)
+[Restocker](https://github.com/CPVazquez/CS6343Linear/tree/main/Workflows/WF2/Components/C5)
 
 ### Pizza Order Generator (Data Source)
 
-[OrderGenerator](https://github.com/CPVazquez/CS6343/tree/master/Workflows/WF2/Order)
+[OrderGenerator](https://github.com/CPVazquez/CS6343Linear/tree/main/Workflows/WF2/Order)
 
 ### Restaurant Owner (Client)
-[RestaurantOwner](https://github.com/CPVazquez/CS6343/tree/master/Workflows/Restaurant_Owner)
+[RestaurantOwner](https://github.com/CPVazquez/CS6343Linear/tree/main/Workflows/Restaurant_Owner)
 
 ### Workflow Manager 
-[Manager](https://github.com/CPVazquez/CS6343/tree/master/Workflows/Manager)
+[Manager](https://github.com/CPVazquez/CS6343Linear/tree/main/Workflows/Manager)
 
 
 <sub><a name="repositoryFootnote">1</a> an image is a single image, and a repository is a collection of images. On Dockerhub we can use a repository to hold multiple images with different tags as long as they have the same name.</sub>

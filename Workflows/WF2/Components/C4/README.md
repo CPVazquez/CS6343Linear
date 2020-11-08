@@ -44,4 +44,4 @@ Packages installed using pip:
 
     * Where `port` is `4000` for auto-restocker.
   
-[Main README](https://github.com/CPVazquez/CS6343)
+[Main README](https://github.com/CPVazquez/CS6343Linear)

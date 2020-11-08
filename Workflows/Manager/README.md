@@ -21,20 +21,20 @@ Packages installed on pipenv virtual environment:
 * requests
 
 ## Commands
-To build the image:
+* To build the image:
 
-```
-./build.sh
-```
-To update the repository:
-```
-sudo docker login
-docker push trishaire/wkf-manager:tag
-```
-To create the service, type the following command:
-```
-./service.sh
-```
+  ```
+  ./build.sh
+  ```
+* To update the repository:
+  ```
+  sudo docker login
+  docker push trishaire/wkf-manager:tag
+  ```
+* To create the container, type the following command:
+  ```
+  ./wkf.sh
+  ```
 
 ## Endpoints
 
@@ -65,7 +65,7 @@ requires a `workflow-request` json object.
 |400|Bad Request| indicates the workflow-request was ill formatted|
 |403|Forbidden|the desired workflow could not be deployed due to component dependencies|
 |409|Conflict|a workflow already exists for the specified store, and thus a new one cannot be created|
-|422|Unprocessable Entity| json is valid, but contains unsupported specifications, like edge deployment method|
+
 
 ### `DELETE /workflow-requests/<storeId>`
 
@@ -144,4 +144,4 @@ requires a `workflow-request` json object.
 
 returns string `healthy` if the service is healthy
 
-[Main README](https://github.com/CPVazquez/CS6343)
+[Main README](https://github.com/CPVazquez/CS6343Linear)

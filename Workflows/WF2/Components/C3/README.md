@@ -150,5 +150,5 @@ requires a `order` json object.
 ### `GET /health`
 returns string `healthy` if the service is healthy
 
-[Main README](https://github.com/CPVazquez/CS6343)
+[Main README](https://github.com/CPVazquez/CS6343Linear)
 
