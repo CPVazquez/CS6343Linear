@@ -1,4 +1,4 @@
-# Generate Order Script
+# Pizza-Order Generator Script
 
 ## Written By
 Chris Scott
