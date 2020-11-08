@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-"""A file that tests whether or not the cassandra container is ready for connections
+"""A file that tests whether or not the cassandra container is ready for
+connections
 """
 import logging
-import json
 from time import sleep
 
 import docker
@@ -14,7 +14,8 @@ __email__ = "cpv150030@utdallas.edu"
 __status__ = "Development"
 
 # establish logging
-logging.basicConfig(level=logging.DEBUG, 
+logging.basicConfig(
+    level=logging.DEBUG,
     format='%(asctime)s - %(levelname)s - %(message)s')
 
 # set default state of healthy to false
@@ -25,7 +26,7 @@ client = docker.from_env()
 # get docker AIP client
 APIclient = docker.APIClient(base_url='unix://var/run/docker.sock')
 
-while not healthy : 
+while not healthy:
     # retrieve the tasks of the cass servcie
     tasks = client.services.get("cass").tasks()
 
@@ -34,8 +35,8 @@ while not healthy :
         tID = task['ID']
         result = APIclient.inspect_task(tID)['Status']['Message']
         if result == 'started':
-            healthy = True    
-    
+            healthy = True
+
     # if none of the tasks are healthy, wait a bit before
     # trying again
     if not healthy:

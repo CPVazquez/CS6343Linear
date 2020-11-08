@@ -21,11 +21,11 @@ __status__ = "Development"
 
 # set up logging
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
-logging.getLogger('docker').setLevel(logging.DEBUG)
-logging.getLogger('requests').setLevel(logging.DEBUG)
+logging.getLogger('docker').setLevel(logging.INFO)
+logging.getLogger('requests').setLevel(logging.INFO)
 
 # set up necessary docker clients
 client = docker.from_env()
@@ -88,7 +88,6 @@ def start_component(component, storeId, data, response_list):
     cass_name = "cass" +\
         (str(data["workflow-offset"]) if data["method"] == "edge" else "")
 
-    logging.debug("cassname is: " + cass_name)
     component_service = None
 
     # if not exists
@@ -102,7 +101,7 @@ def start_component(component, storeId, data, response_list):
                 "trishaire/" + component + ":linear",  # the name of the image
                 name=comp_name,  # name of service
                 endpoint_spec=docker.types.EndpointSpec(
-                    mode="vip", ports={pubPort: portDict[component] }
+                    mode="vip", ports={pubPort: portDict[component]}
                 ),
                 env=["CASS_DB="+cass_name],  # set environment var
                 networks=['myNet'])  # set network
@@ -113,7 +112,8 @@ def start_component(component, storeId, data, response_list):
                 "trishaire/" + component + ":linear",  # the name of the image
                 name=comp_name,  # name of service
                 endpoint_spec=docker.types.EndpointSpec(
-                    mode="vip", ports={pubPort: portDict[component], portCass: 9042}
+                    mode="vip", ports={pubPort: portDict[component],
+                                       portCass: 9042}
                 ),
                 networks=['myNet'])  # set network
 
@@ -202,9 +202,6 @@ def spinup_cass(component, component_service, cass_name):
                     "Attempt " + str(count) + ", " + component +
                     " is not ready"
                 )
-                # message = "Attempting to spin up cass"
-                # message_dict = {"message": message}
-                # requests.post(origin_url, None, json.dumps(message_dict))
                 sleep(5)
                 count += 1
             else:  # request timed out
@@ -244,17 +241,15 @@ def comp_action(action, component, storeId, data, response_list=None):
             json=json.dumps(data)
         )
     else:
-        if component != "cass":
-            comp_response = requests.delete(
-              service_url + "/workflow-requests/" + storeId)
+        comp_response = requests.delete(
+            service_url + "/workflow-requests/" + storeId)
         if data["method"] == "edge":
             service_filter[0].remove()
 
-    if component != "cass":
-        logging.info(
-            "recieved response " + str(comp_response.status_code) +
-            " " + comp_response.text + " from " + component
-        )
+    logging.info(
+        "recieved response " + str(comp_response.status_code) +
+        " " + comp_response.text + " from " + component
+    )
 
     if (action == "update" and comp_response.status_code != 200) or\
        (action == "start" and comp_response.status_code != 201):
@@ -269,13 +264,12 @@ def start_threads(action, storeId, component_list, data):
 
     # check if the workflow request specifies cass
     if "cass" in component_list:
-        # remove cass from the component-list
-        if not (data["method"] == "edge" and action == "teardown"):
+        # if starting
+        if action == "start":
+            # remove cass from the component-list
             component_list.remove("cass")
-            # if starting or updating
-            if action == "start" or action == "update":
-                # startup cass first and foremost
-                comp_action("start", "cass", storeId, data, response_list)
+            # startup cass first and foremost
+            comp_action("start", "cass", storeId, data, response_list)
 
     # start threads for the rest of the components
     for comp in component_list:
