@@ -128,8 +128,7 @@ def start_component(component, storeId, data, response_list):
             component, data, origin_url, component_service
         )
 
-    if (component == "cass" and count < 9) or\
-       (component != "cass" and count < 4):
+    if count < 4:
         logging.info("SUCCESS: " + component + " is healthy")
         # send update to the restaurant owner
         message = "Component " + component +\
