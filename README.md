@@ -81,6 +81,15 @@ pipenv shell
 ```
 To exit the virtual environment, simply type `exit` as you would when leaving the terminal.
 
+To run a command in the virtual environment without entering the shell you can type:
+```
+pipenv run command
+```
+Before entering a virtual environment for the first time, or entering one that has been updated it may be necessary to sync it to apply all dependencies.
+```
+pipenv sync
+```
+
 ## Workflows
 
 ### Workflow 2
