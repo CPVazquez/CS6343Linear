@@ -72,7 +72,7 @@ def setup_workflow(storeId):
     global session, stores
 
     logging.info("PUT /workflow-requests/" + storeId)
-    data = request.get_json()
+    data = json.loads(request.get_json())
     valid, mess = verify_workflow(data)
 
     if not valid:
@@ -108,7 +108,7 @@ def setup_workflow(storeId):
 @app.route("/workflow-update/<storeId>", methods=['PUT'])
 def update_workflow(storeId):
     logging.info("PUT /workflow-update/" + storeId)
-    data = request.get_json()
+    data = json.loads(request.get_json())
     valid, mess = verify_workflow(data)
 
     if not valid:
