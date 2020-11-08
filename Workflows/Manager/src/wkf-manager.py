@@ -245,6 +245,15 @@ def comp_action(action, component, storeId, data, response_list=None):
             service_url + "/workflow-requests/" + storeId)
         if data["method"] == "edge":
             service_filter[0].remove()
+        else:  # if no other workflow is using it, remove it.
+            canTearDown = True
+            for store in workflows:
+                if store != storeId:
+                    if component in workflows[store]["component-list"]:
+                        canTearDown = False
+                        break
+            if canTearDown:
+                service_filter[0].remove()
 
     logging.info(
         "recieved response " + str(comp_response.status_code) +
