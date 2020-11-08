@@ -58,7 +58,7 @@ docker tag local-image:tagname new-repo:tagname
 where new-repo must contain the prefix `trishaire/` for example:
 
 ```
-docker tag restocker:latest trishaire/restocker:latest
+docker tag restocker:linear trishaire/restocker:linear
 ```
 ### To push an image to the repository
 ```

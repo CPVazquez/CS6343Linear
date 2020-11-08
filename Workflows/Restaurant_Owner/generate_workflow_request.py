@@ -6,6 +6,7 @@ import json
 import logging
 import multiprocessing
 import socket
+import uuid
 from time import sleep
 
 import requests
@@ -295,22 +296,8 @@ def get_workflows():
 def startup():
     global storeSelect, t
 
-    # pick the store this restaurant is representing
-    print("Which store are you generating a workflow for? \n" +
-          "\tA. 7098813e-4624-462a-81a1-7e0e4e67631d\n" +
-          "\tB. 5a2bb99f-88d2-4612-ac60-774aea9b8de4\n" +
-          "\tC. b18b3932-a4ef-485c-a182-8e67b04c208c")
-    storeSelect = input("Pick a store (A-C): ")
-
-    while storeSelect != "A" and storeSelect != "B" and storeSelect != "C":
-        storeSelect = input("Invalid selection. Pick A-C: ")
-
-    if storeSelect == "A":
-        storeSelect = "7098813e-4624-462a-81a1-7e0e4e67631d"
-    elif storeSelect == "B":
-        storeSelect = "5a2bb99f-88d2-4612-ac60-774aea9b8de4"
-    else:
-        storeSelect = "b18b3932-a4ef-485c-a182-8e67b04c208c"
+    storeSelect = str(uuid.uuid4())
+    logging.info("Store UUID is: " + storeSelect)
 
     choice = None
 

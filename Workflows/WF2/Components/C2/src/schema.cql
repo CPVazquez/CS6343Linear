@@ -25,10 +25,6 @@ CREATE TABLE stores (
   PRIMARY KEY (storeID)
 );
 
-INSERT INTO stores (storeID, latitude, longitude, sellsPizza) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 32.8456, -96.9172, true);
-INSERT INTO stores (storeID, latitude, longitude, sellsPizza) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 30.2672, -97.7431, true);
-INSERT INTO stores (storeID, latitude, longitude, sellsPizza) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 29.7604, -95.3698, true);
-
 CREATE TABLE items (
   name TEXT,
   price FLOAT,
@@ -57,51 +53,6 @@ CREATE TABLE stock (
   PRIMARY KEY (storeID, itemName),
 );
 
-INSERT INTO stock (storeID, itemName, quantity) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'Pepperoni', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'Sausage', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'Beef', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'Onion', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'Chicken', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'Peppers', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'Olives', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'Bacon', 100); 
-INSERT INTO stock (storeID, itemName, quantity) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'Pineapple', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'Mushrooms', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'Dough', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'Cheese', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'SpicySauce', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'TraditionalSauce', 100);
-
-INSERT INTO stock (storeID, itemName, quantity) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'Pepperoni', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'Sausage', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'Beef', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'Onion', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'Chicken', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'Peppers', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'Olives', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'Bacon', 100); 
-INSERT INTO stock (storeID, itemName, quantity) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'Pineapple', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'Mushrooms', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'Dough', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'Cheese', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'SpicySauce', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'TraditionalSauce', 100);
-
-INSERT INTO stock (storeID, itemName, quantity) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'Pepperoni', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'Sausage', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'Beef', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'Onion', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'Chicken', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'Peppers', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'Olives', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'Bacon', 100); 
-INSERT INTO stock (storeID, itemName, quantity) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'Pineapple', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'Mushrooms', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'Dough', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'Cheese', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'SpicySauce', 100);
-INSERT INTO stock (storeID, itemName, quantity) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'TraditionalSauce', 100);
-
 CREATE TABLE pizzas (
   pizzaID UUID,
   toppings SET<TUPLE<TEXT, INT>>,
@@ -118,24 +69,6 @@ CREATE TABLE deliveryEntitiesByStore (
   onDelivery BOOLEAN,
   PRIMARY KEY (storeID, name)
 );
-
-INSERT INTO deliveryEntitiesByStore (storeID, name, latitude, longitude, status, onDelivery) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'de11', 32.8456, -96.9172, 'AVAILABLE', false);
-INSERT INTO deliveryEntitiesByStore (storeID, name, latitude, longitude, status, onDelivery) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'de12', 32.8456, -96.9172, 'AVAILABLE', false);
-INSERT INTO deliveryEntitiesByStore (storeID, name, latitude, longitude, status, onDelivery) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'de13', 32.8456, -96.9172, 'AVAILABLE', false);
-INSERT INTO deliveryEntitiesByStore (storeID, name, latitude, longitude, status, onDelivery) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'de14', 32.8456, -96.9172, 'AVAILABLE', false);
-INSERT INTO deliveryEntitiesByStore (storeID, name, latitude, longitude, status, onDelivery) VALUES (7098813e-4624-462a-81a1-7e0e4e67631d, 'de15', 32.8456, -96.9172, 'AVAILABLE', false);
-
-INSERT INTO deliveryEntitiesByStore (storeID, name, latitude, longitude, status, onDelivery) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'de21', 30.2672, -97.7431, 'AVAILABLE', false);
-INSERT INTO deliveryEntitiesByStore (storeID, name, latitude, longitude, status, onDelivery) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'de22', 30.2672, -97.7431, 'AVAILABLE', false);
-INSERT INTO deliveryEntitiesByStore (storeID, name, latitude, longitude, status, onDelivery) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'de23', 30.2672, -97.7431, 'AVAILABLE', false);
-INSERT INTO deliveryEntitiesByStore (storeID, name, latitude, longitude, status, onDelivery) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'de24', 30.2672, -97.7431, 'AVAILABLE', false);
-INSERT INTO deliveryEntitiesByStore (storeID, name, latitude, longitude, status, onDelivery) VALUES (5a2bb99f-88d2-4612-ac60-774aea9b8de4, 'de25', 30.2672, -97.7431, 'AVAILABLE', false);
-
-INSERT INTO deliveryEntitiesByStore (storeID, name, latitude, longitude, status, onDelivery) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'de31', 29.7604, -95.3698, 'AVAILABLE', false);
-INSERT INTO deliveryEntitiesByStore (storeID, name, latitude, longitude, status, onDelivery) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'de32', 29.7604, -95.3698, 'AVAILABLE', false);
-INSERT INTO deliveryEntitiesByStore (storeID, name, latitude, longitude, status, onDelivery) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'de33', 29.7604, -95.3698, 'AVAILABLE', false);
-INSERT INTO deliveryEntitiesByStore (storeID, name, latitude, longitude, status, onDelivery) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'de34', 29.7604, -95.3698, 'AVAILABLE', false);
-INSERT INTO deliveryEntitiesByStore (storeID, name, latitude, longitude, status, onDelivery) VALUES (b18b3932-a4ef-485c-a182-8e67b04c208c, 'de35', 29.7604, -95.3698, 'AVAILABLE', false);
 
 CREATE TABLE payments (
     paymentToken UUID,
