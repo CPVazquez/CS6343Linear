@@ -179,7 +179,7 @@ def update_workflow(storeId):
 
     return Response(
         status=200,
-        response="Order Verifier updated for {}\n".format(storeId))
+        response="Cass updated for {}\n".format(storeId))
 
 
 # remove workflow if it exists
