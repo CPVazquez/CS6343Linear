@@ -38,7 +38,7 @@ app = Flask(__name__)
 portDict = {
     "order-verifier": 1000,
     "delivery-assigner": 3000,
-    "cass": 9042,
+    "cass": 2000,
     "auto-restocker": 4000,
     "restocker": 5000
 }
@@ -96,15 +96,26 @@ def start_component(component, storeId, data, response_list):
         logging.info(component + " doesn't exist")
         logging.info("Spinning up " + component + " ")
 
-        # create the service
-        component_service = client.services.create(
-            "trishaire/" + component + ":linear",  # the name of the image
-            name=comp_name,  # name of service
-            endpoint_spec=docker.types.EndpointSpec(
-                mode="vip", ports={pubPort: portDict[component]}
-            ),
-            env=["CASS_DB="+cass_name],  # set environment var
-            networks=['myNet'])  # set network
+        if component != "cass":
+            # create the service
+            component_service = client.services.create(
+                "trishaire/" + component + ":linear",  # the name of the image
+                name=comp_name,  # name of service
+                endpoint_spec=docker.types.EndpointSpec(
+                    mode="vip", ports={pubPort: portDict[component] }
+                ),
+                env=["CASS_DB="+cass_name],  # set environment var
+                networks=['myNet'])  # set network
+        else:
+            portCass = 9042 +\
+                (data["workflow-offset"] if data["method"] == "edge" else 0)
+            component_service = client.services.create(
+                "trishaire/" + component + ":linear",  # the name of the image
+                name=comp_name,  # name of service
+                endpoint_spec=docker.types.EndpointSpec(
+                    mode="vip", ports={pubPort: portDict[component], portCass: 9042}
+                ),
+                networks=['myNet'])  # set network
 
     if component == "cass":
         count = spinup_cass(component, component_service, cass_name)
@@ -214,7 +225,7 @@ def comp_action(action, component, storeId, data, response_list=None):
 
     if action == "start":
         timeOut = start_component(component, storeId, data, response_list)
-        if component == "cass" or timeOut:
+        if timeOut:
             return
 
     # send workflow_request to component

@@ -69,7 +69,7 @@ def setup_workflow(storeId):
     global session, stores
 
     logging.info("PUT /workflow-requests/" + storeId)
-    data = request.get_json()#json.loads(request.get_json()) fix this back
+    data = json.loads(request.get_json())
     valid, mess = verify_workflow(data)
 
     if not valid:
