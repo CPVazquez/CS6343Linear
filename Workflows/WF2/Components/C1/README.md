@@ -165,4 +165,4 @@ Requires a `workflow-request` json object.
 
 Returns string `healthy` if the service is healthy
 
-[Main README](hhttps://github.com/CPVazquez/CS6343Linear)
+[Main README](https://github.com/CPVazquez/CS6343Linear)
