@@ -1,3 +1,9 @@
+""" Cass_wrapper
+
+when recieveing a workflow setup request checks to see if the store already
+exists in the database. If it does, then it just resets stock. If it doesn't,
+then preforms the necessary inserts.
+"""
 import uuid
 import random
 import json
@@ -19,6 +25,7 @@ session = None
 stores = 0
 ready = False
 
+# try connecting to cassandra
 while True:
     try:
         cluster = Cluster()
@@ -29,6 +36,7 @@ while True:
         logging.info("Connected to Cass")
         break
 
+# try preparring the statements
 while True:
     try:
         storeCheck = session.prepare("SELECT * FROM stores WHERE storeID=?")
@@ -55,6 +63,7 @@ items = ['Dough', 'SpicySauce', 'TraditionalSauce', 'Cheese',
          'Pepperoni', 'Sausage', 'Beef', 'Onion', 'Chicken', 'Peppers',
          'Olives', 'Bacon', 'Pineapple', 'Mushrooms']
 
+# create workflow dictionalry
 workflows = dict()
 
 # Create Flask app
@@ -78,6 +87,7 @@ def verify_workflow(data):
     return valid, mess
 
 
+# when recieveing a workflow request
 @app.route("/workflow-requests/<storeId>", methods=['PUT'])
 def setup_workflow(storeId):
     global session, stores
@@ -86,6 +96,7 @@ def setup_workflow(storeId):
     data = json.loads(request.get_json())
     valid, mess = verify_workflow(data)
 
+    # check if request is valid
     if not valid:
         logging.info("workflow-request ill formatted")
         return Response(
@@ -104,42 +115,50 @@ def setup_workflow(storeId):
             response="workflow-request rejected," +
                      " cass is a required workflow component\n")
 
+    # if it is, insert it into the workflow dictionary
     workflows[storeId] = data
 
+    # convert storeId from string to UUID
     storeUUID = uuid.UUID(storeId)
 
+    # check if the store already exists in the database
     storeExists = False
     rows = session.execute(storeCheck, (storeUUID, ))
     for row in rows:
         storeExists = True
         break
 
+    # if it doesn't
     if not storeExists:
         stores += 1
 
+        # pick a location
         x = random.uniform(30.0, 33.0)
         y = random.uniform(-97.0, -94.0)
 
+        # insert store
         session.execute(storeInsert, (storeUUID, x, y, True))
-        for item in items:
+        for item in items:  # insert stock
             session.execute(insertIngredient, (storeUUID, item, 100))
-        for i in range(1, 6):
+        for i in range(1, 6):  # insert delievery entities
             session.execute(
                 insertEntity,
                 (storeUUID, "de"+str(stores)+str(i), x, y, "AVAILABLE", False))
-    else:
-        for item in items:
+    else:  # if it does
+        for item in items:  # update stock
             session.execute(update_stock_prepared, (100, storeUUID, item))
 
     return Response(status=201, response="store entered into the database")
 
 
+# when updating a request
 @app.route("/workflow-update/<storeId>", methods=['PUT'])
 def update_workflow(storeId):
     logging.info("PUT /workflow-update/" + storeId)
     data = json.loads(request.get_json())
     valid, mess = verify_workflow(data)
 
+    # check if the request is valid
     if not valid:
         logging.info("workflow-request ill formatted")
         return Response(
@@ -153,6 +172,7 @@ def update_workflow(storeId):
             response="workflow-request rejected," +
                      " cass is a required workflow component\n")
 
+    # update workflow dictionary
     workflows[storeId] = data
 
     logging.info("Workflow updated for {}\n".format(storeId))
@@ -162,6 +182,7 @@ def update_workflow(storeId):
         response="Order Verifier updated for {}\n".format(storeId))
 
 
+# remove workflow if it exists
 @app.route("/workflow-requests/<storeId>", methods=["DELETE"])
 def teardown_workflow(storeId):
     logging.info("DELETE /workflow-requests/" + storeId)
@@ -174,6 +195,7 @@ def teardown_workflow(storeId):
         return Response(status=204)
 
 
+# get the workflow from the component
 @app.route("/workflow-requests/<storeId>", methods=["GET"])
 def retrieve_workflow(storeId):
     logging.info("GET /workflow-requests/" + storeId)
