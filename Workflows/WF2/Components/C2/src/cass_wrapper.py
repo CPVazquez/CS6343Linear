@@ -31,7 +31,7 @@ while True:
 
 while True:
     try:
-        storeCheck = session.prepare("SELECT FROM stores WHERE storeID=?")
+        storeCheck = session.prepare("SELECT * FROM stores WHERE storeID=?")
         storeInsert = session.prepare("INSERT INTO stores \
             (storeID, latitude, longitude, sellsPizza) VALUES(?, ?, ?, ?)")
         insertIngredient = session.prepare("INSERT INTO stock \
