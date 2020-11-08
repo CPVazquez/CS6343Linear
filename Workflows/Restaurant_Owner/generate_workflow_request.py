@@ -46,12 +46,8 @@ def update_workflow():
     global storeSelect, method
 
     if method is None:
-        # get deployment method
-        method = input("What deployment method do you want to use "
-                       "(persistent or edge): ")
-
-        while method != "persistent" and method != "edge":
-            method = input("Invalid selection. Pick persistent or edge: ")
+        logging.info("No existing workflow. Nothing to update.")
+        return
 
     # get component-list
     print("What components do you want?\n" +
@@ -123,7 +119,11 @@ def update_workflow():
 def request_prediction():
     global storeSelect
 
-    if not(method is None) and method == "edge" and workflow_offset == 0:
+    if method is None:
+        logging.info("No active workflow. cannot request prediction.")
+        return
+
+    if method == "edge" and workflow_offset == 0:
         logging.info("Method is edge, but offset is not set. getting offset")
         get_workflow()
 
@@ -146,7 +146,7 @@ def request_prediction():
             int(days)
         except Exception:
             days = input("thats not a number. please enter an int: ")
-        else: 
+        else:
             break
 
     predictor_json = {
@@ -196,7 +196,7 @@ def issue_workflow_request():
           "\t* delivery-assigner\n" +
           "\t* cass\n" +
           "\t* restocker\n" +
-          "\t* auto-restocker\n")
+          "\t* auto-restocker")
     components = input("Enter a space separated list: ")
 
     while True:
@@ -255,7 +255,7 @@ def issue_workflow_request():
 
 # remove an existing workflow-request
 def issue_workflow_teardown():
-    global storeSelect, method
+    global storeSelect, method, workflow_offset
 
     response = requests.delete(url + "/" + storeSelect)
     logging.info(
@@ -265,6 +265,7 @@ def issue_workflow_teardown():
 
     if(response.status_code == 204):
         method = None
+        workflow_offset = 0
 
 
 # retreive an existing workflow-request
@@ -297,7 +298,7 @@ def startup():
     global storeSelect, t
 
     storeSelect = str(uuid.uuid4())
-    logging.info("Store UUID is: " + storeSelect)
+    print("Store UUID is: " + storeSelect)
 
     choice = None
 
@@ -332,7 +333,8 @@ def startup():
             get_workflows()
         elif choice == "6":
             request_prediction()
-        else:  # exit
+        else:  # tear down workflow if it exists and exit
+            issue_workflow_teardown()
             t.terminate()
             break
 
