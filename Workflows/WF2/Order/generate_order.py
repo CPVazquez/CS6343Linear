@@ -95,11 +95,10 @@ def request_order(q, url):
 def get_component_urls(store_id):
     wkf_manager_url = cluster_url + ":8080/workflow-requests/" + store_id
     response = requests.get(wkf_manager_url)
-    print(str(response.status_code) + ", " + response.text + "\n")
-    # if response.status_code == 400:
-    #     print("ERROR: " + response.text)
-    #     print("Script is terminating...")
-    #     exit()
+    if response.status_code != 200:
+        print("Error getting component url: " + response.text)
+        print("Script is terminating...")
+        exit()
     wkf_data = json.loads(response.text)
 
     first_comp = wkf_data["component-list"][0]
@@ -120,9 +119,10 @@ def get_component_urls(store_id):
 # get store latitude and longitude
 def get_store_coordinates(store_id, url):
     cass_url = url + store_id
+    print("cass_url: " + cass_url)
     response = requests.get(url)
     if response.status_code != 200:
-        print("ERROR: " + response.text)
+        print("Error getting store coordinates: " + response.text)
         print("Script is terminating...")
         exit()
     coords = json.loads(response.text)
