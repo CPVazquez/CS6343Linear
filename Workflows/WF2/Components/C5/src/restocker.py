@@ -88,12 +88,12 @@ def get_component_url(component, store_id):
     comp_name = component +\
         (str(workflows[store_id]["workflow-offset"]) if workflows[store_id]["method"] == "edge" else "")
     url = "http://" + comp_name + ":"
-    if component == "delivery-assigner":
+    if component == "order-verifier":
+        url += "1000/order"
+    elif component == "delivery-assigner":
         url += "3000/order"
-    elif component == "auto-restocker" or component == "predictor":
+    elif component == "auto-restocker":
         url += "4000/order"
-    elif component == "restocker":
-        url += "5000/order"
     elif component == "order-processor":
         url += "6000/order"
     return url
@@ -105,7 +105,8 @@ def send_order_to_next_component(url, order):
     if response.status_code == 200:
         logging.info("Processed order for {}. Order sent to next component.".format(cust_name))
     else:
-        logging.info("Processed order for {}. Issue sending order to next component.".format(cust_name))
+        logging.info("Processed order for {}. Issue sending order to next component:".format(cust_name))
+        logging.info(response.text)
 
 
 def send_results_to_client(store_id, order):
