@@ -205,7 +205,7 @@ def restocker():
     mess = None
     try:
         # check stock
-        instock_dict, required_dict, restock_list = check_stock(store_uuid, order)
+        instock_dict, required_dict, restock_list = check_stock(store_uuid, order["pizza-list"])
 
         # restock, if needed
         if restock_list:
