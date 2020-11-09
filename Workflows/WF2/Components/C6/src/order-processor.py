@@ -231,7 +231,7 @@ def process_order():
     if order["pizza-order"]["storeId"] not in workflows:
         message = "Workflow does not exist. Request Rejected."
         logging.info(message)
-        return Response(status=422, text=message)
+        return Response(status=422, response=message)
 
     order["pizza-order"]["orderId"] = str(uuid.uuid4())
     order_id = order["pizza-order"]["orderId"]
