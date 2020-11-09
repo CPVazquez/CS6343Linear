@@ -62,22 +62,34 @@ def get_component_url(component, store_id):
     return url
 
 
-def send_order_to_next_component(url, order_dict):
-    logging.info("Next Component URL: " + url)
-    response = requests.post(url, json=json.dumps(order_dict))
-    logging.info("Response: {}, {}".format(response.status_code, response.text))
+def send_order_to_next_component(url, order):
+    cust_name = order["pizza-order"]["custName"]
+    response = requests.post(url, json=json.dumps(order))
+    if response.status_code == 200:
+        logging.info("Order from {} is valid. Order sent to next component.".format(cust_name))
+    else:
+        logging.info("Order from {} is valid. Issue sending order to next component.".format(cust_name))
 
 
-def report_results_to_client(store_id, order_dict):
+def send_results_to_client(store_id, order):
     origin_url = "http://" + workflows[store_id]["origin"] + ":8080/results"
 
-    message = "processed order:\n" + json.dumps(order_dict, sort_keys=True, indent=4)
+    cust_name = order["pizza-order"]["custName"]
+    message = "Order for " + cust_name
 
-    if "valid" in workflows[store_id]:
-        logging.info(message)
+    if "assignment" in order:
+        delivery_entity = order["assignment"]["deliveredBy"]
+        estimated_time = str(order["assignment"]["estimatedTime"])
+        message += " will be delivered in " + estimated_time
+        message += " minutes by delivery entity " + delivery_entity + "."
+    else:
+        message += " has been placed."
 
     response = requests.post(origin_url, json=json.dumps({"message": message}))
-    logging.info("Client Response: {}".format(response.status_code))
+    if response.status_code == 200:
+        logging.info("Restuarant Owner recieved results for order from " + cust_name)
+    else:
+        logging.info("Issue sending results for order from " + cust_name + "\n" + response.txt)
 
 
 # validate pizza-order against schema
@@ -109,16 +121,14 @@ def order_funct():
         next_comp = get_next_component(store_id)
         if next_comp is None:
             # last component in the workflow, report results to client
-            report_results_to_client(store_id, order)
+            send_results_to_client(store_id, order)
         else:
             # send order to next component in workflow
             next_comp_url = get_component_url(next_comp, store_id)
             send_order_to_next_component(url, order)
-        logging.info("valid pizza-order request")
-        return Response(status=200, response="valid pizza-order request")
+        return Response(status=200)
     else:
-        logging.info("invalid pizza-order format\n" + mess)
-        return Response(status=400, response="invalid pizza-order format\n" + mess)
+        return Response(status=400)
 
 
 # validate workflow-request against schema

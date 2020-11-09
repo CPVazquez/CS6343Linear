@@ -86,8 +86,10 @@ def request_order(q, url):
         order_dict = order.generate_order()
         print("\nPizza Order Request:\n" + json.dumps(order_dict, indent=4))
         response = requests.post(url, json=json.dumps(order_dict))
-        print("URL: {}".format(url))
-        print("Response: {}, {}".format(response.status_code, response.text))
+        if response.status_cod == 200:
+            print("Request Accepted!")
+        else:
+            print("Request Rejected!")
         q.task_done()
 
 
@@ -133,13 +135,6 @@ if __name__ == "__main__":
 
     # Prompt user for storeID
     store_id = input("\nPlease enter the store's UUID: ")
-    # while True:
-    #     store_id = input("\nPlease enter the store's UUID: ")
-    #     try:
-    #         if UUID(store_id).version == 4:
-    #             break
-    #     except:
-    #         print("Invalid store UUID. Please try again.")
 
     # Prompt user for start date selection
     while True:
