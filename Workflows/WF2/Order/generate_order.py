@@ -96,8 +96,7 @@ def get_component_urls(store_id):
     wkf_manager_url = cluster_url + ":8080/workflow-requests/" + store_id
     response = requests.get(wkf_manager_url)
     if response.status_code != 200:
-        print("Error getting component url: " + response.text)
-        print("Script is terminating...")
+        print("Error getting component URLs!\nScript is terminating...")
         exit()
     wkf_data = json.loads(response.text)
 
@@ -122,8 +121,7 @@ def get_store_coordinates(store_id, url):
     print("cass_url: " + cass_url)
     response = requests.get(url)
     if response.status_code != 200:
-        print("Error getting store coordinates: " + response.text)
-        print("Script is terminating...")
+        print("Error getting store coordinates!\nScript is terminating...")
         exit()
     coords = json.loads(response.text)
     return coords["latitude"], coords["longitude"]

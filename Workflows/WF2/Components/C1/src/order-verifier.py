@@ -71,8 +71,10 @@ def send_order_to_next_component(url, order_dict):
 def report_results_to_client(store_id, order_dict):
     origin_url = "http://" + workflows[store_id]["origin"] + ":8080/results"
 
-    # TODO: form better message for client
-    message = json.dumps(order_dict, sort_keys=True, indent=4)
+    message = "processed order:\n" + json.dumps(order_dict, sort_keys=True, indent=4)
+
+    if "valid" in workflows[store_id]:
+        logging.info(message)
 
     response = requests.post(origin_url, json=json.dumps({"message": message}))
     logging.info("Client Response: {}".format(response.status_code))
