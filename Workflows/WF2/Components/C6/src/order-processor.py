@@ -249,14 +249,17 @@ def order_funct():
 
     if valid:
         order.update({"processor": "accepted"})
-        # send order
+        next_comp = get_next_component(store_id)
+        if next_comp is None:
+            send_results_to_client(store_id, order)
+        else:
+            next_comp_url = get_component_url(next_comp, store_id)
+            send_order_to_next_component(next_comp_url, order)
         return Response(status=200)
     else:
         order.update({"processor": "rejected"})
-        message = "Failed to process order request:\n" + mess
-        logging.info(message)
-        # report failure
-        return Response(status=400, text=message)
+        logging.info("Failed to process order request:\n" + mess)
+        return Response(status=400)
 
 
 # validate workflow-request against schema
