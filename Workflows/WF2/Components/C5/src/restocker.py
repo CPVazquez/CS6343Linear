@@ -42,12 +42,14 @@ while True:
         ')
         get_stores = session.prepare("SELECT storeID FROM stores")
         get_items = session.prepare("SELECT name FROM items")
+        select_stock_prepared = session.prepare('SELECT * FROM stock WHERE storeID=?')
+        update_stock_prepared = session.prepare('\
+            UPDATE stock \
+            SET quantity=? \
+            WHERE storeID=? AND itemName=?\
+        ')
     except:
-        count += 1
-        if count <= 5:
-            time.sleep(5)
-        else:
-            exit()
+        time.sleep(5)
     else:
         break
 
@@ -57,62 +59,174 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # create flask app
 app = Flask(__name__)
 
-# open the restock jsonschema
-with open("src/restock-order.schema.json", "r") as restock_schema:
-    restock_schema = json.loads(restock_schema.read())
-
 # Open jsonschema for workflow-request
 with open("src/workflow-request.schema.json", "r") as workflow_schema:
     workflow_schema = json.loads(workflow_schema.read())
+
+# Global pizza items/ingredients dict
+items_dict = {
+    'Dough': 0,         'SpicySauce': 0,        'TraditionalSauce': 0,  'Cheese': 0,
+    'Pepperoni': 0,     'Sausage': 0,           'Beef': 0,              'Onion': 0,
+    'Chicken': 0,       'Peppers': 0,           'Olives': 0,            'Bacon': 0,
+    'Pineapple': 0,     'Mushrooms': 0
+}
 
 # Global workflows dict
 workflows = dict()
 
 
-# checks the recieved restock-order against the jsonschema
-def verify_restock_order(data):
-    global restock_schema
+def get_next_component(store_id):
+    comp_list = workflows[store_id]["component-list"].copy()
+    comp_list.remove("cass")
+    next_comp_index = comp_list.index("order-verifier") + 1
+    if next_comp_index >= len(comp_list):
+        return None
+    return comp_list[next_comp_index]
+
+
+def get_component_url(component, store_id):
+    comp_name = component +\
+        (str(workflows[store_id]["workflow-offset"]) if workflows[store_id]["method"] == "edge" else "")
+    url = "http://" + comp_name + ":"
+    if component == "delivery-assigner":
+        url += "3000/order"
+    elif component == "auto-restocker" or component == "predictor":
+        url += "4000/order"
+    elif component == "restocker":
+        url += "5000/order"
+    elif component == "order-processor":
+        url += "6000/order"
+    return url
+
+
+def send_order_to_next_component(url, order):
+    cust_name = order["pizza-order"]["custName"]
+    response = requests.post(url, json=json.dumps(order))
+    if response.status_code == 200:
+        logging.info("Processed order for {}. Order sent to next component.".format(cust_name))
+    else:
+        logging.info("Processed order for {}. Issue sending order to next component.".format(cust_name))
+
+
+def send_results_to_client(store_id, order):
+    origin_url = "http://" + workflows[store_id]["origin"] + ":8080/results"
+    cust_name = order["pizza-order"]["custName"]
+    message = "Order for " + cust_name
+
+    if "assignment" in order:
+        delivery_entity = order["assignment"]["deliveredBy"]
+        estimated_time = str(order["assignment"]["estimatedTime"])
+        message += " will be delivered in " + estimated_time
+        message += " minutes by delivery entity " + delivery_entity + "."
+    else:
+        message += " has been placed."
+
+    response = requests.post(origin_url, json=json.dumps({"message": message}))
+    if response.status_code == 200:
+        logging.info("Restuarant Owner recieved results for order from " + cust_name)
+    else:
+        logging.info("Issue sending results for order from " + cust_name + "\n" + response.txt)
+
+
+# Decrement a store's stock for the order about to be placed
+def decrement_stock(store_uuid, instock_dict, required_dict):
+    for item_name in required_dict:
+        quantity = instock_dict[item_name] - required_dict[item_name]
+        session.execute(update_stock_prepared, (quantity, store_uuid, item_name))
+
+
+# Aggregate all ingredients for a given order
+def aggregate_ingredients(pizza_list):
+    ingredients = items_dict.copy()
+
+    # Loop through each pizza in pizza_list and aggregate the required ingredients
+    for pizza in pizza_list:
+        if pizza['crustType'] == 'Thin':
+            ingredients['Dough'] += 1
+        elif pizza['crustType'] == 'Traditional':
+            ingredients['Dough'] += 2
+
+        if pizza['sauceType'] == 'Spicy':
+            ingredients['SpicySauce'] += 1
+        elif pizza['sauceType'] == 'Traditional':
+            ingredients['TraditionalSauce'] += 1
+
+        if pizza['cheeseAmt'] == 'Light':
+            ingredients['Cheese'] += 1
+        elif pizza['cheeseAmt'] == 'Normal':
+            ingredients['Cheese'] += 2
+        elif pizza['cheeseAmt'] == 'Extra':
+            ingredients['Cheese'] += 3
+
+        for topping in pizza["toppingList"]:
+            ingredients[topping] += 1
+
+    return ingredients
+
+
+# Check stock at a given store to determine if order can be filled
+def check_stock(store_uuid, order_dict):
+    instock_dict = items_dict.copy()
+    required_dict = aggregate_ingredients(order_dict["pizzaList"])
+    restock_list = list()
+
+    # If insufficient stock, restock_list contains items for restock
+    # Otherwise, restock_list is an empty list
+    rows = session.execute(select_stock_prepared, (store_uuid,))
+    for row in rows:
+        if row.quantity < required_dict[row.itemname]:
+            restock_list.append({"item-name": row.itemname, "quantity": required_dict[row.itemname]})
+        instock_dict[row.itemname] = row.quantity
+
+    return instock_dict, required_dict, restock_list
+
+
+# the order endpoint
+@app.route('/order', methods=['POST'])
+def restocker():
+    logging.info("POST /order")
+    data = json.loads(request.get_json())
+    
+    if "pizza-order" not in data:
+        order = {"pizza-order": data}
+    else:
+        order = data.copy()
+
+    if order["pizza-order"]["storeId"] not in workflows:
+        message = "Workflow does not exist. Request Rejected."
+        logging.info(message)
+        return Response(status=422, text=message)
+
+    store_id = order["pizza-order"]["storeId"]
+    store_uuid = uuid.UUID(store_id)
+
     valid = True
     mess = None
     try:
-        jsonschema.validate(instance=data, schema=restock_schema)
+        # check stock
+        instock_dict, required_dict, restock_list = check_stock(store_uuid, order)
+
+        # restock, if needed
+        if restock_list:
+            # perform restock
+            for item_dict in restock_list:
+                quantity = item_dict["quantity"] + 20
+                session.execute(add_stock_prepared, (quantity, store_uuid, item_dict["item-name"]))
+
+        # decrement stock
+        decrement_stock(store_uuid, instock_dict, required_dict)
     except Exception as inst:
         valid = False
         mess = inst.args[0]
-    return valid, mess
 
-
-# the restock endpoint
-@app.route('/restock', methods=['POST'])
-def restocker():
-    valid = False
-    restock_dict = json.loads(request.get_json())
-    
-    store_id = restock_dict["storeID"]
-    if store_id not in workflows:
-        message = "restock-order is valid, but {} doesn't exist".format(store_id)
-        logging.info(message)
-        return Response(status=422, response=message)
-
-    if restock_dict != None:
-        valid, mess = verify_restock_order(restock_dict)
-        if valid:
-            try: 
-                storeID = uuid.UUID(restock_dict["storeID"])
-                for item_dict in restock_dict["restock-list"]:
-                    session.execute(add_stock_prepared, (item_dict["quantity"], storeID, item_dict["item-name"]))
-                message = "Restock successful:\n" + json.dumps(restock_dict)
-                logging.info(message)
-                response = Response(status=200, response=message)
-            except ValueError:
-                logging.info("Exception: badly formed hexadecimal UUID string")
-                response = Response(status=400, response="restock-order 'storeID' is not in valid UUID format")
-        else:
-            logging.info("restock-order request ill formatted")
-            response = Response(status=400, response="restock-order ill formated\n"+mess)
-
-    logging.info(response)
-    return response
+    if valid:
+        # update order with restock status
+        logging.info("Restock successful")
+        return Response(status=200)
+    else:
+        # update order with restock status
+        logging.info("Restocker failure for order request:\n" + mess)
+        return Response(status=400)
 
 
 def verify_workflow(data):
