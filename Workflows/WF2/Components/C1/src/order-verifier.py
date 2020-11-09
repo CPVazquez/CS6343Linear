@@ -53,7 +53,7 @@ def get_component_url(component, store_id):
     url = "http://" + comp_name + ":"
     if component == "delivery-assigner":
         url += "3000/order"
-    elif component == "auto-restocker" or component == "predictor":
+    elif component == "predictor":
         url += "4000/order"
     elif component == "restocker":
         url += "5000/order"
@@ -68,7 +68,8 @@ def send_order_to_next_component(url, order):
     if response.status_code == 200:
         logging.info("Order from {} is valid. Order sent to next component.".format(cust_name))
     else:
-        logging.info("Order from {} is valid. Issue sending order to next component.".format(cust_name))
+        logging.info("Order from {} is valid. Issue sending order to next component:".format(cust_name))
+        logging.info(response.text)
 
 
 def send_results_to_client(store_id, order):
@@ -87,9 +88,10 @@ def send_results_to_client(store_id, order):
 
     response = requests.post(origin_url, json=json.dumps({"message": message}))
     if response.status_code == 200:
-        logging.info("Restuarant Owner recieved results for order from " + cust_name)
+        logging.info("Order from {} is valid. Restuarant Owner received the results.".format(cust_name))
     else:
-        logging.info("Issue sending results for order from " + cust_name + "\n" + response.txt)
+        logging.info("Order from {} is valid. Issue sending results to Restaurant Owner:".format(cust_name))
+        logging.info(response.text)
 
 
 # validate pizza-order against schema
