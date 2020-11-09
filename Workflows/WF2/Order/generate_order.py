@@ -132,13 +132,14 @@ if __name__ == "__main__":
     print("\n*** Pizza Order Generator Script - User Input Required ***")
 
     # Prompt user for storeID
-    while True:
-        store_id = input("\nPlease enter the store's UUID: ")
-        try:
-            if UUID(store_id).version == 4:
-                break
-        except:
-            print("Invalid store UUID. Please try again.")
+    store_id = input("\nPlease enter the store's UUID: ")
+    # while True:
+    #     store_id = input("\nPlease enter the store's UUID: ")
+    #     try:
+    #         if UUID(store_id).version == 4:
+    #             break
+    #     except:
+    #         print("Invalid store UUID. Please try again.")
 
     # Prompt user for start date selection
     while True:
