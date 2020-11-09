@@ -233,14 +233,14 @@ def process_order():
         logging.info(message)
         return Response(status=422, text=message)
 
-    order["pizza-list"]["orderId"] = str(uuid.uuid4())
-    order_id = order["pizza-list"]["orderId"]
-    store_id = order["pizza-list"]["storeId"]
-    cust_name = order["pizza-list"]["custName"]
+    order["pizza-order"]["orderId"] = str(uuid.uuid4())
+    order_id = order["pizza-order"]["orderId"]
+    store_id = order["pizza-order"]["storeId"]
+    cust_name = order["pizza-order"]["custName"]
 
     logging.info("Processing order " + order_id + " for " + cust_name + " from store " + store_id)
 
-    valid, mess = create_order(order["pizza-list"])
+    valid, mess = create_order(order["pizza-order"])
 
     if valid:
         order.update({"processor": "accepted"})
