@@ -194,7 +194,8 @@ def send_order_to_next_component(url, order):
     if response.status_code == 200:
         logging.info("Processed order for {}. Order sent to next component.".format(cust_name))
     else:
-        logging.info("Processed order for {}. Issue sending order to next component.".format(cust_name))
+        logging.info("Processed order for {}. Issue sending order to next component:".format(cust_name))
+        logging.info(response.text)
 
 
 def send_results_to_client(store_id, order):
@@ -212,9 +213,10 @@ def send_results_to_client(store_id, order):
 
     response = requests.post(origin_url, json=json.dumps({"message": message}))
     if response.status_code == 200:
-        logging.info("Restuarant Owner recieved results for order from " + cust_name)
+        logging.info("Processed order for {}. Restuarant Owner recieved results.".format(cust_name))
     else:
-        logging.info("Issue sending results for order from " + cust_name + "\n" + response.txt)
+        logging.info("Processed order for {}. Issue sending results to Restaurant Owner:".format(cust_name))
+        logging.info(response.text)
 
 
 # if pizza-order is valid, try to create it
@@ -238,7 +240,7 @@ def process_order():
     store_id = order["pizza-order"]["storeId"]
     cust_name = order["pizza-order"]["custName"]
 
-    logging.info("Processing order " + order_id + " for " + cust_name + " from store " + store_id)
+    # logging.info("Processing order " + order_id + " for " + cust_name + " from store " + store_id)
 
     valid, mess = create_order(order["pizza-order"])
 
