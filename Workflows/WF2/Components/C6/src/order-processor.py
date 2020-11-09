@@ -240,7 +240,7 @@ def process_order():
     store_id = order["pizza-order"]["storeId"]
     cust_name = order["pizza-order"]["custName"]
 
-    logging.info("Store " + store_id + ":\nProcessing order " + order_id + " for " + cust_name)
+    logging.info("Store " + store_id + ":\n\tProcessing order " + order_id + " for " + cust_name)
 
     valid, mess = create_order(order["pizza-order"])
 
