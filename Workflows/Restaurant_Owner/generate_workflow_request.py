@@ -50,36 +50,7 @@ def update_workflow():
         return
 
     # get component-list
-    print("What components do you want?\n" +
-          "\t* order-verifier\n" +
-          "\t* delivery-assigner\n" +
-          "\t* cass\n" +
-          "\t* restocker\n" +
-          "\t* auto-restocker")
-    components = input("Enter a space separated list: ")
-
-    while True:
-        valid = True
-        components = components.lower()
-        component_list = components.split()
-        for comp in component_list:
-            if comp == "order-verifier":
-                continue
-            elif comp == "delivery-assigner":
-                continue
-            elif comp == "cass":
-                continue
-            elif comp == "restocker":
-                continue
-            elif comp == "auto-restocker":
-                continue
-            else:
-                valid = False
-        if valid:
-            break
-        else:
-            components = input("Invalid component selection. Please enter a" +
-                               " space\nseparated list of valid components: ")
+    component_list = getCompList()
 
     # retrieve host ip
     hostname = socket.gethostname()
@@ -113,6 +84,44 @@ def update_workflow():
             "Workflow update failed: " + str(response.status_code) + " " +
             response.text
         )
+
+
+def getCompList():
+    # get component-list
+    print("What components do you want?\n" +
+          "\t* order-verifier\n" +
+          "\t* order-processor\n" +
+          "\t* delivery-assigner\n" +
+          "\t* cass\n" +
+          "\t* restocker\n" +
+          "\t* auto-restocker")
+    components = input("Enter a space separated list: ")
+
+    while True:
+        valid = True
+        components = components.lower()
+        component_list = components.split()
+        for comp in component_list:
+            if comp == "order-verifier":
+                continue
+            elif comp == "delivery-assigner":
+                continue
+            elif comp == "cass":
+                continue
+            elif comp == "restocker":
+                continue
+            elif comp == "auto-restocker":
+                continue
+            elif comp == "order-processor":
+                continue
+            else:
+                valid = False
+        if valid:
+            break
+        else:
+            components = input("Invalid component selection. Please enter a" +
+                               " space\nseparated list of valid components: ")
+    return component_list
 
 
 # request prediction
@@ -191,36 +200,7 @@ def issue_workflow_request():
         method = input("Invalid selection. Pick persistent or edge: ")
 
     # get component-list
-    print("What components do you want?\n" +
-          "\t* order-verifier\n" +
-          "\t* delivery-assigner\n" +
-          "\t* cass\n" +
-          "\t* restocker\n" +
-          "\t* auto-restocker")
-    components = input("Enter a space separated list: ")
-
-    while True:
-        valid = True
-        components = components.lower()
-        component_list = components.split()
-        for comp in component_list:
-            if comp == "order-verifier":
-                continue
-            elif comp == "delivery-assigner":
-                continue
-            elif comp == "cass":
-                continue
-            elif comp == "restocker":
-                continue
-            elif comp == "auto-restocker":
-                continue
-            else:
-                valid = False
-        if valid:
-            break
-        else:
-            components = input("Invalid component selection. Please enter a" +
-                               " space\nseparated list of valid components: ")
+    component_list = getCompList()
 
     # retrieve host ip
     hostname = socket.gethostname()
