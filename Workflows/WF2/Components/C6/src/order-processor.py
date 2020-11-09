@@ -167,7 +167,7 @@ def create_order(order_dict):
 def get_next_component(store_id):
     comp_list = workflows[store_id]["component-list"].copy()
     comp_list.remove("cass")
-    next_comp_index = comp_list.index("order-verifier") + 1
+    next_comp_index = comp_list.index("order-processor") + 1
     if next_comp_index >= len(comp_list):
         return None
     return comp_list[next_comp_index]
