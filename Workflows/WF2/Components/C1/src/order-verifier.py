@@ -113,6 +113,9 @@ def order_funct():
 
     if "pizza-order" not in data:
         order = {"pizza-order": data}
+    else:
+        order = data.copy()
+
     valid, mess = verify_order(order["pizza-order"])
     order.update({"valid": valid})
 
