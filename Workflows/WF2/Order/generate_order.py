@@ -93,6 +93,7 @@ def request_order(q, url):
 
 # gets workflow information and forms URL for 1st component and cass
 def get_component_urls(store_id):
+    global cluster
     wkf_manager_url = cluster + ":8080/workflow-requests/" + store_id
     response = requests.get(wkf_manager_url)
     if response.status_code != 200:
