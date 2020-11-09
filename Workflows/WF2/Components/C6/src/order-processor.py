@@ -177,14 +177,14 @@ def get_component_url(component, store_id):
     comp_name = component +\
         (str(workflows[store_id]["workflow-offset"]) if workflows[store_id]["method"] == "edge" else "")
     url = "http://" + comp_name + ":"
-    if component == "delivery-assigner":
+    if component = "order-verifier":
+        url += "1000/order"
+    elif component == "delivery-assigner":
         url += "3000/order"
     elif component == "auto-restocker":
         url += "4000/order"
     elif component == "restocker":
         url += "5000/order"
-    elif component == "order-processor":
-        url += "6000/order"
     return url
 
 
