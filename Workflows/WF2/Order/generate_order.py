@@ -96,7 +96,7 @@ def get_component_urls(store_id):
     wkf_manager_url = cluster_url + ":8080/workflow-requests/" + store_id
     response = requests.get(wkf_manager_url)
     print(str(response.status_code) + ", " + response.text + "\n")
-    if response.status_code != 200:
+    if response.status_code == 400:
         print("ERROR: " + response.text)
         print("Script is terminating...")
         exit()
