@@ -86,7 +86,7 @@ def request_order(q, url):
         order_dict = order.generate_order()
         print("\nPizza Order Request:\n" + json.dumps(order_dict, indent=4))
         response = requests.post(url, json=json.dumps(order_dict))
-        if response.status_cod == 200:
+        if response.status_code == 200:
             print("Request Accepted!")
         else:
             print("Request Rejected!")
