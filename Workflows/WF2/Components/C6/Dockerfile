@@ -18,4 +18,4 @@ RUN pipenv install --system --deploy
 
 EXPOSE 6000
 
-CMD gunicorn -b 0.0.0.0:1000 src.order-processor:app
+CMD gunicorn -b 0.0.0.0:6000 src.order-processor:app
