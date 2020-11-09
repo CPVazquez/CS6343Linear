@@ -119,7 +119,7 @@ def get_component_urls(store_id):
 def get_store_coordinates(store_id, url):
     cass_url = url + store_id
     print("cass_url: " + cass_url)
-    response = requests.get(url)
+    response = requests.get(cass_url)
     print("{}, {}".format(response.status_code, response.text))
     if response.status_code != 200:
         print("Error getting store coordinates!\nScript is terminating...")
