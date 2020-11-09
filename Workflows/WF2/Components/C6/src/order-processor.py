@@ -24,7 +24,7 @@ from cassandra.cluster import Cluster
 import jsonschema
 
 __author__ = "Chris Scott"
-__version__ = "2.0.0"
+__version__ = "1.0.0"
 __maintainer__ = "Chris Scott"
 __email__ = "cms190009@utdallas.edu"
 __status__ = "Development"
@@ -224,7 +224,7 @@ def send_results_to_client(store_id, order):
 
 # if pizza-order is valid, try to create it
 @app.route('/order', methods=['POST'])
-def order_funct():
+def process_order():
     logging.info("POST /order")
     data = json.loads(request.get_json())
     
@@ -238,9 +238,9 @@ def order_funct():
         logging.info(message)
         return Response(status=422, text=message)
 
-    store_id = order["pizza-list"]["storeId"]
     order["pizza-list"]["orderId"] = str(uuid.uuid4())
     order_id = order["pizza-list"]["orderId"]
+    store_id = order["pizza-list"]["storeId"]
     cust_name = order["pizza-list"]["custName"]
 
     logging.info("Processing order " + order_id + " for " + cust_name + " from store " + store_id)

@@ -1,6 +1,6 @@
-# Pizza Order Verifier
+# Order Processor
 
-Workflow 2, Component 1
+Workflow 2, Component 6
 
 ## Written By
 
@@ -8,7 +8,7 @@ Christopher Michael Scott
 
 ## Description
 
-Upon receiving a Pizza Order, this component validates the order and checks the store's stock. If sufficient stock exists, Order Verifier decrements the store's stock and creates the order. Otherwise, Order Verifier requests a restock before decrementing stock and creating the order.
+Upon receiving a Pizza Order, this component validates the order and checks the store's stock. If sufficient stock exists, Order Processor decrements the store's stock and creates the order. Otherwise, Order Processor requests a restock before decrementing stock and creating the order.
 
 ## Setup
 
@@ -30,16 +30,16 @@ Packages installed on pipenv virtual environment:
 
   * To build the docker image, use the following command in the folder containing the Dockerfile:
     ```
-    docker build --rm -t trishaire/order-verifier:tag path_to_c1_dockerfile
+    docker build --rm -t trishaire/order-processor:tag path_to_c1_dockerfile
     ```
   * To update Dockerhub repository:
     ```
     sudo docker login
-    docker push trishaire/order-verifier:tag
+    docker push trishaire/order-processor:tag
     ```
   * To create the image as a service run the following command:
     ```
-    docker service create --name order-verifier --network myNet --publish 1000:1000 --env CASS_DB=cass_service_vip trishaire/order-verifier:tag
+    docker service create --name order-processor --network myNet --publish 1000:1000 --env CASS_DB=cass_service_vip trishaire/order-processor:tag
     ```
     * Where `cass_service_vip` is the VIP of `myNet` overlay network.
 
@@ -105,7 +105,7 @@ Requires a `workflow-request` json object.
 | field | type | options | required | description |
 |-------|------|---------|----------|-------------|
 | method | enum | persistent, edge | true | the workflow deployment method |
-| component-list | enum array | order-verifier, cass, delivery-assigner, auto-restocker, restocker | true | the components the workflow is requesting |
+| component-list | enum array | order-processor, cass, delivery-assigner, auto-restocker, restocker | true | the components the workflow is requesting |
 | origin | string - format ip | N/A | true | the ip of the host issuing the request |
 
 #### Responses
