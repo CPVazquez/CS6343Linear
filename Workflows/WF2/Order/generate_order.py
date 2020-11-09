@@ -18,18 +18,6 @@ __status__ = "Development"
 
 fake = Faker('en_US')
 
-cluster_url = "http://cluster1-1.utdallas.edu"
-port_dict = {
-    "order-verifier": 1000,
-    "delivery-assigner": 3000,
-    "cass": 2000,
-    "predictor": 4000,
-    "auto-restocker": 4000,
-    "restocker": 5000,
-    "order-processor": 6000
-}
-
-
 class PizzaOrder:
     # Order Attribute Lists
     payment_types = ['PayPal','Google Pay','Apple Pay','Visa','Mastercard','AMEX','Discover','Gift Card']
@@ -93,7 +81,17 @@ def request_order(q, url):
 
 # gets workflow information and forms URL for 1st component and cass
 def get_component_urls(store_id):
-    global cluster
+    cluster_url = "http://cluster1-1.utdallas.edu"
+    port_dict = {
+        "order-verifier": 1000,
+        "delivery-assigner": 3000,
+        "cass": 2000,
+        "predictor": 4000,
+        "auto-restocker": 4000,
+        "restocker": 5000,
+        "order-processor": 6000
+    }
+    
     wkf_manager_url = cluster + ":8080/workflow-requests/" + store_id
     response = requests.get(wkf_manager_url)
     if response.status_code != 200:
