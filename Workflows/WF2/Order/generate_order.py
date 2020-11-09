@@ -24,7 +24,6 @@ port_dict = {
     "delivery-assigner": 3000,
     "cass": 2000,
     "predictor": 4000,
-    "auto-restocker": 4000,
     "restocker": 5000,
     "order-processor": 6000
 }
@@ -175,13 +174,13 @@ if __name__ == "__main__":
 
     print("\n*** Pizza Order Generator Script - Generating Orders ***")
 
-    first_url, cass_url = get_component_urls(store_id)
+    first_comp_url, cass_url = get_component_urls(store_id)
     store_lat, store_lon = get_store_coordinates(store_id, cass_url)   
     
     total_orders = num_days * orders_per_day
     q = Queue(total_orders)
 
-    t = threading.Thread(target=request_order, args=(q, first_url))
+    t = threading.Thread(target=request_order, args=(q, first_comp_url))
     t.daemon = True
     t.start()
 

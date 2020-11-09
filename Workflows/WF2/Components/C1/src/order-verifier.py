@@ -105,7 +105,7 @@ def verify_order(data):
     return valid, mess
 
 
-# if pizza-order is valid, try to create it
+# validate pizza-order request
 @app.route('/order', methods=['POST'])
 def order_funct():
     logging.info("POST /order")
@@ -115,6 +115,11 @@ def order_funct():
         order = {"pizza-order": data}
     else:
         order = data.copy()
+
+    if order["pizza-order"]["storeId"] not in workflows:
+        message = "Workflow does not exist. Request Rejected."
+        logging.info(message)
+        return Response(status=422, text=message)
 
     valid, mess = verify_order(order["pizza-order"])
     order.update({"valid": valid})
