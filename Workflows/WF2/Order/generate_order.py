@@ -85,9 +85,9 @@ def request_order(q, url):
         order = q.get()
         order_dict = order.generate_order()
         print("\nPizza Order Request:\n" + json.dumps(order_dict, indent=4))
-        # response = requests.post(url, json=json.dumps(order_dict))
+        response = requests.post(url, json=json.dumps(order_dict))
         print("URL: {}".format(url))
-        # print("Response: {}, {}".format(response.status_code, response.text))
+        print("Response: {}, {}".format(response.status_code, response.text))
         q.task_done()
 
 
