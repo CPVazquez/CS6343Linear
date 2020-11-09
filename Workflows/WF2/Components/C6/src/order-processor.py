@@ -35,7 +35,6 @@ cluster = Cluster([cass_IP])
 session = cluster.connect('pizza_grocery')
 
 # Cassandra prepared statements
-count = 0
 while True:
     try:
         select_items_prepared = session.prepare('SELECT * FROM items WHERE name=?')
@@ -66,11 +65,7 @@ while True:
             VALUES (?, ?, ?)\
         ')
     except:
-        count += 1
-        if count <= 5:
-            time.sleep(5)
-        else:
-            exit()
+        time.sleep(5)
     else:
         break
 
