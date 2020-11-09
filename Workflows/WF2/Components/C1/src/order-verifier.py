@@ -128,7 +128,7 @@ def order_funct():
         else:
             # send order to next component in workflow
             next_comp_url = get_component_url(next_comp, store_id)
-            send_order_to_next_component(url, order)
+            send_order_to_next_component(next_comp_url, order)
         return Response(status=200)
     else:
         return Response(status=400)
