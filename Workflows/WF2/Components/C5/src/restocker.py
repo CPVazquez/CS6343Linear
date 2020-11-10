@@ -104,9 +104,9 @@ def send_order_to_next_component(url, order):
     cust_name = order["pizza-order"]["custName"]
     response = requests.post(url, json=json.dumps(order))
     if response.status_code == 200:
-        logging.info("Restocked order for {}. Order sent to next component.".format(cust_name))
+        logging.info("Stock-checked order for {}. Order sent to next component.".format(cust_name))
     else:
-        logging.info("Restocked order for {}. Issue sending order to next component:".format(cust_name))
+        logging.info("Stock-checked order for {}. Issue sending order to next component:".format(cust_name))
         logging.info(response.text)
 
 
@@ -125,9 +125,9 @@ def send_results_to_client(store_id, order):
 
     response = requests.post(origin_url, json=json.dumps({"message": message}))
     if response.status_code == 200:
-        logging.info("Restocked order for {}. Restaurant Owner sent results.".format(cust_name))
+        logging.info("Stock-checked order for {}. Restaurant Owner sent results.".format(cust_name))
     else:
-        logging.info("Restocked order for {}. Issue sending results to Restuarant Owner:".format(cust_name))
+        logging.info("Stock-checked order for {}. Issue sending results to Restuarant Owner:".format(cust_name))
         logging.info(response.text)
 
 
