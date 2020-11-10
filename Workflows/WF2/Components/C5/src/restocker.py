@@ -214,8 +214,8 @@ def restocker():
         if restock_list:
             # perform restock
             for item_dict in restock_list:
-                logging.info(json.dumps(item_dict, sort_keys=True, indent=4))
-                quantity = item_dict["quantity"] + 20
+                logging.info(json.dumps(item_dict, sort_keys=True)
+                quantity = 20   # item_dict["quantity"] + 20
                 session.execute(add_stock_prepared, (quantity, store_uuid, item_dict["item-name"]))
 
         # decrement stock
@@ -225,6 +225,7 @@ def restocker():
         mess = inst.args[0]
 
     order.update({"restock": restock_list})
+    logging.info("order: " + json.dumps(order, sort_keys=True, indent=4))
 
     if valid:
         next_comp = get_next_component(store_id)
@@ -234,8 +235,6 @@ def restocker():
         else:
             # send order to next component in workflow
             next_comp_url = get_component_url(next_comp, store_id)
-            logging.info("next_comp_url: " + next_comp_url)
-            logging.info("order: " + json.dumps(order, sort_keys=True, indent=4))
             send_order_to_next_component(next_comp_url, order)
         return Response(status=200)
     else:
@@ -349,9 +348,9 @@ def scan_out_of_stock():
             quantity_row = quantity.one()
             if quantity_row != None:
                 # and it is low in quantity
-                if quantity_row.quantity < 5.0 :
+                if quantity_row.quantity < 10.0:
                     # restock it
-                    new_quantity = quantity_row.quantity + 50
+                    new_quantity = 50 # quantity_row.quantity + 50
                     session.execute(add_stock_prepared, (new_quantity, store_uuid, item.name))
                     logging.info(store_id + ", " + item.name + " has " + str(new_quantity))
     if app.config["ENV"] == "production": 
