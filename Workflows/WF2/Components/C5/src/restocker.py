@@ -215,7 +215,7 @@ def restocker():
             # perform restock
             for item_dict in restock_list:
                 logging.info(json.dumps(item_dict, sort_keys=True))
-                quantity = 20   # item_dict["quantity"] + 20
+                quantity = 20.0   # item_dict["quantity"] + 20
                 session.execute(add_stock_prepared, (quantity, store_uuid, item_dict["item-name"]))
 
         # decrement stock
