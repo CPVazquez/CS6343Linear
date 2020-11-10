@@ -224,6 +224,9 @@ def restocker():
         valid = False
         mess = inst.args[0]
 
+    if not valid:
+        logging.info("ERROR: " + mess)
+
     # TODO: update order with restock status
 
     if valid:
