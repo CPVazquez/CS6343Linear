@@ -191,7 +191,7 @@ def restocker():
     if "pizza-order" not in data:
         order = {"pizza-order": data}
     else:
-        order = data.copy()
+        order = dict(data)
 
     if order["pizza-order"]["storeId"] not in workflows:
         message = "Workflow does not exist. Request Rejected."
