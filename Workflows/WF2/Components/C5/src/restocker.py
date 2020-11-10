@@ -138,7 +138,7 @@ def decrement_stock(store_uuid, instock_dict, required_dict):
 
 # Aggregate all ingredients for a given order
 def aggregate_ingredients(pizza_list):
-    ingredients = items_dict.copy()
+    ingredients = copy.deepcopy(items_dict)
 
     # Loop through each pizza in pizza_list and aggregate the required ingredients
     for pizza in pizza_list:
@@ -167,7 +167,7 @@ def aggregate_ingredients(pizza_list):
 
 # Check stock at a given store to determine if order can be filled
 def check_stock(store_uuid, order_dict):
-    instock_dict = items_dict.copy()
+    instock_dict = copy.deepcopy(items_dict)
     required_dict = aggregate_ingredients(order_dict["pizzaList"])
     restock_list = list()
 
