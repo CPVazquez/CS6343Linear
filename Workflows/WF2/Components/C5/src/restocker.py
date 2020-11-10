@@ -224,7 +224,7 @@ def restocker():
         valid = False
         mess = inst.args[0]
 
-    # TODO: update order with restock status
+    order.append({"restock": restock_list})
 
     if valid:
         next_comp = get_next_component(store_id)
