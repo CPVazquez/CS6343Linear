@@ -9,6 +9,7 @@ import time
 import threading
 import logging
 import os
+import copy
 
 from flask import Flask, request, Response
 from cassandra.cluster import Cluster
