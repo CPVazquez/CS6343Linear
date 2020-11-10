@@ -4,18 +4,18 @@
 
 This component recieves restocking orders sent to the workflow manager. The restock orders follow the format of the restock-order.shema.json file in the shema folder. The component also scans the database every 5 minutes to check for items that might need to be restocked.
 """
+
 import json
-import time
-import threading
 import logging
 import os
-import copy
+import threading
+import time
+import uuid
 
-from flask import Flask, request, Response
-from cassandra.cluster import Cluster
 import jsonschema
 import requests
-import uuid
+from cassandra.cluster import Cluster
+from flask import Flask, Response, request
 
 __author__ = "Carla Vazquez, Chris Scott"
 __version__ = "2.0.0"
@@ -104,9 +104,9 @@ def send_order_to_next_component(url, order):
     cust_name = order["pizza-order"]["custName"]
     response = requests.post(url, json=json.dumps(order))
     if response.status_code == 200:
-        logging.info("Processed order for {}. Order sent to next component.".format(cust_name))
+        logging.info("Restocked order for {}. Order sent to next component.".format(cust_name))
     else:
-        logging.info("Processed order for {}. Issue sending order to next component:".format(cust_name))
+        logging.info("Restocked order for {}. Issue sending order to next component:".format(cust_name))
         logging.info(response.text)
 
 
@@ -125,9 +125,10 @@ def send_results_to_client(store_id, order):
 
     response = requests.post(origin_url, json=json.dumps({"message": message}))
     if response.status_code == 200:
-        logging.info("Restuarant Owner recieved results for order from " + cust_name)
+        logging.info("Restocked order for {}. Restaurant Owner sent results.".format(cust_name))
     else:
-        logging.info("Issue sending results for order from " + cust_name + "\n" + response.txt)
+        logging.info("Restocked order for {}. Issue sending results to Restuarant Owner:".format(cust_name))
+        logging.info(response.text)
 
 
 # Decrement a store's stock for the order about to be placed
@@ -139,7 +140,7 @@ def decrement_stock(store_uuid, instock_dict, required_dict):
 
 # Aggregate all ingredients for a given order
 def aggregate_ingredients(pizza_list):
-    ingredients = copy.deepcopy(items_dict)
+    ingredients = items_dict.copy()
 
     # Loop through each pizza in pizza_list and aggregate the required ingredients
     for pizza in pizza_list:
@@ -168,12 +169,10 @@ def aggregate_ingredients(pizza_list):
 
 # Check stock at a given store to determine if order can be filled
 def check_stock(store_uuid, order_dict):
-    instock_dict = copy.deepcopy(items_dict)
+    instock_dict = items_dict.copy()
     required_dict = aggregate_ingredients(order_dict["pizzaList"])
-    restock_list = list()
+    restock_list = list()   # restock_list will be empty if no items need restocking
 
-    # If insufficient stock, restock_list contains items for restock
-    # Otherwise, restock_list is an empty list
     rows = session.execute(select_stock_prepared, (store_uuid,))
     for row in rows:
         if row.quantity < required_dict[row.itemname]:
@@ -192,7 +191,7 @@ def restocker():
     if "pizza-order" not in data:
         order = {"pizza-order": data}
     else:
-        order = dict(data)
+        order = data.copy()
 
     if order["pizza-order"]["storeId"] not in workflows:
         message = "Workflow does not exist. Request Rejected."
@@ -225,13 +224,9 @@ def restocker():
         valid = False
         mess = inst.args[0]
 
-    if not valid:
-        logging.info("ERROR: " + mess)
-
     # TODO: update order with restock status
 
     if valid:
-        logging.info("Restock successful")
         next_comp = get_next_component(store_id)
         if next_comp is None:
             # last component in workflow, report results to client
@@ -240,9 +235,11 @@ def restocker():
             # send order to next component in workflow
             next_comp_url = get_component_url(next_comp, store_id)
             logging.info("next_comp_url: " + next_comp_url)
+            logging.info("order: " + json.dumps(order, sort_keys=True, indent=4))
             send_order_to_next_component(next_comp_url, order)
         return Response(status=200)
     else:
+        logging.info("ERROR: " + mess)
         return Response(status=400)
 
 
@@ -301,6 +298,7 @@ def update_workflow(storeId):
     return Response(status=200, response="Restocker updated for {}\n".format(storeId))
 
 
+# delete the specified resource, if it exists
 @app.route("/workflow-requests/<storeId>", methods=["DELETE"])
 def teardown_workflow(storeId):
     if storeId not in workflows:
@@ -328,7 +326,7 @@ def retrieve_workflows():
     return Response(status=200, response=json.dumps(workflows))
 
 
-# the health endpoint, so that users can verify that the server is up and running
+# the health endpoint, to verify that the server is up and running
 @app.route('/health', methods=['GET'])
 def health_check():
     logging.info("GET /health")
@@ -352,11 +350,11 @@ def scan_out_of_stock():
                 # and it is low in quantity
                 if quantity_row.quantity < 5.0 :
                     # restock it
-                    session.execute(add_stock_prepared, (quantity_row.quantity + 20, store.storeid, item.name))
-                    logging.info(str(store.storeid) + ", " + item.name +
-                        " has " + str(quantity_row.quantity + 20.0))
+                    new_quantity = quantity_row.quantity + 50
+                    session.execute(add_stock_prepared, (new_quantity, store.storeid, item.name))
+                    logging.info(str(store.storeid) + ", " + item.name + " has " + str(new_quantity))
     if app.config["ENV"] == "production": 
         threading.Timer(60, scan_out_of_stock).start()
 
-# calls the scan_out_of_stock function for the first time
-# scan_out_of_stock()
+# call scan_out_of_stock() for the first time
+scan_out_of_stock()
