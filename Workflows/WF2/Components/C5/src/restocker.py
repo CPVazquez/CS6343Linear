@@ -176,7 +176,8 @@ def check_stock(store_uuid, order_dict):
     rows = session.execute(select_stock_prepared, (store_uuid,))
     for row in rows:
         if row.quantity < required_dict[row.itemname]:
-            restock_list.append({"item-name": row.itemname, "quantity": required_dict[row.itemname]})
+            quantity_difference = required_dict[row.itemname] - instock_dict[row.itemname]
+            restock_list.append({"item-name": row.itemname, "quantity": quantity_difference})
         instock_dict[row.itemname] = row.quantity
 
     return instock_dict, required_dict, restock_list
@@ -215,8 +216,8 @@ def restocker():
             # perform restock
             for item_dict in restock_list:
                 logging.info(json.dumps(item_dict, sort_keys=True))
-                quantity = 20.0   # item_dict["quantity"] + 20
-                session.execute(add_stock_prepared, (quantity, store_uuid, item_dict["item-name"]))
+                new_quantity = item_dict["quantity"] + instock_dict[item_dict["item-name"]] + 10
+                session.execute(add_stock_prepared, (new_quantity, store_uuid, item_dict["item-name"]))
 
         # decrement stock
         decrement_stock(store_uuid, instock_dict, required_dict)
