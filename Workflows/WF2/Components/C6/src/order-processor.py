@@ -1,15 +1,12 @@
-"""Order Verifier Component
+"""Order Processor Component
 
-Upon receiving a Pizza Order, this component validates the order and checks the store's stock.
-If sufficient stock exists, Order Verifier decrements the store's stock and creates the order. 
-Otherwise, Order Verifier requests a restock before decrementing stock and creating the order.
+Upon receiving a Pizza Order, this component assigns the pizza-order request an order ID
+and inserts the order's information into the database.
 """
 
-import copy
 import json
 import logging
 import os
-import threading
 import time
 import uuid
 from datetime import datetime
@@ -18,10 +15,6 @@ import jsonschema
 import requests
 from cassandra.cluster import Cluster
 from flask import Flask, Response, request
-
-from flask import Flask, request, Response
-from cassandra.cluster import Cluster
-import jsonschema
 
 __author__ = "Chris Scott"
 __version__ = "1.0.0"
@@ -295,7 +288,7 @@ def setup_workflow(storeId):
 
     logging.info("Workflow started for {}\n".format(storeId))
     
-    return Response(status=201, response="Order Verifier deployed for {}\n".format(storeId))    
+    return Response(status=201, response="Order Processor deployed for {}\n".format(storeId))    
 
 
 # if the recource exists, update it
@@ -317,7 +310,7 @@ def update_workflow(storeId):
 
     logging.info("Workflow updated for {}\n".format(storeId))
 
-    return Response(status=200, response="Order Verifier updated for {}\n".format(storeId))
+    return Response(status=200, response="Order Processor updated for {}\n".format(storeId))
 
 
 # if the recource exists, remove it
