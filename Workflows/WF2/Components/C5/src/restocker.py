@@ -206,11 +206,15 @@ def restocker():
     try:
         # check stock
         instock_dict, required_dict, restock_list = check_stock(store_uuid, order["pizza-order"])
+        logging.info("instock_dict:\n" + json.dumps(instock_dict, sort_keys=True, indent=4))
+        logging.info("required_dict:\n" + json.dumps(instock_dict, sort_keys=True, indent=4))
+        logging.info("restock_list:")
 
         # restock, if needed
         if restock_list:
             # perform restock
             for item_dict in restock_list:
+                logging.info(json.dumps(item_dict, sort_keys=True, indent=4))
                 quantity = item_dict["quantity"] + 20
                 session.execute(add_stock_prepared, (quantity, store_uuid, item_dict["item-name"]))
 
@@ -220,13 +224,21 @@ def restocker():
         valid = False
         mess = inst.args[0]
 
+    # TODO: update order with restock status
+
     if valid:
-        # update order with restock status
         logging.info("Restock successful")
+        next_comp = get_next_component(store_id)
+        if next_comp is None:
+            # last component in workflow, report results to client
+            send_results_to_client(store_id, order)
+        else:
+            # send order to next component in workflow
+            next_comp_url = get_component_url(next_comp, store_id)
+            logging.info("next_comp_url: " + next_comp_url)
+            send_order_to_next_component(next_comp_url, order)
         return Response(status=200)
     else:
-        # update order with restock status
-        logging.info("Restocker failure for order request:\n" + mess)
         return Response(status=400)
 
 
