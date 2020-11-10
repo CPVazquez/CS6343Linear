@@ -12,8 +12,8 @@ import os
 
 from flask import Flask, request, Response
 from cassandra.cluster import Cluster
-import docker
 import jsonschema
+import requests
 import uuid
 
 __author__ = "Carla Vazquez, Chris Scott"
