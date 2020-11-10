@@ -224,7 +224,7 @@ def restocker():
         valid = False
         mess = inst.args[0]
 
-    order.append({"restock": restock_list})
+    order.update({"restock": restock_list})
 
     if valid:
         next_comp = get_next_component(store_id)
@@ -338,21 +338,22 @@ def scan_out_of_stock():
     # gets a list of active store workflows
     stores = workflows.keys()
     # loops through said stores
-    for store in stores:
+    for store_id in stores:
+        store_uuid = uuid.UUID(store_id)
         # gets a list of all items
         items = session.execute(get_items)
         # loops through said items
         for item in items:
             # if the item exsists at the store
-            quantity = session.execute(get_quantity, (store.storeid, item.name))
+            quantity = session.execute(get_quantity, (store_uuid, item.name))
             quantity_row = quantity.one()
             if quantity_row != None:
                 # and it is low in quantity
                 if quantity_row.quantity < 5.0 :
                     # restock it
                     new_quantity = quantity_row.quantity + 50
-                    session.execute(add_stock_prepared, (new_quantity, store.storeid, item.name))
-                    logging.info(str(store.storeid) + ", " + item.name + " has " + str(new_quantity))
+                    session.execute(add_stock_prepared, (new_quantity, store_uuid, item.name))
+                    logging.info(store_id + ", " + item.name + " has " + str(new_quantity))
     if app.config["ENV"] == "production": 
         threading.Timer(60, scan_out_of_stock).start()
 
