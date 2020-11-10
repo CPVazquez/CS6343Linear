@@ -208,7 +208,7 @@ def restocker():
         # check stock
         instock_dict, required_dict, restock_list = check_stock(store_uuid, order["pizza-order"])
         logging.info("instock_dict:\n" + json.dumps(instock_dict, sort_keys=True, indent=4))
-        logging.info("required_dict:\n" + json.dumps(instock_dict, sort_keys=True, indent=4))
+        logging.info("required_dict:\n" + json.dumps(required_dict, sort_keys=True, indent=4))
         logging.info("restock_list:")
 
         # restock, if needed
