@@ -6,7 +6,7 @@ Carla Patricia Vazquez, Christopher Michael Scott
 
 ## Description
 
-This component recieves restocking orders sent to the workflow manager. The restock orders follow the format of the restock-order.shema.json file in the shema folder. The component also scans the database every 5 minutes to check for items that might need to be restocked.
+This component checks the store's stock to ensure that a pizza-order request can be filled. If there is insufficient stock for one or more items, then this component performs a restock for the insufficient items. As a secondary function, this component scans the database at the end of every day to check for items that might need to be restocked.
 
 ## Setup
 
@@ -23,27 +23,23 @@ Packages installed on pipenv virtual environment:
 * jsonschema
 * uuid
 * cassandra-driver
-* docker
-* pytest
-* mockito
-* pytest-cov
 
 ## Commands
 
 * To build the image:
     ```
-    docker build --rm -t trishare/restocker:tag path_to_c5_dockerfile
+    docker build --rm -t trishare/restocker:linear path_to_c5_dockerfile
     ```
 
 * To update the repository:
     ```
     sudo docker login
-    docker push trishaire/restocker:tag
+    docker push trishaire/restocker:linear
     ```
 
 * To create the service type the following command:
     ```
-    docker service create --name restocker --network myNet --publish 5000:5000 --env CASS_DB=VIP_of_Cass_Service trishaire/restocker:tag
+    docker service create --name restocker --network myNet --publish 5000:5000 --env CASS_DB=VIP_of_Cass_Service trishaire/restocker:linear
     ```
   * Where `VIP_of_Cass_Service` is the VIP of `myNet` overlay network.
 
@@ -75,7 +71,7 @@ requires a [`restock-order`](https://github.com/CPVazquez/CS6343/blob/master/Wor
 |-------------|--------|--------|
 | 200 | OK | restock-order successfully processed |
 | 400 | Bad Request | indicates the restock-order was ill formatted |
-| 422 | Unprocessable Entity | a workflow does not exist for the specified store, thus the restock-order cannot be processed |
+| 422 | Unprocessable Entity | a workflow does not exist for the specified store, thus the pizza-order cannot be processed |
 
 ### `PUT /workflow-requests/<storeId>`
 
@@ -94,7 +90,7 @@ Requires a `workflow-request` json object.
 | field | type | options | required | description |
 |-------|------|---------|----------|-------------|
 | method | enum | persistent, edge | true | the workflow deployment method |
-| component-list | enum array | order-verifier, cass, delivery-assigner, auto-restocker, restocker | true | the components the workflow is requesting |
+| component-list | enum array | order-verifier, order-processor, cass, delivery-assigner, stock-analyzer, restocker | true | the components the workflow is requesting |
 | origin | string - format ip | N/A | true | the ip of the host issuing the request |
 
 #### Responses

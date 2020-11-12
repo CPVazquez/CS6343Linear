@@ -1,8 +1,9 @@
-#!/usr/bin/env python
-
 """The Restocker Component for this Cloud Computing project.
 
-This component recieves restocking orders sent to the workflow manager. The restock orders follow the format of the restock-order.shema.json file in the shema folder. The component also scans the database every 5 minutes to check for items that might need to be restocked.
+This component checks the store's stock to ensure that a pizza-order request can be filled. 
+If stock is insufficient, then this component performs a restock for the insufficient items. 
+As a secondary function, this component scans the database at the end of every day to check 
+for items that might need to be restocked.
 """
 
 import json
@@ -93,7 +94,7 @@ def get_component_url(component, store_id):
         url += "1000/order"
     elif component == "delivery-assigner":
         url += "3000/order"
-    elif component == "auto-restocker":
+    elif component == "stock-analyzer":
         url += "4000/order"
     elif component == "order-processor":
         url += "6000/order"
