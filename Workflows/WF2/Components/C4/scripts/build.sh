@@ -1,4 +1,4 @@
 #!/bin/bash
-docker build --rm -t trishaire/auto-restocker:linear .
+docker build --rm -t trishaire/stock-analyzer:linear .
 sudo docker login
-sudo docker push trishaire/auto-restocker:linear
+sudo docker push trishaire/stock-analyzer:linear

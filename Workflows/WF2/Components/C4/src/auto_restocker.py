@@ -158,6 +158,40 @@ def _insert_stock_tracker(ingredients, storeId, date):
 		session.execute(insert_tracker_query, (storeId, ingredient,
 			ingredients[ingredient], date))
 
+def _get_next_component(store_id):
+	comp_list = workflows[store_id]["component-list"].copy()
+	comp_list.remove("cass")
+	next_comp_index = comp_list.index("stock-analyzer") + 1
+	if next_comp_index >= len(comp_list):
+		return None
+	return comp_list[next_comp_index]
+
+
+def _get_component_url(component, store_id):
+	comp_name = component +\
+		(str(workflows[store_id]["workflow-offset"]) if workflows[store_id]["method"] == "edge" else "")
+	url = "http://" + comp_name + ":"
+	if component == "order-verifier":
+		url += "1000/order"
+	elif component == "delivery-assigner":
+		url += "3000/order"
+	elif component == "restocker":
+		url += "5000/order"
+	elif component == "order-processor":
+		url += "6000/order"
+	return url
+
+
+def _send_order_to_next_component(url, order):
+
+	response = requests.post(url, json=json.dumps(order))
+	if response.status_code == 200:
+		logging.info("Order from {} aggregated.\
+			Order sent to next component.".format(cust_name))
+	else:
+		logging.info("Order from {} aggregated.\
+			Issue sending order to next component:".format(cust_name))
+		logging.info(response.text)
 
 def periodic_auto_restock():
 	'''Function to periodically predict weekly sales for items'''
@@ -207,13 +241,14 @@ def predict_stocks(storeId):
 def get_order():
 	'''REST API for storing order'''
 
-	logger.info("Received order for aggregation by Auto-Restocker\n")
 	
 	order = json.loads(request.get_json())
-	storeId = order['storeId']
+	storeId = order['pizza-order']['storeId']
 	storeID = uuid.UUID(storeId)
-	pizza_list = order['pizzaList']
-	order_date = datetime.strptime(order["orderDate"], '%Y-%m-%dT%H:%M:%S').date()
+	pizza_list = order['pizza-order']['pizzaList']
+	order_date = datetime.strptime(order['pizza-order']["orderDate"], '%Y-%m-%dT%H:%M:%S').date()
+
+	logger.info("Received order from {} for aggregation by stock-analyzer\n".format(order['pizza-order']['custName']))
 
 	new_date = False
 		
@@ -224,14 +259,16 @@ def get_order():
 	history[storeId][order_date] = _aggregate_ingredients(pizza_list, history[storeId][order_date])
 	
 	
-	if new_date:
-		logger.info("Insert new row into stockTracker\n")
+	if new_date:		
 		_insert_stock_tracker(history[storeId][order_date], storeID, order_date)
 	else:
-		logger.info("Updating row in stockTracker\n")
 		_update_stock_tracker(history[storeId][order_date], storeID, order_date)
 
 	
+	component = _get_next_component(storeId)
+	url = _get_component_url(component, storeId)
+	_send_order_to_next_component(url, order)
+
 	return Response(
 		status=200,
 		response="Order accepted and aggregated\n"
@@ -240,7 +277,7 @@ def get_order():
 
 @app.route('/workflow-requests/<storeId>', methods=['PUT'])
 def register_workflow(storeId):
-	'''REST API for registering workflow to auto-restocker service'''
+	'''REST API for registering workflow to stock-analyzer service'''
     
 	data = json.loads(request.get_json())
 
@@ -263,12 +300,12 @@ def register_workflow(storeId):
 	logger.info("Workflow request for store::{} accepted\n".format(storeId))
 	return Response(
 		status=201,
-		response='Valid Workflow registered to auto-restocker component\n')
+		response='Valid Workflow registered to stock-analyzer component\n')
 
     
 @app.route('/workflow-requests/<storeId>', methods=['DELETE'])
 def teardown_workflow(storeId):
-	'''REST API for tearing down workflow for auto-restocker service'''
+	'''REST API for tearing down workflow for stock-analyzer service'''
 	
 	logger.info('Received teardown request for store::{}\n'.format(storeId))
 
@@ -286,7 +323,7 @@ def teardown_workflow(storeId):
 	logger.info('Store::{} deleted!!\n'.format(storeId))
 	return Response(
 		status=204,
-		response="Workflow removed from auto-restocker!\n"
+		response="Workflow removed from stock-analyzer!\n"
 	)
 
     
@@ -294,13 +331,13 @@ def teardown_workflow(storeId):
 def retrieve_workflow(storeId):
 	
 	if not (storeId in workflows):
-		logger.info('Workflow not registered to auto-restocker\n')
+		logger.info('Workflow not registered to stock-analyzer\n')
 		return Response(
 			status=404,
 			response="Workflow doesn't exist. Nothing to retrieve\n"
 		)
 	else:
-		logger.info('{} Workflow found on auto-restocker\n'.format(storeId))
+		logger.info('{} Workflow found on stock-analyzer\n'.format(storeId))
 		return Response(
 			status=200,
 			response=json.dumps(workflows[storeId]) + '\n'
@@ -320,6 +357,6 @@ def retrieve_workflows():
 def health_check():
 	'''REST API for checking health of task.'''
 
-	logger.info("Checking health of auto-restocker.\n")
-	return Response(status=200,response="Auto-Restocker is healthy!!\n")
+	logger.info("Checking health of stock-analyzer.\n")
+	return Response(status=200,response="stock-analyzer is healthy!!\n")
  

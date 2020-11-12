@@ -1,4 +1,4 @@
-# Item Auto Stocker
+# Item Stock Analyzer
   Workflow 2, Component 4
 
 ## Written By
@@ -27,21 +27,21 @@ Packages installed using pip:
 ## Commands
   * To build the docker image, use the following command in the folder containing the Dockerfile:
     ```
-    docker build --rm -t trishaire/auto-restocker path_to_c1_dockerfile
+    docker build --rm -t trishaire/stock-analyzer path_to_c1_dockerfile
     ```
   * To update Dockerhub repository:
   
     ```
     sudo docker login
-    docker push trishaire/auto-restocker:tag
+    docker push trishaire/stock-analyzer:tag
     ```
 
   * To create the image as a service run the following command:
 
     ```
-    docker service create --name auto-restocker --network myNet --publish port:port trishaire/auto-restocker
+    docker service create --name stock-analyzer --network myNet --publish port:port trishaire/stock-analyzer
     ```
 
-    * Where `port` is `4000` for auto-restocker.
+    * Where `port` is `4000` for stock-analyzer.
   
 [Main README](https://github.com/CPVazquez/CS6343Linear)
