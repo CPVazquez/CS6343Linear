@@ -227,7 +227,7 @@ def _get_component_url(component, store_id):
     url = "http://" + comp_name + ":"
     if component == "order-verifier":
         url += "1000/order"
-    elif component == "auto-restocker":
+    elif component == "stock-analyzer":
         url += "4000/order"
     elif component == "restocker":
         url += "5000/order"
@@ -410,7 +410,7 @@ def assign():
        order['pizza-order']['orderId'] = str(uuid.uuid4())
        _create_order(order)
     else:
-       order['pizza-order']['orderId'] = uuid.UUID(order['orderId'])
+       order['pizza-order']['orderId'] = uuid.UUID(order[['pizza-order']['orderId'])
 
         
     res = assign_entity(storeID, order)            
@@ -427,7 +427,7 @@ def assign():
                          "Order does not exist."
             )
 
-        order['pizza-order']['orderId'] = str(order['orderId'])
+        order['pizza-order']['orderId'] = str(order['pizza-order']['orderId'])
         component = _get_next_component(storeId)
         url = _get_component_url(component, storeId)
         _send_order_to_next_component(url, order)
