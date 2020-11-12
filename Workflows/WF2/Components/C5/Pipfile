@@ -11,10 +11,7 @@ gunicorn = "*"
 jsonschema = "*"
 uuid = "*"
 cassandra-driver = "*"
-docker = "*"
-pytest = "*"
-mockito = "*"
-pytest-cov = "*"
+requests = "*"
 
 [requires]
 python_version = "3.8"
