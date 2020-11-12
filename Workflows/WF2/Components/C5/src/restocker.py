@@ -208,28 +208,18 @@ def restocker():
     try:
         # check stock
         instock_dict, required_dict, restock_list = check_stock(store_uuid, order["pizza-order"])
-        logging.info("restock_list:")
-
         # restock, if needed
         if restock_list:
             # perform restock
             for item_dict in restock_list:
-                logging.info(json.dumps(item_dict, sort_keys=True))
                 new_quantity = item_dict["quantity"] + instock_dict[item_dict["item-name"]] + 10
                 instock_dict[item_dict["item-name"]] = new_quantity
                 session.execute(add_stock_prepared, (new_quantity, store_uuid, item_dict["item-name"]))
-
-        logging.info("instock_dict:\n" + json.dumps(instock_dict, sort_keys=True, indent=4))
-        logging.info("required_dict:\n" + json.dumps(required_dict, sort_keys=True, indent=4))
-
         # decrement stock
         decrement_stock(store_uuid, instock_dict, required_dict)
     except Exception as inst:
         valid = False
         mess = inst.args[0]
-
-    order.update({"restock": restock_list})
-    logging.info("order: " + json.dumps(order, sort_keys=True, indent=4))
 
     if valid:
         next_comp = get_next_component(store_id)
