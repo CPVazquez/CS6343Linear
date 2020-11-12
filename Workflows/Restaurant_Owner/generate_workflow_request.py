@@ -94,7 +94,7 @@ def getCompList():
           "\t* delivery-assigner\n" +
           "\t* cass\n" +
           "\t* restocker\n" +
-          "\t* auto-restocker")
+          "\t* stock-analyzer")
     components = input("Enter a space separated list: ")
 
     while True:
@@ -110,7 +110,7 @@ def getCompList():
                 continue
             elif comp == "restocker":
                 continue
-            elif comp == "auto-restocker":
+            elif comp == "stock-analyzer":
                 continue
             elif comp == "order-processor":
                 continue

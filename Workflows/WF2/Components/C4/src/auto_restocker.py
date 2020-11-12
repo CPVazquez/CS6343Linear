@@ -207,7 +207,7 @@ def predict_stocks(storeId):
 def get_order():
 	'''REST API for storing order'''
 
-	logger.info("Received order for aggregation by Auto-Restocker\n")
+	logger.info("Received order for aggregation by stock-analyzer\n")
 	
 	order = json.loads(request.get_json())
 	storeId = order['storeId']
@@ -240,7 +240,7 @@ def get_order():
 
 @app.route('/workflow-requests/<storeId>', methods=['PUT'])
 def register_workflow(storeId):
-	'''REST API for registering workflow to auto-restocker service'''
+	'''REST API for registering workflow to stock-analyzer service'''
     
 	data = json.loads(request.get_json())
 
@@ -263,12 +263,12 @@ def register_workflow(storeId):
 	logger.info("Workflow request for store::{} accepted\n".format(storeId))
 	return Response(
 		status=201,
-		response='Valid Workflow registered to auto-restocker component\n')
+		response='Valid Workflow registered to stock-analyzer component\n')
 
     
 @app.route('/workflow-requests/<storeId>', methods=['DELETE'])
 def teardown_workflow(storeId):
-	'''REST API for tearing down workflow for auto-restocker service'''
+	'''REST API for tearing down workflow for stock-analyzer service'''
 	
 	logger.info('Received teardown request for store::{}\n'.format(storeId))
 
@@ -286,7 +286,7 @@ def teardown_workflow(storeId):
 	logger.info('Store::{} deleted!!\n'.format(storeId))
 	return Response(
 		status=204,
-		response="Workflow removed from auto-restocker!\n"
+		response="Workflow removed from stock-analyzer!\n"
 	)
 
     
@@ -294,13 +294,13 @@ def teardown_workflow(storeId):
 def retrieve_workflow(storeId):
 	
 	if not (storeId in workflows):
-		logger.info('Workflow not registered to auto-restocker\n')
+		logger.info('Workflow not registered to stock-analyzer\n')
 		return Response(
 			status=404,
 			response="Workflow doesn't exist. Nothing to retrieve\n"
 		)
 	else:
-		logger.info('{} Workflow found on auto-restocker\n'.format(storeId))
+		logger.info('{} Workflow found on stock-analyzer\n'.format(storeId))
 		return Response(
 			status=200,
 			response=json.dumps(workflows[storeId]) + '\n'
@@ -320,6 +320,6 @@ def retrieve_workflows():
 def health_check():
 	'''REST API for checking health of task.'''
 
-	logger.info("Checking health of auto-restocker.\n")
-	return Response(status=200,response="Auto-Restocker is healthy!!\n")
+	logger.info("Checking health of stock-analyzer.\n")
+	return Response(status=200,response="stock-analyzer is healthy!!\n")
  

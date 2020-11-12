@@ -39,7 +39,7 @@ portDict = {
     "order-verifier": 1000,
     "delivery-assigner": 3000,
     "cass": 2000,
-    "auto-restocker": 4000,
+    "stock-analyzer": 4000,
     "restocker": 5000,
     "order-processor": 6000
 }

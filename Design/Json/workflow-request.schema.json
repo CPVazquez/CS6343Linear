@@ -13,7 +13,7 @@
             "description": "A list of components to deploy for this workflow",
             "items" : {
                 "type": "string",
-                "enum":  ["order-verifier", "delivery-assigner", "auto-restocker", "restocker", "cass"]
+                "enum":  ["order-verifier", "delivery-assigner", "stock-analyzer", "restocker", "cass", "order-processor"]
             }
         },
         "workflow-offset" : {

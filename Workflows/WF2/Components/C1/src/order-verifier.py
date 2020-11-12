@@ -53,7 +53,7 @@ def get_component_url(component, store_id):
     url = "http://" + comp_name + ":"
     if component == "delivery-assigner":
         url += "3000/order"
-    elif component == "auto-restocker":
+    elif component == "stock-analyzer":
         url += "4000/order"
     elif component == "restocker":
         url += "5000/order"

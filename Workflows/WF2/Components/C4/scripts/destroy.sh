@@ -1,1 +1,1 @@
-docker service rm auto-restocker
+docker service rm stock-analyzer
