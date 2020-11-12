@@ -216,12 +216,7 @@ def send_results_to_client(store_id, order):
 @app.route('/order', methods=['POST'])
 def process_order():
     logging.info("POST /order")
-    data = json.loads(request.get_json())
-    
-    if "pizza-order" not in data:
-        order = {"pizza-order": data}
-    else:
-        order = data.copy()
+    order = json.loads(request.get_json())
 
     if order["pizza-order"]["storeId"] not in workflows:
         message = "Workflow does not exist. Request Rejected."

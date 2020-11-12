@@ -75,7 +75,8 @@ class PizzaOrder:
             "orderDate": self.order_date,
             "pizzaList": self.add_pizzas()
         }
-        return order_dict
+        wrapped = {"pizza-order": order_dict}
+        return wrapped
 
 
 # send pizza-order to first component in store's workflow

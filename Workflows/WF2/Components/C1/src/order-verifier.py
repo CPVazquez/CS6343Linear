@@ -111,12 +111,7 @@ def verify_order(data):
 @app.route('/order', methods=['POST'])
 def order_funct():
     logging.info("POST /order")
-    data = json.loads(request.get_json())
-
-    if "pizza-order" not in data:
-        order = {"pizza-order": data}
-    else:
-        order = data.copy()
+    order = json.loads(request.get_json())
 
     if order["pizza-order"]["storeId"] not in workflows:
         message = "Workflow does not exist. Request Rejected."
