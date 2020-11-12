@@ -105,7 +105,7 @@ Requires a `workflow-request` json object.
 | field | type | options | required | description |
 |-------|------|---------|----------|-------------|
 | method | enum | persistent, edge | true | the workflow deployment method |
-| component-list | enum array | order-processor, cass, delivery-assigner, auto-restocker, restocker | true | the components the workflow is requesting |
+| component-list | enum array | order-verifier, order-processor, cass, delivery-assigner, stock-analyzer, restocker | true | the components the workflow is requesting |
 | origin | string - format ip | N/A | true | the ip of the host issuing the request |
 
 #### Responses
