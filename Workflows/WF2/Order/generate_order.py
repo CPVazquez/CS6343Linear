@@ -21,12 +21,14 @@ fake = Faker('en_US')
 cluster_url = "http://cluster1-1.utdallas.edu"
 port_dict = {
     "order-verifier": 1000,
-    "delivery-assigner": 3000,
     "cass": 2000,
+    "delivery-assigner": 3000,
     "stock-analyzer": 4000,
     "restocker": 5000,
     "order-processor": 6000
 }
+
+print_results = False
 
 
 class PizzaOrder:
@@ -75,8 +77,8 @@ class PizzaOrder:
             "orderDate": self.order_date,
             "pizzaList": self.add_pizzas()
         }
-        wrapped = {"pizza-order": order_dict}
-        return wrapped
+        wrapped_dict = {"pizza-order": order_dict}
+        return wrapped_dict
 
 
 # send pizza-order to first component in store's workflow
@@ -85,11 +87,15 @@ def request_order(q, url):
         order = q.get()
         order_dict = order.generate_order()
         print("\nPizza Order Request:\n" + json.dumps(order_dict, indent=4))
-        response = requests.post(url, json=json.dumps(order_dict))
-        if response.status_code == 200:
-            print("Request Accepted!")
+        r = requests.post(url, json=json.dumps(order_dict))
+        if r.status_code == 200:
+            if print_results:
+                print("Results:")
+                print(json.dumps(json.loads(r.text), sort_keys=True, indent=4))
+            else:
+                print("SUCCESS!")
         else:
-            print("Request Rejected!")
+            print("FAILURE: {}, {}".format(r.status_code, r.text))
         q.task_done()
 
 
@@ -170,6 +176,16 @@ if __name__ == "__main__":
                 break
         except:
             print("Invalid input. Please try again.")
+
+    # Prompt user for printing of results (i.e., processed pizza-order json)
+    global print_results
+    answer = input("\nWould you want detailed results (y/n)? ")
+
+    while (answer != "y") and (answer != "n"):
+        answer = input("Invalid input. Type y or n: ") 
+
+    if answer == "y":
+        print_results = True
 
     print("\n*** Pizza Order Generator Script - Generating Orders ***")
 

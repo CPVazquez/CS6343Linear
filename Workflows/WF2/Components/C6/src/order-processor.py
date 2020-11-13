@@ -182,20 +182,24 @@ def get_component_url(component, store_id):
 
 
 def send_order_to_next_component(url, order):
-    cust_name = order["pizza-order"]["custName"]
-    response = requests.post(url, json=json.dumps(order))
-    if response.status_code == 200:
-        logging.info("Processed order for {}. Order sent to next component.".format(cust_name))
+    # send order to next component
+    r = requests.post(url, json=json.dumps(order))
+    
+    # form log message based on response status code from next component
+    message = "Order from " + order["pizza-order"]["custName"] + " is valid."
+    if r.status_code == 200:
+        logging.info(message + " Order sent to next component.")
     else:
-        logging.info("Processed order for {}. Issue sending order to next component:".format(cust_name))
-        logging.info(response.text)
+        logging.info(message + " Issue sending order to next component:\n" + r.text)
+
+    # this component is not last, respond with next component's status code and text
+    return Response(status=r.status_code, text=r.text)
 
 
 def send_results_to_client(store_id, order):
-    origin_url = "http://" + workflows[store_id]["origin"] + ":8080/results"
+    # form results message for Restaurant Owner (client)
     cust_name = order["pizza-order"]["custName"]
     message = "Order for " + cust_name
-
     if "assignment" in order:
         delivery_entity = order["assignment"]["deliveredBy"]
         estimated_time = str(order["assignment"]["estimatedTime"])
@@ -203,13 +207,20 @@ def send_results_to_client(store_id, order):
         message += " minutes by delivery entity " + delivery_entity + "."
     else:
         message += " has been placed."
+    
+    # send results message json to Restaurant Owner
+    origin_url = "http://" + workflows[store_id]["origin"] + ":8080/results"
+    r = requests.post(origin_url, json=json.dumps({"message": message}))
 
-    response = requests.post(origin_url, json=json.dumps({"message": message}))
-    if response.status_code == 200:
-        logging.info("Processed order for {}. Restuarant Owner recieved results.".format(cust_name))
+    # form log message based on response status code from Restaurant Owner
+    message = "Order from " + cust_name + " is valid."
+    if r.status_code == 200:
+        logging.info(message + " Restuarant Owner received the results.")
     else:
-        logging.info("Processed order for {}. Issue sending results to Restaurant Owner:".format(cust_name))
-        logging.info(response.text)
+        logging.info(message + " Issue sending results to Restaurant Owner:\n" + r.text)
+
+    # this component is the last, respond with the processed order json
+    return Response(status=r.status_code, json=json.dumps(order))
 
 
 # if pizza-order is valid, try to create it

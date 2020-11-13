@@ -63,21 +63,24 @@ def get_component_url(component, store_id):
 
 
 def send_order_to_next_component(url, order):
-    cust_name = order["pizza-order"]["custName"]
-    response = requests.post(url, json=json.dumps(order))
-    if response.status_code == 200:
-        logging.info("Order from {} is valid. Order sent to next component.".format(cust_name))
+    # send order to next component
+    r = requests.post(url, json=json.dumps(order))
+    
+    # form log message based on response status code from next component
+    message = "Order from " + order["pizza-order"]["custName"] + " is valid."
+    if r.status_code == 200:
+        logging.info(message + " Order sent to next component.")
     else:
-        logging.info("Order from {} is valid. Issue sending order to next component:".format(cust_name))
-        logging.info(response.text)
+        logging.info(message + " Issue sending order to next component:\n" + r.text)
+
+    # this component is not last, respond with next component's status code and text
+    return Response(status=r.status_code, text=r.text)
 
 
 def send_results_to_client(store_id, order):
-    origin_url = "http://" + workflows[store_id]["origin"] + ":8080/results"
-
+    # form results message for Restaurant Owner (client)
     cust_name = order["pizza-order"]["custName"]
     message = "Order for " + cust_name
-
     if "assignment" in order:
         delivery_entity = order["assignment"]["deliveredBy"]
         estimated_time = str(order["assignment"]["estimatedTime"])
@@ -85,13 +88,20 @@ def send_results_to_client(store_id, order):
         message += " minutes by delivery entity " + delivery_entity + "."
     else:
         message += " has been placed."
+    
+    # send results message json to Restaurant Owner
+    origin_url = "http://" + workflows[store_id]["origin"] + ":8080/results"
+    r = requests.post(origin_url, json=json.dumps({"message": message}))
 
-    response = requests.post(origin_url, json=json.dumps({"message": message}))
-    if response.status_code == 200:
-        logging.info("Order from {} is valid. Restuarant Owner received the results.".format(cust_name))
+    # form log message based on response status code from Restaurant Owner
+    message = "Order from " + cust_name + " is valid."
+    if r.status_code == 200:
+        logging.info(message + " Restuarant Owner received the results.")
     else:
-        logging.info("Order from {} is valid. Issue sending results to Restaurant Owner:".format(cust_name))
-        logging.info(response.text)
+        logging.info(message + " Issue sending results to Restaurant Owner:\n" + r.text)
+
+    # this component is the last, respond with the processed order json
+    return Response(status=r.status_code, json=json.dumps(order))
 
 
 # validate pizza-order against schema
@@ -126,14 +136,13 @@ def order_funct():
         next_comp = get_next_component(store_id)
         if next_comp is None:
             # last component in the workflow, report results to client
-            send_results_to_client(store_id, order)
+            return send_results_to_client(store_id, order)
         else:
             # send order to next component in workflow
             next_comp_url = get_component_url(next_comp, store_id)
-            send_order_to_next_component(next_comp_url, order)
-        return Response(status=200)
+            return send_order_to_next_component(next_comp_url, order)
     else:
-        return Response(status=400)
+        return Response(status=400, text="Request rejected, pizza-order is malformed:\n" + mess)
 
 
 # validate workflow-request against schema
@@ -158,21 +167,21 @@ def setup_workflow(storeId):
 
     if not valid:
         logging.info("workflow-request ill formatted")
-        return Response(status=400, response="workflow-request ill formatted\n" + mess)
+        return Response(status=400, r="workflow-request ill formatted\n" + mess)
 
     if storeId in workflows:
         logging.info("Workflow " + storeId + " already exists")
-        return Response(status=409, response="Workflow " + storeId + " already exists\n")
+        return Response(status=409, r="Workflow " + storeId + " already exists\n")
     
     if not ("cass" in data["component-list"]):
         logging.info("workflow-request rejected, cass is a required workflow component")
-        return Response(status=422, response="workflow-request rejected, cass is a required workflow component\n")
+        return Response(status=422, r="workflow-request rejected, cass is a required workflow component\n")
 
     workflows[storeId] = data
 
     logging.info("Workflow started for {}\n".format(storeId))
     
-    return Response(status=201, response="Order Verifier deployed for {}\n".format(storeId))    
+    return Response(status=201, r="Order Verifier deployed for {}\n".format(storeId))    
 
 
 # if the resource exists, update it
@@ -184,17 +193,17 @@ def update_workflow(storeId):
 
     if not valid:
         logging.info("workflow-request ill formatted")
-        return Response(status=400, response="workflow-request ill formatted\n" + mess)
+        return Response(status=400, r="workflow-request ill formatted\n" + mess)
 
     if not ("cass" in data["component-list"]):
         logging.info("workflow-request rejected, cass is a required workflow component")
-        return Response(status=422, response="workflow-request rejected, cass is a required workflow component\n")
+        return Response(status=422, r="workflow-request rejected, cass is a required workflow component\n")
 
     workflows[storeId] = data
 
     logging.info("Workflow updated for {}\n".format(storeId))
 
-    return Response(status=200, response="Order Verifier updated for {}\n".format(storeId))
+    return Response(status=200, r="Order Verifier updated for {}\n".format(storeId))
 
 
 # if the resource exists, remove it
@@ -202,7 +211,7 @@ def update_workflow(storeId):
 def teardown_workflow(storeId):
     logging.info("DELETE /workflow-requests/" + storeId)
     if not (storeId in workflows):
-        return Response(status=404, response="Workflow doesn't exist. Nothing to teardown.\n")
+        return Response(status=404, r="Workflow doesn't exist. Nothing to teardown.\n")
     else:
         del workflows[storeId]
         return Response(status=204)
@@ -213,20 +222,20 @@ def teardown_workflow(storeId):
 def retrieve_workflow(storeId):
     logging.info("GET /workflow-requests/" + storeId)
     if not (storeId in workflows):
-        return Response(status=404, response="Workflow doesn't exist. Nothing to retrieve.\n")
+        return Response(status=404, r="Workflow doesn't exist. Nothing to retrieve.\n")
     else:
-        return Response(status=200, response=json.dumps(workflows[storeId]))
+        return Response(status=200, r=json.dumps(workflows[storeId]))
 
 
 # retrieve all resources
 @app.route("/workflow-requests", methods=["GET"])
 def retrieve_workflows():
     logging.info("GET /workflow-requests")
-    return Response(status=200, response=json.dumps(workflows))
+    return Response(status=200, r=json.dumps(workflows))
 
 
 # Health check endpoint
 @app.route('/health', methods=['GET'])
 def health_check():
     logging.info("GET /health")
-    return Response(status=200,response="healthy\n")
+    return Response(status=200,r="healthy\n")
