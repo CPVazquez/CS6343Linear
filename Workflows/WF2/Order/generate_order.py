@@ -84,11 +84,11 @@ def request_order(q, url, print_results):
     while True:
         order = q.get()
         order_dict = order.generate_order()
-        print("\nPizza Order Request:\n" + json.dumps(order_dict, indent=4))
+        print("\nPizza Order Request:\n" + json.dumps(order_dict, sort_keys=True, indent=4))
         r = requests.post(url, json=json.dumps(order_dict))
         if r.status_code == 200:
             if print_results:
-                print("Results:\n" + json.dumps(json.loads(r.text)))
+                print("Results:\n" + json.dumps(json.loads(r.text), sort_keys=True, indent=4))
             else:
                 print("SUCCESS!")
         else:
@@ -177,7 +177,7 @@ if __name__ == "__main__":
     # Prompt user for printing of results (i.e., processed pizza-order json)
     print_results = False
     
-    answer = input("\nWould you want detailed results (y/n)? ")
+    answer = input("\nWould you like detailed results (y/n)? ")
 
     while (answer != "y") and (answer != "n"):
         answer = input("Invalid input. Type y or n: ") 

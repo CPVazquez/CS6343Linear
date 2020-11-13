@@ -70,8 +70,7 @@ def send_order_to_next_component(url, order):
     message = "Order from " + order["pizza-order"]["custName"] + " is valid."
     if r.status_code == 200:
         logging.info(message + " Order sent to next component.")
-        resp_dict = json.loads(r.text)
-        return Response(status=200, response=json.dumps(resp_dict))
+        return Response(status=200, response=json.dumps(json.loads(r.text)))
     else:
         logging.info(message + " Issue sending order to next component:\n" + r.text)
         return Response(status=r.status_code, response=r.text)
