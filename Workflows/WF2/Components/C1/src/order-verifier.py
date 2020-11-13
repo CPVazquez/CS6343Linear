@@ -70,11 +70,11 @@ def send_order_to_next_component(url, order):
     message = "Order from " + order["pizza-order"]["custName"] + " is valid."
     if r.status_code == 200:
         logging.info(message + " Order sent to next component.")
+        resp_dict = json.loads(r.text)
+        return Response(status=200, response=json.dumps(resp_dict))
     else:
         logging.info(message + " Issue sending order to next component:\n" + r.text)
-
-    # this component is not last, respond with next component's status code and text
-    return Response(status=r.status_code, response=r.text)
+        return Response(status=r.status_code, response=r.text)
 
 
 def send_results_to_client(store_id, order):
@@ -95,7 +95,6 @@ def send_results_to_client(store_id, order):
 
     # form log message based on response status code from Restaurant Owner
     message = "Order from " + cust_name + " is valid."
-    # this component is the last, respond with the processed order json
     if r.status_code == 200:
         logging.info(message + " Restuarant Owner received the results.")
         return Response(status=r.status_code, response=json.dumps(order))
@@ -126,7 +125,7 @@ def order_funct():
     if order["pizza-order"]["storeId"] not in workflows:
         message = "Workflow does not exist. Request Rejected."
         logging.info(message)
-        return Response(status=422, text=message)
+        return Response(status=422, response=message)
 
     valid, mess = verify_order(order["pizza-order"])
     order.update({"valid": valid})
@@ -142,7 +141,7 @@ def order_funct():
             next_comp_url = get_component_url(next_comp, store_id)
             return send_order_to_next_component(next_comp_url, order)
     else:
-        return Response(status=400, text="Request rejected, pizza-order is malformed:\n" + mess)
+        return Response(status=400, response="Request rejected, pizza-order is malformed:\n" + mess)
 
 
 # validate workflow-request against schema
