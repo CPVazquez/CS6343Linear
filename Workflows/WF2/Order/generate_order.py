@@ -89,7 +89,8 @@ def request_order(q, url, print_results):
         if r.status_code == 200:
             if print_results:
                 print("Results:")
-                print(json.dumps(json.loads(r.text), sort_keys=True, indent=4))
+                result = json.loads(r.text)
+                print(json.dumps(result, sort_keys=True, indent=4))
             else:
                 print("SUCCESS!")
         else:
