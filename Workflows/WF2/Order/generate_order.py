@@ -88,7 +88,8 @@ def request_order(q, url, print_results):
         r = requests.post(url, json=json.dumps(order_dict))
         if r.status_code == 200:
             if print_results:
-                print("Results:\n" + json.dumps(json.loads(r.text), sort_keys=True, indent=4))
+                print("SUCCESS! Response:")
+                print(json.dumps(json.loads(r.text), sort_keys=True, indent=4))
             else:
                 print("SUCCESS!")
         else:
