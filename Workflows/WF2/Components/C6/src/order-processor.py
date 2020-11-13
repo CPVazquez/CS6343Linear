@@ -254,7 +254,7 @@ def process_order():
             return send_order_to_next_component(next_comp_url, order)
     else:
         logging.info("Request rejected, order processing failed:\n" + mess)
-        return Response(status=400, "Request rejected, order processing failed:\n" + mess)
+        return Response(status=400, response="Request rejected, order processing failed:\n" + mess)
 
 
 # validate workflow-request against schema
