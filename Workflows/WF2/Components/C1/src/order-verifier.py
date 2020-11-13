@@ -74,7 +74,7 @@ def send_order_to_next_component(url, order):
         logging.info(message + " Issue sending order to next component:\n" + r.text)
 
     # this component is not last, respond with next component's status code and text
-    return Response(status=r.status_code, text=r.text)
+    return Response(status=r.status_code, response=r.text)
 
 
 def send_results_to_client(store_id, order):
@@ -95,13 +95,13 @@ def send_results_to_client(store_id, order):
 
     # form log message based on response status code from Restaurant Owner
     message = "Order from " + cust_name + " is valid."
+    # this component is the last, respond with the processed order json
     if r.status_code == 200:
         logging.info(message + " Restuarant Owner received the results.")
+        return Response(status=r.status_code, response=json.dumps(order))
     else:
         logging.info(message + " Issue sending results to Restaurant Owner:\n" + r.text)
-
-    # this component is the last, respond with the processed order json
-    return Response(status=r.status_code, json=json.dumps(order))
+        return Response(status=r.status_code, response=r.text)
 
 
 # validate pizza-order against schema
@@ -167,21 +167,21 @@ def setup_workflow(storeId):
 
     if not valid:
         logging.info("workflow-request ill formatted")
-        return Response(status=400, r="workflow-request ill formatted\n" + mess)
+        return Response(status=400, response="workflow-request ill formatted\n" + mess)
 
     if storeId in workflows:
         logging.info("Workflow " + storeId + " already exists")
-        return Response(status=409, r="Workflow " + storeId + " already exists\n")
+        return Response(status=409, response="Workflow " + storeId + " already exists\n")
     
     if not ("cass" in data["component-list"]):
         logging.info("workflow-request rejected, cass is a required workflow component")
-        return Response(status=422, r="workflow-request rejected, cass is a required workflow component\n")
+        return Response(status=422, response="workflow-request rejected, cass is a required workflow component\n")
 
     workflows[storeId] = data
 
     logging.info("Workflow started for {}\n".format(storeId))
     
-    return Response(status=201, r="Order Verifier deployed for {}\n".format(storeId))    
+    return Response(status=201, response="Order Verifier deployed for {}\n".format(storeId))    
 
 
 # if the resource exists, update it
@@ -193,17 +193,17 @@ def update_workflow(storeId):
 
     if not valid:
         logging.info("workflow-request ill formatted")
-        return Response(status=400, r="workflow-request ill formatted\n" + mess)
+        return Response(status=400, response="workflow-request ill formatted\n" + mess)
 
     if not ("cass" in data["component-list"]):
         logging.info("workflow-request rejected, cass is a required workflow component")
-        return Response(status=422, r="workflow-request rejected, cass is a required workflow component\n")
+        return Response(status=422, response="workflow-request rejected, cass is a required workflow component\n")
 
     workflows[storeId] = data
 
     logging.info("Workflow updated for {}\n".format(storeId))
 
-    return Response(status=200, r="Order Verifier updated for {}\n".format(storeId))
+    return Response(status=200, response="Order Verifier updated for {}\n".format(storeId))
 
 
 # if the resource exists, remove it
@@ -211,7 +211,7 @@ def update_workflow(storeId):
 def teardown_workflow(storeId):
     logging.info("DELETE /workflow-requests/" + storeId)
     if not (storeId in workflows):
-        return Response(status=404, r="Workflow doesn't exist. Nothing to teardown.\n")
+        return Response(status=404, response="Workflow doesn't exist. Nothing to teardown.\n")
     else:
         del workflows[storeId]
         return Response(status=204)
@@ -222,20 +222,20 @@ def teardown_workflow(storeId):
 def retrieve_workflow(storeId):
     logging.info("GET /workflow-requests/" + storeId)
     if not (storeId in workflows):
-        return Response(status=404, r="Workflow doesn't exist. Nothing to retrieve.\n")
+        return Response(status=404, response="Workflow doesn't exist. Nothing to retrieve.\n")
     else:
-        return Response(status=200, r=json.dumps(workflows[storeId]))
+        return Response(status=200, response=json.dumps(workflows[storeId]))
 
 
 # retrieve all resources
 @app.route("/workflow-requests", methods=["GET"])
 def retrieve_workflows():
     logging.info("GET /workflow-requests")
-    return Response(status=200, r=json.dumps(workflows))
+    return Response(status=200, response=json.dumps(workflows))
 
 
 # Health check endpoint
 @app.route('/health', methods=['GET'])
 def health_check():
     logging.info("GET /health")
-    return Response(status=200,r="healthy\n")
+    return Response(status=200,response="healthy\n")

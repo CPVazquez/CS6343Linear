@@ -193,7 +193,7 @@ def send_order_to_next_component(url, order):
         logging.info(message + " Issue sending order to next component:\n" + r.text)
 
     # this component is not last, respond with next component's status code and text
-    return Response(status=r.status_code, text=r.text)
+    return Response(status=r.status_code, response=r.text)
 
 
 def send_results_to_client(store_id, order):
@@ -214,13 +214,13 @@ def send_results_to_client(store_id, order):
 
     # form log message based on response status code from Restaurant Owner
     message = "Order from " + cust_name + " is valid."
+    # this component is the last, respond with the processed order json
     if r.status_code == 200:
         logging.info(message + " Restuarant Owner received the results.")
+        return Response(status=r.status_code, response=json.dumps(order))
     else:
         logging.info(message + " Issue sending results to Restaurant Owner:\n" + r.text)
-
-    # this component is the last, respond with the processed order json
-    return Response(status=r.status_code, json=json.dumps(order))
+        return Response(status=r.status_code, response=r.text)
 
 
 # if pizza-order is valid, try to create it
