@@ -246,15 +246,15 @@ def process_order():
         order.update({"processor": "accepted"})
         next_comp = get_next_component(store_id)
         if next_comp is None:
-            send_results_to_client(store_id, order)
+            # last component in the workflow, report results to client
+            return send_results_to_client(store_id, order)
         else:
+            # send order to next component in workflow
             next_comp_url = get_component_url(next_comp, store_id)
-            send_order_to_next_component(next_comp_url, order)
-        return Response(status=200)
+            return send_order_to_next_component(next_comp_url, order)
     else:
-        order.update({"processor": "rejected"})
-        logging.info("Failed to process order request:\n" + mess)
-        return Response(status=400)
+        logging.info("Request rejected, order processing failed:\n" + mess)
+        return Response(status=400, "Request rejected, order processing failed:\n" + mess)
 
 
 # validate workflow-request against schema

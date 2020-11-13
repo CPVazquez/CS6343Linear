@@ -230,15 +230,14 @@ def restocker():
         next_comp = get_next_component(store_id)
         if next_comp is None:
             # last component in workflow, report results to client
-            send_results_to_client(store_id, order)
+            return send_results_to_client(store_id, order)
         else:
             # send order to next component in workflow
             next_comp_url = get_component_url(next_comp, store_id)
-            send_order_to_next_component(next_comp_url, order)
-        return Response(status=200)
+            return send_order_to_next_component(next_comp_url, order)
     else:
-        logging.info("ERROR: " + mess)
-        return Response(status=400)
+        logging.info("Request rejected, restock failed:\n" + mess)
+        return Response(status=400, response="Request rejected, restock failed:\n" + mess)
 
 
 def verify_workflow(data):

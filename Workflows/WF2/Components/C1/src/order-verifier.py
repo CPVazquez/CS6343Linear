@@ -70,9 +70,8 @@ def send_order_to_next_component(url, order):
     message = "Order from " + order["pizza-order"]["custName"] + " is valid."
     if r.status_code == 200:
         logging.info(message + " Order sent to next component.")
-        logging.info(r.text)
-        #resp_dict = json.loads(r.text)
-        return Response(status=200) # , response=json.dumps(resp_dict))
+        resp_dict = json.loads(r.text)
+        return Response(status=200, response=json.dumps(resp_dict))
     else:
         logging.info(message + " Issue sending order to next component:\n" + r.text)
         return Response(status=r.status_code, response=r.text)
@@ -142,6 +141,7 @@ def order_funct():
             next_comp_url = get_component_url(next_comp, store_id)
             return send_order_to_next_component(next_comp_url, order)
     else:
+        logging.info("Request rejected, pizza-order is malformed:\n" + mess)
         return Response(status=400, response="Request rejected, pizza-order is malformed:\n" + mess)
 
 
