@@ -28,8 +28,6 @@ port_dict = {
     "order-processor": 6000
 }
 
-print_results = False
-
 
 class PizzaOrder:
     # Order Attribute Lists
@@ -82,7 +80,7 @@ class PizzaOrder:
 
 
 # send pizza-order to first component in store's workflow
-def request_order(q, url):
+def request_order(q, url, print_results):
     while True:
         order = q.get()
         order_dict = order.generate_order()
@@ -178,7 +176,8 @@ if __name__ == "__main__":
             print("Invalid input. Please try again.")
 
     # Prompt user for printing of results (i.e., processed pizza-order json)
-    global print_results
+    print_results = False
+    
     answer = input("\nWould you want detailed results (y/n)? ")
 
     while (answer != "y") and (answer != "n"):
@@ -195,7 +194,7 @@ if __name__ == "__main__":
     total_orders = num_days * orders_per_day
     q = Queue(total_orders)
 
-    t = threading.Thread(target=request_order, args=(q, first_comp_url))
+    t = threading.Thread(target=request_order, args=(q, first_comp_url, print_results))
     t.daemon = True
     t.start()
 
