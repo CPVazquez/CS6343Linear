@@ -411,7 +411,7 @@ def assign():
        order['pizza-order']['orderId'] = str(uuid.uuid4())
        _create_order(order)
     else:
-       order['pizza-order']['orderId'] = uuid.UUID(order[['pizza-order']['orderId'])
+       order['pizza-order']['orderId'] = uuid.UUID(order['pizza-order']['orderId'])
 
         
     response = assign_entity(storeID, order)            

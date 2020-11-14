@@ -270,7 +270,7 @@ def get_order():
 	if component:
 		url = _get_component_url(component, storeId)
 		res = _send_order_to_next_component(url, order)
-		if res.status_code = 200:
+		if res.status_code == 200:
 			return res
 
 	return Response(
