@@ -183,15 +183,16 @@ def _get_component_url(component, store_id):
 
 
 def _send_order_to_next_component(url, order):
-
+	cust_name = order['pizza-order']['custName']
 	response = requests.post(url, json=json.dumps(order))
 	if response.status_code == 200:
 		logging.info("Order from {} aggregated.\
-			Order sent to next component.".format(cust_name))
+			Order sent to next component.".format(cust_name))		
 	else:
 		logging.info("Order from {} aggregated.\
 			Issue sending order to next component:".format(cust_name))
 		logging.info(response.text)
+	return response
 
 def periodic_auto_restock():
 	'''Function to periodically predict weekly sales for items'''
@@ -266,12 +267,15 @@ def get_order():
 
 	
 	component = _get_next_component(storeId)
-	url = _get_component_url(component, storeId)
-	_send_order_to_next_component(url, order)
+	if component:
+		url = _get_component_url(component, storeId)
+		res = _send_order_to_next_component(url, order)
+		if res.status_code = 200:
+			return res
 
 	return Response(
 		status=200,
-		response="Order accepted and aggregated\n"
+		json=json.dumps(order)
 	)
 
 

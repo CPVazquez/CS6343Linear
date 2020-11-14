@@ -248,7 +248,7 @@ def _send_order_to_next_component(url, order):
         logging.info("{} assigned to order from {} with time of delivery {} seconds.\
             Issue sending order to next component:".format(entity, cust_name, time))
         logging.info(response.text)
-
+    return response
 
 
 def assign_entity(store_id, order):
@@ -301,10 +301,11 @@ def assign_entity(store_id, order):
     order['assignment'] = {}
     order['assignment']['deliveredBy'] = entity
     order['assignment']['estimatedTime'] = time
-
+    order['pizza-order']['orderId'] = str(order['pizza-order']['orderId'])
     
     return Response(
-        status=200        
+        status=200,        
+        json=json.dumps(order)
     )
 
 
@@ -413,9 +414,9 @@ def assign():
        order['pizza-order']['orderId'] = uuid.UUID(order[['pizza-order']['orderId'])
 
         
-    res = assign_entity(storeID, order)            
+    response = assign_entity(storeID, order)            
    
-    if res.status_code == 200: 
+    if response.status_code == 200: 
         try:
             _update_order(order['pizza-order']['orderId'], order['assignment']['deliveredBy'], 
                 order['assignment']['estimatedTime'])
@@ -429,10 +430,13 @@ def assign():
 
         order['pizza-order']['orderId'] = str(order['pizza-order']['orderId'])
         component = _get_next_component(storeId)
-        url = _get_component_url(component, storeId)
-        _send_order_to_next_component(url, order)
+        if component:
+            url = _get_component_url(component, storeId)
+            res = _send_order_to_next_component(url, order)
+            if res.status_code == 200:
+                return res
     
-    return res
+    return response
 
 
 @app.route("/workflow-update/<storeId>", methods=['PUT'])
