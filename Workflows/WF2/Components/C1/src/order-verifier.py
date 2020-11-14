@@ -63,21 +63,23 @@ def get_component_url(component, store_id):
 
 
 def send_order_to_next_component(url, order):
-    cust_name = order["pizza-order"]["custName"]
-    response = requests.post(url, json=json.dumps(order))
-    if response.status_code == 200:
-        logging.info("Order from {} is valid. Order sent to next component.".format(cust_name))
+    # send order to next component
+    r = requests.post(url, json=json.dumps(order))
+    
+    # form log message based on response status code from next component
+    message = "Order from " + order["pizza-order"]["custName"] + " is valid."
+    if r.status_code == 200:
+        logging.info(message + " Order sent to next component.")
+        return Response(status=200, response=json.dumps(json.loads(r.text)))
     else:
-        logging.info("Order from {} is valid. Issue sending order to next component:".format(cust_name))
-        logging.info(response.text)
+        logging.info(message + " Issue sending order to next component:\n" + r.text)
+        return Response(status=r.status_code, response=r.text)
 
 
 def send_results_to_client(store_id, order):
-    origin_url = "http://" + workflows[store_id]["origin"] + ":8080/results"
-
+    # form results message for Restaurant Owner (client)
     cust_name = order["pizza-order"]["custName"]
     message = "Order for " + cust_name
-
     if "assignment" in order:
         delivery_entity = order["assignment"]["deliveredBy"]
         estimated_time = str(order["assignment"]["estimatedTime"])
@@ -85,13 +87,19 @@ def send_results_to_client(store_id, order):
         message += " minutes by delivery entity " + delivery_entity + "."
     else:
         message += " has been placed."
+    
+    # send results message json to Restaurant Owner
+    origin_url = "http://" + workflows[store_id]["origin"] + ":8080/results"
+    r = requests.post(origin_url, json=json.dumps({"message": message}))
 
-    response = requests.post(origin_url, json=json.dumps({"message": message}))
-    if response.status_code == 200:
-        logging.info("Order from {} is valid. Restuarant Owner received the results.".format(cust_name))
+    # form log message based on response status code from Restaurant Owner
+    message = "Order from " + cust_name + " is valid."
+    if r.status_code == 200:
+        logging.info(message + " Restuarant Owner received the results.")
+        return Response(status=r.status_code, response=json.dumps(order))
     else:
-        logging.info("Order from {} is valid. Issue sending results to Restaurant Owner:".format(cust_name))
-        logging.info(response.text)
+        logging.info(message + " Issue sending results to Restaurant Owner:\n" + r.text)
+        return Response(status=r.status_code, response=r.text)
 
 
 # validate pizza-order against schema
@@ -111,17 +119,12 @@ def verify_order(data):
 @app.route('/order', methods=['POST'])
 def order_funct():
     logging.info("POST /order")
-    data = json.loads(request.get_json())
-
-    if "pizza-order" not in data:
-        order = {"pizza-order": data}
-    else:
-        order = data.copy()
+    order = json.loads(request.get_json())
 
     if order["pizza-order"]["storeId"] not in workflows:
         message = "Workflow does not exist. Request Rejected."
         logging.info(message)
-        return Response(status=422, text=message)
+        return Response(status=422, response=message)
 
     valid, mess = verify_order(order["pizza-order"])
     order.update({"valid": valid})
@@ -131,14 +134,14 @@ def order_funct():
         next_comp = get_next_component(store_id)
         if next_comp is None:
             # last component in the workflow, report results to client
-            send_results_to_client(store_id, order)
+            return send_results_to_client(store_id, order)
         else:
             # send order to next component in workflow
             next_comp_url = get_component_url(next_comp, store_id)
-            send_order_to_next_component(next_comp_url, order)
-        return Response(status=200)
+            return send_order_to_next_component(next_comp_url, order)
     else:
-        return Response(status=400)
+        logging.info("Request rejected, pizza-order is malformed:\n" + mess)
+        return Response(status=400, response="Request rejected, pizza-order is malformed:\n" + mess)
 
 
 # validate workflow-request against schema
