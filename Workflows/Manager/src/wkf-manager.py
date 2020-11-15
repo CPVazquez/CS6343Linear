@@ -6,12 +6,12 @@ Creates and destroys specified workflows
 import logging
 import json
 from time import sleep
-import threading
 
 import requests
 import docker
 import jsonschema
-from flask import Flask, request, Response
+from quart import Quart, request, Response
+from quart.utils import run_sync
 
 __author__ = "Carla Vazquez"
 __version__ = "2.0.0"
@@ -27,12 +27,12 @@ logging.basicConfig(
 logging.getLogger('docker').setLevel(logging.INFO)
 logging.getLogger('requests').setLevel(logging.INFO)
 
-# set up necessary docker clients
+# # set up necessary docker clients
 client = docker.from_env()
 APIclient = docker.APIClient(base_url='unix://var/run/docker.sock')
 
 # set up flask app
-app = Flask(__name__)
+app = Quart(__name__)
 
 # set up component port dictionary
 portDict = {
@@ -46,9 +46,6 @@ portDict = {
 
 workflowOffset = 1
 
-# set up thread lock
-thread_lock = threading.Lock()
-
 # set up workflow dict
 workflows = dict()
 
@@ -57,12 +54,12 @@ with open("src/workflow-request.schema.json", "r") as schema:
     schema = json.loads(schema.read())
 
 
-###############################################################################
-#                           Helper Functions
-###############################################################################
+# ###############################################################################
+# #                           Helper Functions
+# ###############################################################################
 
 # check that the workflow specification json is valid
-def verify_workflow(data):
+async def verify_workflow(data):
     global schema
     valid = True
     mess = None
@@ -77,7 +74,7 @@ def verify_workflow(data):
     return valid, mess
 
 
-def start_component(component, storeId, data, response_list):
+async def start_component(component, storeId, data, response_list):
     timeOut = False
     # check if service exists
     comp_name = component +\
@@ -119,13 +116,13 @@ def start_component(component, storeId, data, response_list):
                 networks=['myNet'])  # set network
 
     if component == "cass":
-        count = spinup_cass(component, component_service, cass_name)
+        count = await spinup_cass(component, component_service, cass_name)
         if count < 9:
-            count = spinup_component(
+            count = await spinup_component(
                 component, data, origin_url, component_service
             )
     else:
-        count = spinup_component(
+        count = await spinup_component(
             component, data, origin_url, component_service
         )
 
@@ -138,26 +135,30 @@ def start_component(component, storeId, data, response_list):
         logging.info("FAILURE: " + component + " could not be deployed ")
         message = "Timeout. Component " + component +\
             " of your workflow could not be deployed"
-        thread_lock.acquire(blocking=True)
         response_list.append(component)
-        thread_lock.release()
         timeOut = True
 
-    requests.post(origin_url, json=json.dumps({"message": message}))
+#     requests.post(origin_url, json=json.dumps({"message": message}))
     return timeOut
 
 
-def spinup_component(component, data, origin_url, component_service):
+async def spinup_component(component, data, origin_url, component_service):
     count = 0
     comp_name = component +\
         (str(data["workflow-offset"]) if data["method"] == "edge" else "")
     service_url = "http://" + comp_name + ":" + str(portDict[component])
 
+    def gethealth():
+        return requests.get(service_url+"/health")
+
+    def sleepfor5():
+        sleep(5)
+
     # wait for component to spin up
     while True:
         try:
             logging.debug(service_url)
-            requests.get(service_url+"/health")
+            await run_sync(gethealth)()
         except Exception as ex:
             logging.debug(type(ex))
             logging.debug(ex)
@@ -168,8 +169,8 @@ def spinup_component(component, data, origin_url, component_service):
                 )
                 message = "Attempting to spin up " + component
                 message_dict = {"message": message}
-                requests.post(origin_url, json=json.dumps(message_dict))
-                sleep(5)
+                # requests.post(origin_url, json=json.dumps(message_dict)) 
+                await run_sync(sleepfor5)()
                 count += 1
             else:
                 component_service.remove()
@@ -179,9 +180,12 @@ def spinup_component(component, data, origin_url, component_service):
     return count
 
 
-def spinup_cass(component, component_service, cass_name):
+async def spinup_cass(component, component_service, cass_name):
     healthy = False
     count = 0
+
+    def sleepfor5():
+        sleep(5)
 
     # keep pinging the service
     while not healthy:
@@ -203,7 +207,7 @@ def spinup_cass(component, component_service, cass_name):
                     "Attempt " + str(count) + ", " + component +
                     " is not ready"
                 )
-                sleep(5)
+                await run_sync(sleepfor5)()
                 count += 1
             else:  # request timed out
                 component_service.remove()
@@ -211,7 +215,24 @@ def spinup_cass(component, component_service, cass_name):
     return count
 
 
-def comp_action(action, component, storeId, data, response_list=None):
+async def comp_action(action, component, storeId, data, response_list=None):
+
+    def requestPUT():
+        return requests.put(
+            service_url + "/workflow-requests/" + storeId,
+            json=json.dumps(data)
+        )
+
+    def requestUPDATE():
+        return requests.put(
+            service_url + "/workflow-update/" + storeId,
+            json=json.dumps(data)
+        )
+
+    def requestDELETE():
+        return requests.delete(
+            service_url + "/workflow-requests/" + storeId)
+
     # check if service exists
     comp_name = component +\
         (str(data["workflow-offset"]) if data["method"] == "edge" else "")
@@ -225,25 +246,18 @@ def comp_action(action, component, storeId, data, response_list=None):
             return
 
     if action == "start":
-        timeOut = start_component(component, storeId, data, response_list)
+        timeOut = await start_component(component, storeId, data, response_list)
         if timeOut:
             return
 
     # send workflow_request to component
     logging.info("sent workflow " + action + " to " + component)
     if action == "start":
-        comp_response = requests.put(
-            service_url + "/workflow-requests/" + storeId,
-            json=json.dumps(data)
-        )
+        comp_response = await run_sync(requestPUT)()
     elif action == "update":
-        comp_response = requests.put(
-            service_url + "/workflow-update/" + storeId,
-            json=json.dumps(data)
-        )
+        comp_response = await run_sync(requestUPDATE)()
     else:
-        comp_response = requests.delete(
-            service_url + "/workflow-requests/" + storeId)
+        comp_response = await run_sync(requestDELETE)()
         if data["method"] == "edge":
             service_filter[0].remove()
         else:  # if no other workflow is using it, remove it.
@@ -263,13 +277,11 @@ def comp_action(action, component, storeId, data, response_list=None):
 
     if (action == "update" and comp_response.status_code != 200) or\
        (action == "start" and comp_response.status_code != 201):
-        thread_lock.acquire(blocking=True)
         response_list.append(component)
-        thread_lock.release()
 
 
-def start_threads(action, storeId, component_list, data):
-    thread_list = []
+async def start_threads(action, storeId, component_list, data):
+    #  thread_list = []
     response_list = []
 
     # check if the workflow request specifies cass
@@ -279,20 +291,11 @@ def start_threads(action, storeId, component_list, data):
             # remove cass from the component-list
             component_list.remove("cass")
             # startup cass first and foremost
-            comp_action("start", "cass", storeId, data, response_list)
+            await comp_action("start", "cass", storeId, data, response_list)
 
     # start threads for the rest of the components
     for comp in component_list:
-        x = threading.Thread(
-            target=comp_action,
-            args=(action, comp, storeId, data, response_list)
-        )
-        x.start()
-        thread_list.append(x)
-
-    # wait for all the threads to terminate
-    for x in thread_list:
-        x.join()
+        await comp_action(action, comp, storeId, data, response_list)
 
     return response_list
 
@@ -301,7 +304,7 @@ def start_threads(action, storeId, component_list, data):
 #                           API Endpoints
 ###############################################################################
 @app.route("/workflow-requests/<storeId>", methods=["PUT"])
-def setup_workflow(storeId):
+async def setup_workflow(storeId):
     global workflowOffset
 
     logging.info("{:*^74}".format(
@@ -309,9 +312,10 @@ def setup_workflow(storeId):
         + storeId + " "
     ))
     # get the data from the request
-    data = json.loads(request.get_json())
+    requestData = await request.get_json()
+    data = json.loads(requestData)
     # verify the request is valid
-    valid, mess = verify_workflow(data)
+    valid, mess = await verify_workflow(data)
 
     # if invalid workflow request send back a 400 response
     if not valid:
@@ -339,16 +343,16 @@ def setup_workflow(storeId):
 
     # get the list of components for the workflow
     component_list = data["component-list"].copy()
-    failed_list = start_threads("start", storeId, component_list, data)
+    failed_list = await start_threads("start", storeId, component_list, data)
 
     if len(failed_list) == 0:
         logging.info("{:*^74}".format(" Request SUCCEEDED "))
         return Response(
-            status=201
+            status=201, response="success"
         )
     else:
         component_list = data["component-list"].copy()
-        start_threads("teardown", storeId, component_list, data)
+        await start_threads("teardown", storeId, component_list, data)
         del workflows[storeId]
         logging.info("{:*^74}".format(" Request FAILED "))
         return Response(
@@ -358,94 +362,94 @@ def setup_workflow(storeId):
         )
 
 
-@app.route("/workflow-update/<storeId>", methods=["PUT"])
-def update_workflow(storeId):
-    logging.info("{:*^74}".format(
-        " PUT /workflow-update/"
-        + storeId + " "
-    ))
-    # get the data from the request
-    data = json.loads(request.get_json())
-    # verify the request is valid
-    valid, mess = verify_workflow(data)
+# @app.route("/workflow-update/<storeId>", methods=["PUT"])
+# async def update_workflow(storeId):
+#     logging.info("{:*^74}".format(
+#         " PUT /workflow-update/"
+#         + storeId + " "
+#     ))
+#     # get the data from the request
+#     data = json.loads(request.get_json())
+#     # verify the request is valid
+#     valid, mess = verify_workflow(data)
 
-    # if invalid workflow request send back a 400 response
-    if not valid:
-        logging.info("workflow-request ill formatted")
-        logging.info("{:*^74}".format(" Request FAILED "))
-        return Response(
-            status=400,
-            response="workflow-request ill formatted\n" + mess
-        )
-    if not (storeId in workflows):
-        logging.info("workflow does not exists! Nothing to update")
-        logging.info("{:*^74}".format(" Request FAILED "))
-        return Response(
-            status=409,
-            response="Oops! A workflow does not exists for this client!\n" +
-                     "Nothing to update!"
-        )
+#     # if invalid workflow request send back a 400 response
+#     if not valid:
+#         logging.info("workflow-request ill formatted")
+#         logging.info("{:*^74}".format(" Request FAILED "))
+#         return Response(
+#             status=400,
+#             response="workflow-request ill formatted\n" + mess
+#         )
+#     if not (storeId in workflows):
+#         logging.info("workflow does not exists! Nothing to update")
+#         logging.info("{:*^74}".format(" Request FAILED "))
+#         return Response(
+#             status=409,
+#             response="Oops! A workflow does not exists for this client!\n" +
+#                      "Nothing to update!"
+#         )
 
-    list_teardown = list(set(workflows[storeId]["component-list"]) -
-                         set(data["component-list"]))
-    list_start = list(set(data["component-list"]) -
-                      set(workflows[storeId]["component-list"]))
-    list_update = list(set(data["component-list"]).intersection(
-        set(workflows[storeId]["component-list"])
-    ))
+#     list_teardown = list(set(workflows[storeId]["component-list"]) -
+#                          set(data["component-list"]))
+#     list_start = list(set(data["component-list"]) -
+#                       set(workflows[storeId]["component-list"]))
+#     list_update = list(set(data["component-list"]).intersection(
+#         set(workflows[storeId]["component-list"])
+#     ))
 
-    success = True
+#     success = True
 
-    if data["method"] == "edge":
-        data["workflow-offset"] = workflows[storeId]["workflow-offset"]
+#     if data["method"] == "edge":
+#         data["workflow-offset"] = workflows[storeId]["workflow-offset"]
 
-    logging.info("starting components not in previous workflow")
-    failed_list = start_threads("start", storeId, list_start, data)
+#     logging.info("starting components not in previous workflow")
+#     failed_list = start_threads("start", storeId, list_start, data)
 
-    if len(failed_list) != 0:
-        logging.info("failed to start new components")
-        start_threads("teardown", storeId, list_start, data)
-        success = False
-    else:
-        logging.info("updating components in previous workflow")
-        failed_list = start_threads("update", storeId, list_update, data)
+#     if len(failed_list) != 0:
+#         logging.info("failed to start new components")
+#         start_threads("teardown", storeId, list_start, data)
+#         success = False
+#     else:
+#         logging.info("updating components in previous workflow")
+#         failed_list = start_threads("update", storeId, list_update, data)
 
-        if len(failed_list) != 0:
-            logging.info("failed to update existing components")
-            # get the comps that succeeded
-            undo_update_list = list(set(list_update) - set(failed_list))
-            # change their workflows back
-            start_threads(
-                "update", storeId, undo_update_list, workflows[storeId]
-            )
-            # tear down the list_start components
-            start_threads("teardown", storeId, list_start, data)
-            success = False
-        else:
-            logging.info("removing components no longer needed")
-            start_threads(
-                "teardown", storeId, list_teardown, workflows[storeId]
-            )
+#         if len(failed_list) != 0:
+#             logging.info("failed to update existing components")
+#             # get the comps that succeeded
+#             undo_update_list = list(set(list_update) - set(failed_list))
+#             # change their workflows back
+#             start_threads(
+#                 "update", storeId, undo_update_list, workflows[storeId]
+#             )
+#             # tear down the list_start components
+#             start_threads("teardown", storeId, list_start, data)
+#             success = False
+#         else:
+#             logging.info("removing components no longer needed")
+#             start_threads(
+#                 "teardown", storeId, list_teardown, workflows[storeId]
+#             )
 
-    if success:
-        workflows[storeId] = data
-        logging.info("{:*^74}".format(" Request SUCCEEDED "))
-        return Response(
-            status=200
-        )
-    else:
-        logging.info("{:*^74}".format(" Request FAILED "))
-        return Response(
-            status=403,
-            response="Workflow update failed.\n" +
-                     "Invalid workflow specification\n" +
-                     "workflow unchanged"
-        )
+#     if success:
+#         workflows[storeId] = data
+#         logging.info("{:*^74}".format(" Request SUCCEEDED "))
+#         return Response(
+#             status=200
+#         )
+#     else:
+#         logging.info("{:*^74}".format(" Request FAILED "))
+#         return Response(
+#             status=403,
+#             response="Workflow update failed.\n" +
+#                      "Invalid workflow specification\n" +
+#                      "workflow unchanged"
+#         )
 
 
 # if the recource exists, remove it
 @app.route("/workflow-requests/<storeId>", methods=["DELETE"])
-def teardown_workflow(storeId):
+async def teardown_workflow(storeId):
     logging.info("{:*^74}".format(
         " DELETE /workflow-requests/" + storeId + " "))
     if not (storeId in workflows):
@@ -459,17 +463,17 @@ def teardown_workflow(storeId):
     # get the list of components for the workflow
     component_list = workflows[storeId]["component-list"].copy()
     # teardown components
-    start_threads("teardown", storeId, component_list, workflows[storeId])
+    await start_threads("teardown", storeId, component_list, workflows[storeId])
     # delete the given workflow from the dictionary
     del workflows[storeId]
 
     logging.info("{:*^74}".format(" Request SUCCEEDED "))
-    return Response(status=204)
+    return Response(status=204, response="success")
 
 
 # retrieve the specified resource, if it exists
 @app.route("/workflow-requests/<storeId>", methods=["GET"])
-def retrieve_workflow(storeId):
+async def retrieve_workflow(storeId):
     logging.info("{:*^74}".format(" GET /workflow-requests/" + storeId + " "))
     if not (storeId in workflows):
         logging.info("Nothing to retrieve")
@@ -488,7 +492,7 @@ def retrieve_workflow(storeId):
 
 # retrieve all resources
 @app.route("/workflow-requests", methods=["GET"])
-def retrieve_workflows():
+async def retrieve_workflows():
     logging.info("{:*^74}".format(" GET /workflow-requests "))
     logging.info("{:*^74}".format(" Request SUCCEEDED "))
     return Response(
@@ -499,7 +503,7 @@ def retrieve_workflows():
 
 # Health check endpoint
 @app.route("/health", methods=["GET"])
-def health_check():
+async def health_check():
     logging.info("{:*^74}".format(" GET /health "))
     logging.info("{:*^74}".format(" Request SUCCEEDED "))
     return Response(status=200, response="healthy\n")

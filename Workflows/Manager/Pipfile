@@ -8,8 +8,8 @@ verify_ssl = true
 [packages]
 gunicorn = "*"
 docker = "*"
-flask = "*"
 jsonschema = "*"
+quart = "*"
 
 [requires]
 python_version = "3.8"
