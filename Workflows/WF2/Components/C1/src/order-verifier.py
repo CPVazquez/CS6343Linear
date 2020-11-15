@@ -96,7 +96,7 @@ def send_results_to_client(store_id, order):
     message = "Order from " + cust_name + " is valid."
     if r.status_code == 200:
         logging.info(message + " Restuarant Owner received the results.")
-        return Response(status=r.status_code, response=json.dumps(order))
+        return Response(status=200, response=json.dumps(order))
     else:
         logging.info(message + " Issue sending results to Restaurant Owner:\n" + r.text)
         return Response(status=r.status_code, response=r.text)

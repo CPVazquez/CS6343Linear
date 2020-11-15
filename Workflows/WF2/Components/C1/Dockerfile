@@ -1,10 +1,10 @@
 FROM python:alpine3.11
 
-LABEL author = "Chris Scott"
-LABEL version = "1.0.0"
-LABEL maintainer = "Chris Scott"
-LABEL email = "christopher.scott@utdallas.edu"
-LABEL status = "Development"
+LABEL author="Chris Scott"
+LABEL version="1.0.0"
+LABEL maintainer="Chris Scott"
+LABEL email="cms190009@utdallas.edu"
+LABEL status="Development"
 
 ENV PYTHONBUFFERED 1
 ENV PYTHONFAULTHANDLER 1
@@ -18,4 +18,4 @@ RUN pipenv install --system --deploy
 
 EXPOSE 1000
 
-CMD gunicorn -b 0.0.0.0:1000 src.order-verifier:app
+CMD gunicorn --bind 0.0.0.0:1000 --timeout 30 src.order-verifier:app
