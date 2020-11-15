@@ -183,7 +183,7 @@ def _get_component_url(component, store_id):
 
 
 def _send_order_to_next_component(url, order):
-
+	cust_name = order["pizza-order"]["custName"]
 	response = requests.post(url, json=json.dumps(order))
 	if response.status_code == 200:
 		logging.info("Order from {} aggregated.\
@@ -295,7 +295,10 @@ def register_workflow(storeId):
 				"Please teardown existing workflow before deploying " +
 				"a new one\n"
 		)
-    
+    if not ("cass" in data["component-list"]):
+        logging.info("Workflow-request rejected, cass is a required workflow component\n")
+        return Response(status=422, response="workflow-request rejected, cass is a required workflow component\n")
+
 	workflows[storeId] = data
 	history[storeId] = {}
 
@@ -353,6 +356,25 @@ def retrieve_workflows():
 		status=200,
 		response='worflows::' + json.dumps(workflows) + '\n'
 	)		
+
+
+@app.route("/workflow-update/<storeId>", methods=['PUT'])
+def update_workflow(storeId):
+    '''REST API for updating registered workflow'''
+
+    logging.info('Update request for workflow {} to stock analyzer\n'.format(storeId))
+
+    data = json.loads(request.get_json())
+    
+    if not ("cass" in data["component-list"]):
+        logging.info("Workflow-request rejected, cass is a required workflow component\n")
+        return Response(status=422, response="workflow-request rejected, cass is a required workflow component\n")
+
+    workflows[storeId] = data
+
+    logging.info("Workflow updated for {}\n".format(storeId))
+
+    return Response(status=200, response="Stock-Analyzer updated for {}\n".format(storeId))
 
 
 @app.route('/health', methods=['GET'])
