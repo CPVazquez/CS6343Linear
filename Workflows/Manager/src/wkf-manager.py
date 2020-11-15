@@ -362,89 +362,90 @@ async def setup_workflow(storeId):
         )
 
 
-# @app.route("/workflow-update/<storeId>", methods=["PUT"])
-# async def update_workflow(storeId):
-#     logging.info("{:*^74}".format(
-#         " PUT /workflow-update/"
-#         + storeId + " "
-#     ))
-#     # get the data from the request
-#     data = json.loads(request.get_json())
-#     # verify the request is valid
-#     valid, mess = verify_workflow(data)
+@app.route("/workflow-update/<storeId>", methods=["PUT"])
+async def update_workflow(storeId):
+    logging.info("{:*^74}".format(
+        " PUT /workflow-update/"
+        + storeId + " "
+    ))
+    # get the data from the request
+    requestData = await request.get_json()
+    data = json.loads(requestData)
+    # verify the request is valid
+    valid, mess = await verify_workflow(data)
 
-#     # if invalid workflow request send back a 400 response
-#     if not valid:
-#         logging.info("workflow-request ill formatted")
-#         logging.info("{:*^74}".format(" Request FAILED "))
-#         return Response(
-#             status=400,
-#             response="workflow-request ill formatted\n" + mess
-#         )
-#     if not (storeId in workflows):
-#         logging.info("workflow does not exists! Nothing to update")
-#         logging.info("{:*^74}".format(" Request FAILED "))
-#         return Response(
-#             status=409,
-#             response="Oops! A workflow does not exists for this client!\n" +
-#                      "Nothing to update!"
-#         )
+    # if invalid workflow request send back a 400 response
+    if not valid:
+        logging.info("workflow-request ill formatted")
+        logging.info("{:*^74}".format(" Request FAILED "))
+        return Response(
+            status=400,
+            response="workflow-request ill formatted\n" + mess
+        )
+    if not (storeId in workflows):
+        logging.info("workflow does not exists! Nothing to update")
+        logging.info("{:*^74}".format(" Request FAILED "))
+        return Response(
+            status=409,
+            response="Oops! A workflow does not exists for this client!\n" +
+                     "Nothing to update!"
+        )
 
-#     list_teardown = list(set(workflows[storeId]["component-list"]) -
-#                          set(data["component-list"]))
-#     list_start = list(set(data["component-list"]) -
-#                       set(workflows[storeId]["component-list"]))
-#     list_update = list(set(data["component-list"]).intersection(
-#         set(workflows[storeId]["component-list"])
-#     ))
+    list_teardown = list(set(workflows[storeId]["component-list"]) -
+                         set(data["component-list"]))
+    list_start = list(set(data["component-list"]) -
+                      set(workflows[storeId]["component-list"]))
+    list_update = list(set(data["component-list"]).intersection(
+        set(workflows[storeId]["component-list"])
+    ))
 
-#     success = True
+    success = True
 
-#     if data["method"] == "edge":
-#         data["workflow-offset"] = workflows[storeId]["workflow-offset"]
+    if data["method"] == "edge":
+        data["workflow-offset"] = workflows[storeId]["workflow-offset"]
 
-#     logging.info("starting components not in previous workflow")
-#     failed_list = start_threads("start", storeId, list_start, data)
+    logging.info("starting components not in previous workflow")
+    failed_list = await start_threads("start", storeId, list_start, data)
 
-#     if len(failed_list) != 0:
-#         logging.info("failed to start new components")
-#         start_threads("teardown", storeId, list_start, data)
-#         success = False
-#     else:
-#         logging.info("updating components in previous workflow")
-#         failed_list = start_threads("update", storeId, list_update, data)
+    if len(failed_list) != 0:
+        logging.info("failed to start new components")
+        await start_threads("teardown", storeId, list_start, data)
+        success = False
+    else:
+        logging.info("updating components in previous workflow")
+        failed_list = await start_threads("update", storeId, list_update, data)
 
-#         if len(failed_list) != 0:
-#             logging.info("failed to update existing components")
-#             # get the comps that succeeded
-#             undo_update_list = list(set(list_update) - set(failed_list))
-#             # change their workflows back
-#             start_threads(
-#                 "update", storeId, undo_update_list, workflows[storeId]
-#             )
-#             # tear down the list_start components
-#             start_threads("teardown", storeId, list_start, data)
-#             success = False
-#         else:
-#             logging.info("removing components no longer needed")
-#             start_threads(
-#                 "teardown", storeId, list_teardown, workflows[storeId]
-#             )
+        if len(failed_list) != 0:
+            logging.info("failed to update existing components")
+            # get the comps that succeeded
+            undo_update_list = list(set(list_update) - set(failed_list))
+            # change their workflows back
+            await start_threads(
+                "update", storeId, undo_update_list, workflows[storeId]
+            )
+            # tear down the list_start components
+            await start_threads("teardown", storeId, list_start, data)
+            success = False
+        else:
+            logging.info("removing components no longer needed")
+            await start_threads(
+                "teardown", storeId, list_teardown, workflows[storeId]
+            )
 
-#     if success:
-#         workflows[storeId] = data
-#         logging.info("{:*^74}".format(" Request SUCCEEDED "))
-#         return Response(
-#             status=200
-#         )
-#     else:
-#         logging.info("{:*^74}".format(" Request FAILED "))
-#         return Response(
-#             status=403,
-#             response="Workflow update failed.\n" +
-#                      "Invalid workflow specification\n" +
-#                      "workflow unchanged"
-#         )
+    if success:
+        workflows[storeId] = data
+        logging.info("{:*^74}".format(" Request SUCCEEDED "))
+        return Response(
+            status=200, response="success"
+        )
+    else:
+        logging.info("{:*^74}".format(" Request FAILED "))
+        return Response(
+            status=403,
+            response="Workflow update failed.\n" +
+                     "Invalid workflow specification\n" +
+                     "workflow unchanged"
+        )
 
 
 # if the recource exists, remove it
