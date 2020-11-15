@@ -295,9 +295,10 @@ def register_workflow(storeId):
 				"Please teardown existing workflow before deploying " +
 				"a new one\n"
 		)
-    if not ("cass" in data["component-list"]):
-        logging.info("Workflow-request rejected, cass is a required workflow component\n")
-        return Response(status=422, response="workflow-request rejected, cass is a required workflow component\n")
+
+	if not ("cass" in data["component-list"]):
+		logging.info("Workflow-request rejected, cass is a required workflow component\n")
+		return Response(status=422, response="workflow-request rejected, cass is a required workflow component\n")
 
 	workflows[storeId] = data
 	history[storeId] = {}
