@@ -96,7 +96,7 @@ async def start_component(component, storeId, data, response_list):
         if component != "cass":
             # create the service
             component_service = client.services.create(
-                "trishaire/" + component + ":linear",  # the name of the image
+                "trishaire/" + component + ":async",  # the name of the image
                 name=comp_name,  # name of service
                 endpoint_spec=docker.types.EndpointSpec(
                     mode="vip", ports={pubPort: portDict[component]}
@@ -107,7 +107,7 @@ async def start_component(component, storeId, data, response_list):
             portCass = 9042 +\
                 (data["workflow-offset"] if data["method"] == "edge" else 0)
             component_service = client.services.create(
-                "trishaire/" + component + ":linear",  # the name of the image
+                "trishaire/" + component + ":async",  # the name of the image
                 name=comp_name,  # name of service
                 endpoint_spec=docker.types.EndpointSpec(
                     mode="vip", ports={pubPort: portDict[component],
