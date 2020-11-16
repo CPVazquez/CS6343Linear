@@ -8,7 +8,7 @@ LABEL status="Development"
 
 ENV PYTHONBUFFERED 1
 ENV PYTHONFAULTHANDLER 1
-ENV FLASK_ENV production
+#ENV FLASK_ENV production
 
 COPY . /app
 WORKDIR /app
@@ -19,4 +19,7 @@ RUN pipenv install --system --deploy
 
 EXPOSE 5000
 
-CMD gunicorn --bind 0.0.0.0:5000 --timeout 30 src.restocker:app
+ENV QUART_APP=src.restocker:app
+
+CMD quart run --port 5000 --host 0.0.0.0
+#CMD gunicorn --bind 0.0.0.0:5000 --timeout 30 src.restocker:app
