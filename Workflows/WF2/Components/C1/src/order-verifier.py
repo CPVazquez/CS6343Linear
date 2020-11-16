@@ -137,6 +137,7 @@ async def order_funct():
         return Response(status=422, response=message)
 
     store_id = order["pizza-order"]["storeId"]
+    cust_name = order["pizza-order"]["custName"]
 
     logging.info("Store " + store_id + ":\n    Verifying order for " + cust_name)
 
