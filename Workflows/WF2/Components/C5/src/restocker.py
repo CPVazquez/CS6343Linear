@@ -51,14 +51,14 @@ while True:
             SET quantity=? \
             WHERE storeID=? AND itemName=?\
         ')
-    except:
+    except Exception:
         time.sleep(5)
     else:
         break
 
 # set up logging
 logging.basicConfig(
-    level=logging.INFO, 
+    level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
@@ -71,9 +71,10 @@ with open("src/workflow-request.schema.json", "r") as workflow_schema:
 
 # Global pizza items/ingredients dict
 items_dict = {
-    'Dough': 0,         'SpicySauce': 0,        'TraditionalSauce': 0,  'Cheese': 0,
-    'Pepperoni': 0,     'Sausage': 0,           'Beef': 0,              'Onion': 0,
-    'Chicken': 0,       'Peppers': 0,           'Olives': 0,            'Bacon': 0,
+    'Dough': 0,         'SpicySauce': 0,        'TraditionalSauce': 0,
+    'Cheese': 0,        'Pepperoni': 0,         'Sausage': 0,
+    'Beef': 0,          'Onion': 0,             'Chicken': 0,
+    'Peppers': 0,           'Olives': 0,            'Bacon': 0,
     'Pineapple': 0,     'Mushrooms': 0
 }
 
@@ -91,9 +92,8 @@ async def get_next_component(store_id):
 
 
 async def get_component_url(component, store_id):
-    workflow_offset = str(workflows[store_id]["workflow-offset"])
     comp_name = component +\
-        (workflow_offset if workflows[store_id]["method"] == "edge" else "")
+        (str(workflows[store_id]["workflow-offset"]) if workflows[store_id]["method"] == "edge" else "")
     url = "http://" + comp_name + ":"
     if component == "order-verifier":
         url += "1000/order"
@@ -110,9 +110,9 @@ async def send_order_to_next_component(url, order):
     # send order to next component
     def request_post():
         return requests.post(url, json=json.dumps(order))
-    
+
     r = await run_sync(request_post)()
-    
+
     # form log message based on response status code from next component
     message = "Sufficient stock for order from " + order["pizza-order"]["custName"] + "."
     if r.status_code == 200:
@@ -134,10 +134,10 @@ async def send_results_to_client(store_id, order):
         message += " minutes by delivery entity " + delivery_entity + "."
     else:
         message += " has been placed."
-    
+
     # send results message json to Restaurant Owner
     origin_url = "http://" + workflows[store_id]["origin"] + ":8080/results"
-    
+
     def request_post():
         return requests.post(origin_url, json=json.dumps({"message": message}))
 
@@ -155,10 +155,13 @@ async def send_results_to_client(store_id, order):
 
 # Decrement a store's stock for the order about to be placed
 async def decrement_stock(store_uuid, instock_dict, required_dict):
-    for item_name in required_dict:
-        quantity = instock_dict[item_name] - required_dict[item_name]
+
+    def update_stock_prepared_execute():
         session.execute(update_stock_prepared, (quantity, store_uuid, item_name))
 
+    for item_name in required_dict:
+        quantity = instock_dict[item_name] - required_dict[item_name]
+        await run_sync(update_stock_prepared_execute)()
 
 # Aggregate all ingredients for a given order
 async def aggregate_ingredients(pizza_list):
@@ -195,7 +198,10 @@ async def check_stock(store_uuid, order_dict):
     required_dict = await aggregate_ingredients(order_dict["pizzaList"])
     restock_list = list()   # restock_list will be empty if no items need restocking
 
-    rows = session.execute(select_stock_prepared, (store_uuid,))
+    def check_stock_request():
+        return session.execute(select_stock_prepared, (store_uuid,))
+
+    rows = await run_sync(check_stock_request)()
     for row in rows:
         if row.quantity < required_dict[row.itemname]:
             quantity_difference = \
@@ -224,11 +230,18 @@ async def restocker():
     store_uuid = uuid.UUID(store_id)
 
     logging.info(
-        "Store " + store_id + ":\n    Checking stock on order from " + cust_name
+        "Store " + store_id + ":\n    Checking stock on order from " + order["pizza-order"]["custName"]
     )
 
     valid = True
     mess = None
+
+    def add_stock_prepared_execute():
+        return session.execute(
+                    add_stock_prepared,
+                    (new_quantity, store_uuid, item_dict["item-name"])
+                )
+
     try:
         # check stock
         instock_dict, required_dict, restock_list = \
@@ -240,10 +253,7 @@ async def restocker():
                 new_quantity = \
                     item_dict["quantity"] + instock_dict[item_dict["item-name"]] + 10
                 instock_dict[item_dict["item-name"]] = new_quantity
-                session.execute(
-                    add_stock_prepared, 
-                    (new_quantity, store_uuid, item_dict["item-name"])
-                )
+                await run_sync(add_stock_prepared_execute)()
         # decrement stock
         await decrement_stock(store_uuid, instock_dict, required_dict)
     except Exception as inst:
@@ -264,7 +274,7 @@ async def restocker():
     else:
         logging.info("Request rejected, restock failed:\n" + mess)
         return Response(
-            status=400, 
+            status=400,
             response="Request rejected, restock failed:\n" + mess
         )
 
@@ -297,14 +307,14 @@ async def setup_workflow(storeId):
     if not valid:
         logging.info("workflow-request ill formatted")
         return Response(
-            status=400, 
+            status=400,
             response="workflow-request ill formatted\n" + mess
         )
 
     if storeId in workflows:
         logging.info("Workflow " + storeId + " already exists")
         return Response(
-            status=409, 
+            status=409,
             response="Workflow " + storeId + " already exists\n"
         )
 
@@ -313,9 +323,9 @@ async def setup_workflow(storeId):
     logging.info("Workflow started for Store " + storeId)
 
     return Response(
-        status=201, 
+        status=201,
         response="Restocker deployed for {}\n".format(storeId)
-    )    
+    )
 
 
 # if the recource exists, update it
@@ -330,14 +340,14 @@ async def update_workflow(storeId):
     if not valid:
         logging.info("workflow-request ill formatted")
         return Response(
-            status=400, 
+            status=400,
             response="workflow-request ill formatted\n" + mess
         )
 
     if not ("cass" in data["component-list"]):
         logging.info("Update rejected, cass is a required workflow component")
         return Response(
-            status=422, 
+            status=422,
             response="Update rejected, cass is a required workflow component.\n"
         )
 
@@ -346,7 +356,7 @@ async def update_workflow(storeId):
     logging.info("Restocker updated for Store " + storeId)
 
     return Response(
-        status=200, 
+        status=200,
         response="Restocker updated for {}\n".format(storeId)
     )
 
@@ -356,13 +366,13 @@ async def update_workflow(storeId):
 async def teardown_workflow(storeId):
     if storeId not in workflows:
         return Response(
-            status=404, 
+            status=404,
             response="Workflow doesn't exist. Nothing to teardown.\n"
         )
     else:
         del workflows[storeId]
         logging.info("Restocker stopped for {}".format(storeId))
-        return Response(status=204)
+        return Response(status=204, response="restocker stopped")
 
 
 # retrieve the specified resource, if it exists
@@ -371,12 +381,12 @@ async def retrieve_workflow(storeId):
     logging.info("GET /workflow-requests/" + storeId)
     if not (storeId in workflows):
         return Response(
-            status=404, 
+            status=404,
             response="Workflow doesn't exist. Nothing to retrieve.\n"
         )
     else:
         return Response(
-            status=200, 
+            status=200,
             response=json.dumps(workflows[storeId])
         )
 
@@ -396,9 +406,10 @@ async def health_check():
 
 
 # scan the database for items that are out of stock or close to it
-async def scan_out_of_stock():
+def scan_out_of_stock():
     # gets a list of active store workflows
     stores = workflows.keys()
+
     # loops through said stores
     for store_id in stores:
         store_uuid = uuid.UUID(store_id)
@@ -409,7 +420,7 @@ async def scan_out_of_stock():
             # if the item exsists at the store
             quantity = session.execute(get_quantity, (store_uuid, item.name))
             quantity_row = quantity.one()
-            if quantity_row != None:
+            if quantity_row is not None:
                 # and it is low in quantity
                 if quantity_row.quantity < 10.0:
                     # restock it
@@ -418,8 +429,9 @@ async def scan_out_of_stock():
                     logging.info("Store " + store_id + " Daily Scan:\n\t" + \
                         item.name + " restocked to " + str(new_quantity)
                     )
-    # if app.config["ENV"] == "production": 
+    # if app.config["ENV"] == "production":
     threading.Timer(60, scan_out_of_stock).start()
+
 
 # call scan_out_of_stock() for the first time
 scan_out_of_stock()
