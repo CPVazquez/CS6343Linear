@@ -33,7 +33,7 @@ logging.basicConfig(
     level=logging.INFO, 
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
-logging.getLogger('requests').setLevel(logging.INFO)
+# logging.getLogger('requests').setLevel(logging.INFO)
 
 # Global workflows dict
 workflows = dict()
@@ -49,9 +49,8 @@ async def get_next_component(store_id):
 
 
 async def get_component_url(component, store_id):
-    workflow_offset = str(workflows[store_id]["workflow-offset"])
     comp_name = component +\
-        (workflow_offset if workflows[store_id]["method"] == "edge" else "")
+        (str(workflows[store_id]["workflow-offset"]) if workflows[store_id]["method"] == "edge" else "")
     url = "http://" + comp_name + ":"
     if component == "delivery-assigner":
         url += "3000/order"
