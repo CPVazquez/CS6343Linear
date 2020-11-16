@@ -138,7 +138,11 @@ async def start_component(component, storeId, data, response_list):
         response_list.append(component)
         timeOut = True
 
-#     requests.post(origin_url, json=json.dumps({"message": message}))
+    def send_message():
+        return requests.post(origin_url, json=json.dumps({"message": message}))
+
+    await run_sync(send_message)()
+
     return timeOut
 
 
@@ -153,6 +157,9 @@ async def spinup_component(component, data, origin_url, component_service):
 
     def sleepfor5():
         sleep(5)
+
+    def send_message():
+        return requests.post(origin_url, json=json.dumps(message_dict)) 
 
     # wait for component to spin up
     while True:
@@ -169,7 +176,7 @@ async def spinup_component(component, data, origin_url, component_service):
                 )
                 message = "Attempting to spin up " + component
                 message_dict = {"message": message}
-                # requests.post(origin_url, json=json.dumps(message_dict)) 
+                await run_sync(send_message)()
                 await run_sync(sleepfor5)()
                 count += 1
             else:
