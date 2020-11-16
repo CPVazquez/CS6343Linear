@@ -263,7 +263,7 @@ async def teardown_workflow(storeId):
         )
     else:
         del workflows[storeId]
-        return Response(status=204)
+        return Response(status=204, response="")
 
 
 # retrieve the specified resource, if it exists
