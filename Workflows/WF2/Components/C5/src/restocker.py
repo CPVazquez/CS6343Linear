@@ -198,10 +198,10 @@ async def check_stock(store_uuid, order_dict):
     required_dict = await aggregate_ingredients(order_dict["pizzaList"])
     restock_list = list()   # restock_list will be empty if no items need restocking
 
-    def check_stock_request():
+    def check_stock_execute():
         return session.execute(select_stock_prepared, (store_uuid,))
 
-    rows = await run_sync(check_stock_request)()
+    rows = await run_sync(check_stock_execute)()
     for row in rows:
         if row.quantity < required_dict[row.itemname]:
             quantity_difference = \
