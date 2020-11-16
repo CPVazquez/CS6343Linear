@@ -61,6 +61,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
+logging.getLogger('requests').setLevel(logging.WARNING)
 
 # create Quart app
 app = Quart(__name__)
