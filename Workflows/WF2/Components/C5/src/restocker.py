@@ -360,7 +360,7 @@ async def teardown_workflow(storeId):
         )
     else:
         del workflows[storeId]
-        logging.info("Restocker stopped for {}\n".format(storeId))
+        logging.info("Restocker stopped for {}".format(storeId))
         return Response(status=204)
 
 
