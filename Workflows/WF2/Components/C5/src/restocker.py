@@ -114,7 +114,7 @@ async def send_order_to_next_component(url, order):
     r = await run_sync(request_post)()
     
     # form log message based on response status code from next component
-    message = "Order from " + order["pizza-order"]["custName"] + " is valid."
+    message = "Sufficient stock for order from " + order["pizza-order"]["custName"] + "."
     if r.status_code == 200:
         logging.info(message + " Order sent to next component.")
         return Response(status=200, response=json.dumps(json.loads(r.text)))
