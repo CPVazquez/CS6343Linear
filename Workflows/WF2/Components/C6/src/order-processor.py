@@ -250,7 +250,8 @@ async def process_order():
     store_id = order["pizza-order"]["storeId"]
     cust_name = order["pizza-order"]["custName"]
 
-    logging.info("Store " + store_id + ":\n\tProcessing order " + order_id + " for " + cust_name)
+    logging.info("Store " + store_id + ":\n" + \
+        "    Processing order " + order_id + " for " + cust_name)
 
     valid, mess = await create_order(order["pizza-order"])
 
@@ -287,6 +288,10 @@ async def verify_workflow(data):
     return valid, mess
 
 
+###############################################################################
+#                           API Endpoints
+###############################################################################
+
 # if workflow-request is valid and does not exist, create it
 @app.route("/workflow-requests/<storeId>", methods=['PUT'])
 async def setup_workflow(storeId):
@@ -319,7 +324,7 @@ async def setup_workflow(storeId):
 
     workflows[storeId] = data
 
-    logging.info("Workflow started for {}\n".format(storeId))
+    logging.info("Workflow started for {}".format(storeId))
     
     return Response(
         status=201, 
@@ -352,7 +357,7 @@ async def update_workflow(storeId):
 
     workflows[storeId] = data
 
-    logging.info("Workflow updated for {}\n".format(storeId))
+    logging.info("Workflow updated for {}".format(storeId))
 
     return Response(
         status=200, 
