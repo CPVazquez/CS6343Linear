@@ -136,6 +136,9 @@ async def order_funct():
         logging.info(message)
         return Response(status=422, response=message)
 
+    logging.info("Store " + store_id + ":\n" + \
+        "    Verifying order " + order_id + " for " + cust_name)
+
     valid, mess = await verify_order(order["pizza-order"])
     order.update({"valid": valid})
 
