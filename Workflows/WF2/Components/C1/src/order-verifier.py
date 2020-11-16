@@ -211,7 +211,7 @@ async def setup_workflow(storeId):
 
     workflows[storeId] = data
 
-    logging.info("Workflow created for {}\n".format(storeId))
+    logging.info("Workflow created for {}".format(storeId))
     
     return Response(
         status=201, 
@@ -244,7 +244,7 @@ async def update_workflow(storeId):
 
     workflows[storeId] = data
 
-    logging.info("Workflow updated for {}\n".format(storeId))
+    logging.info("Workflow updated for {}".format(storeId))
     return Response(
         status=200, 
         response="Order Verifier updated for {}\n".format(storeId)
