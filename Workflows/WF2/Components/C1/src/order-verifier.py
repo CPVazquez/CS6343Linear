@@ -136,6 +136,8 @@ async def order_funct():
         logging.info(message)
         return Response(status=422, response=message)
 
+    store_id = order["pizza-order"]["storeId"]
+
     logging.info("Store " + store_id + ":\n" + \
         "    Verifying order " + order_id + " for " + cust_name)
 
@@ -143,7 +145,6 @@ async def order_funct():
     order.update({"valid": valid})
 
     if valid:
-        store_id = order["pizza-order"]["storeId"]
         next_comp = await get_next_component(store_id)
         if next_comp is None:
             # last component in the workflow, report results to client
