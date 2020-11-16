@@ -84,10 +84,17 @@ workflows = dict()
 # Calculate pizza price based on ingredients
 async def calc_pizza_cost(ingredient_set):
     cost = 0.0
+
     for ingredient in ingredient_set:
-        result = session.execute(select_items_prepared, (ingredient[0],))
+
+        def select_items():
+            return session.execute(select_items_prepared, (ingredient[0],))
+
+        result = await run_sync(select_items)()
+
         for (name, price) in result:
             cost += price * ingredient[1] 
+
     return cost
 
 
@@ -120,8 +127,12 @@ async def insert_pizzas(pizza_list):
         for topping in pizza["toppingList"]:
             ingredient_set.add((topping, 1))
         
-        cost = calc_pizza_cost(ingredient_set)
-        session.execute(insert_pizzas_prepared, (pizza_uuid, ingredient_set, cost))
+        cost = await calc_pizza_cost(ingredient_set)
+
+        def insert_pizza():
+            session.execute(insert_pizzas_prepared, (pizza_uuid, ingredient_set, cost))
+
+        await run_sync(insert_pizza)()
     
     return pizza_uuid_set
 
@@ -138,25 +149,72 @@ async def create_order(order_dict):
 
     valid = True
     mess = None
-    try:
-        # Insert customer information into 'customers' table
+
+    # Insert customer information into 'customers' table
+    def insert_customers():
         session.execute(insert_customers_prepared, (cust_name, cust_lat, cust_lon))
-        # Insert order payment information into 'payments' table
-        session.execute(insert_payments_prepared, (pay_uuid, order_dict["paymentTokenType"]))  
-        # Insert the ordered pizzas into 'pizzas' table
-        pizza_uuid_set = insert_pizzas(order_dict["pizzaList"])
-        # Insert order into 'orderTable' table
+
+    try:
+        await run_sync(insert_customers)()
+    except Exception as inst:
+        valid = False
+        mess = inst.args[0]
+        return valid, mess
+
+    # Insert order payment information into 'payments' table
+    def insert_payments():
+        session.execute(insert_payments_prepared, (pay_uuid, order_dict["paymentTokenType"]))
+
+    try:
+        await run_sync(insert_payments)()
+    except Exception as inst:
+        valid = False
+        mess = inst.args[0]
+        return valid, mess
+
+    # Insert the ordered pizzas into 'pizzas' table
+    try:
+        pizza_uuid_set = await insert_pizzas(order_dict["pizzaList"])
+    except Exception as inst:
+        valid = False
+        mess = inst.args[0]
+        return valid, mess
+
+    # Insert order into 'orderTable' table
+    def insert_order_table():
         session.execute(
             insert_order_prepared, 
             (order_uuid, store_uuid, cust_name, "", pizza_uuid_set, None, pay_uuid, placed_at, True, -1)
         )
-        # Insert order into 'orderByStore' table
-        session.execute(insert_order_by_store_prepared, (store_uuid, placed_at, order_uuid))
-        # Insert order into 'orderByCustomer' table
-        session.execute(insert_order_by_customer_prepared, (cust_name, placed_at, order_uuid))
+
+    try:
+        await run_sync(insert_order_table)()
     except Exception as inst:
         valid = False
         mess = inst.args[0]
+        return valid, mess
+    
+    # Insert order into 'orderByStore' table
+    def insert_order_by_store():
+        session.execute(insert_order_by_store_prepared, (store_uuid, placed_at, order_uuid))
+
+    try:
+        await run_sync(insert_order_by_store)()
+    except Exception as inst:
+        valid = False
+        mess = inst.args[0]
+        return valid, mess
+
+    # Insert order into 'orderByCustomer' table
+    def insert_order_by_customer():
+        session.execute(insert_order_by_customer_prepared, (cust_name, placed_at, order_uuid))
+
+    try:
+        await run_sync(insert_order_by_customer)()
+    except Exception as inst:
+        valid = False
+        mess = inst.args[0]
+        return valid, mess
     
     return valid, mess
 
