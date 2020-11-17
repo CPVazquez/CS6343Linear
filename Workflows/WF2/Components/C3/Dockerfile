@@ -18,7 +18,7 @@ RUN pipenv install --system --deploy
 
 EXPOSE 3000
 
-ENV QUART_APP=src.delivery-assigner:app
+ENV QUART_APP=src.delivery_assigner:app
 
 CMD quart run --port 3000 --host 0.0.0.0
  
