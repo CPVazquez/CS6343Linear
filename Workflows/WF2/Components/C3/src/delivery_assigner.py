@@ -395,7 +395,7 @@ async def retrieve_workflows():
     )
 
 
-@app.route('/order', methods=['GET'])
+@app.route('/order', methods=['POST'])
 async def assign():
     '''REST API for assigning best delivery entity.'''
  
