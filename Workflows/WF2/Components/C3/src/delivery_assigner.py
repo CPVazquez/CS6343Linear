@@ -212,6 +212,45 @@ def _create_order(order_dict):
     session.execute(insert_order_by_customer_query, (cust_name, placed_at, order_uuid))
 
 
+def _get_next_component(store_id):
+    comp_list = workflows[store_id]["component-list"].copy()
+    comp_list.remove("cass")
+    next_comp_index = comp_list.index("delivery-assigner") + 1
+    if next_comp_index >= len(comp_list):
+        return None
+    return comp_list[next_comp_index]
+
+
+def _get_component_url(component, store_id):
+    comp_name = component +\
+        (str(workflows[store_id]["workflow-offset"]) if workflows[store_id]["method"] == "edge" else "")
+    url = "http://" + comp_name + ":"
+    if component == "order-verifier":
+        url += "1000/order"
+    elif component == "stock-analyzer":
+        url += "4000/order"
+    elif component == "restocker":
+        url += "5000/order"
+    elif component == "order-processor":
+        url += "6000/order"
+    return url
+
+
+def _send_order_to_next_component(url, order):
+    cust_name = order["pizza-order"]["custName"]
+    entity = order["assignment"]["deliveredBy"]
+    eta = order["assignment"]["estimatedTime"]
+    response = requests.post(url, json=json.dumps(order))
+    if response.status_code == 200:
+        logging.info("{} assigned to order from {} with time of delivery {} seconds.\
+            Order sent to next component.".format(entity, cust_name, time))
+    else:
+        logging.info("{} assigned to order from {} with time of delivery {} seconds.\
+            Issue sending order to next component:".format(entity, cust_name, time))
+        logging.info(response.text)
+    return response
+
+
 def assign_entity(store_id, order):
     '''Assigns the best delivery entity to and order and updates orderTable in the DB.
         
@@ -247,7 +286,7 @@ def assign_entity(store_id, order):
                      "Please recreate delivery entities table."
         ),)
     
-    customer_info = (order['custLocation']['lat'], order['custLocation']['lon'])
+    customer_info = (order['pizza-order']['custLocation']['lat'], order['pizza-order']['custLocation']['lon'])
    
     try:
         time, entity = _get_delivery_time(entities, customer_info, store_info)
@@ -259,23 +298,14 @@ def assign_entity(store_id, order):
                      "Please contact admin."
             ),)
     
-    order['deliveredBy'] = entity
-    order['estimatedTime'] = time
-    logger.info("For order of Customer {} to store {}, Delivery Entity::{}, " +
-        "Estimated Time::{} mins.".format(
-        order['custName'], store_id, entity, time
-    ))
-
-    response_json = {
-        "custName": order['custName'],        
-        "deliveredBy": entity,
-        "estimatedTime": time
-    }
+    order['assignment'] = {}
+    order['assignment']['deliveredBy'] = entity
+    order['assignment']['estimatedTime'] = time
+    order['pizza-order']['orderId'] = str(order['pizza-order']['orderId'])
     
-    return entity, time, Response(
-        status=200,
-        mimetype='application/json',
-        response=json.dumps(response_json)
+    return Response(
+        status=200,        
+        json=json.dumps(order)
     )
 
 
@@ -361,8 +391,11 @@ def assign():
     '''REST API for assigning best delivery entity.'''
  
     order = json.loads(request.get_json())
-    storeId = order['storeId']
+    storeId = order['pizza-order']['storeId']
     storeID = uuid.UUID(storeId)
+
+    logger.info("Request for assignment of delivery entity to order by {} for".format(
+        order['pizza-order']['custName']))
 
     if storeId not in workflows:
         logger.info("StoreId not in workflows of delivery assigner.")
@@ -375,28 +408,33 @@ def assign():
 
 
     if 'orderId' not in order:
-       order['orderId'] = str(uuid.uuid4())
+       order['pizza-order']['orderId'] = str(uuid.uuid4())
        _create_order(order)
     else:
-       order['orderId'] = uuid.UUID(order['orderId'])
+       order['pizza-order']['orderId'] = uuid.UUID(order['pizza-order']['orderId'])
 
         
-    res = assign_entity(storeID, order)            
+    response = assign_entity(storeID, order)            
+   
+    if response.status_code == 200: 
+        try:
+            _update_order(order['pizza-order']['orderId'], order['assignment']['deliveredBy'], 
+                order['assignment']['estimatedTime'])
+        except:
     
-    if len(res) == 1:
-        return res[0]
-    else:
-        entity, time, response = res
-    
-    try:
-        _update_order(order['orderId'], entity, time)
-    except:
-    
-        return Response(
-            status=509,
-            response="Unable to update order with delivery entity and estimated time!" +
+            return Response(
+                status=509,
+                response="Unable to update order with delivery entity and estimated time!" +
                          "Order does not exist."
-        )
+            )
+
+        order['pizza-order']['orderId'] = str(order['pizza-order']['orderId'])
+        component = _get_next_component(storeId)
+        if component:
+            url = _get_component_url(component, storeId)
+            res = _send_order_to_next_component(url, order)
+            if res.status_code == 200:
+                return res
     
     return response
 

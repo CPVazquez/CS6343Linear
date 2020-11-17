@@ -1,30 +1,69 @@
-"""Order Verifier Component"""
+"""Order Processor Component
 
-import copy
+Upon receiving a Pizza Order, this component assigns the pizza-order request an order ID
+and inserts the order's information into the database.
+"""
+
 import json
 import logging
 import os
-import threading
 import time
 import uuid
 from datetime import datetime
 
 import jsonschema
 import requests
+from cassandra.cluster import Cluster
 from flask import Flask, Response, request
 
 __author__ = "Chris Scott"
-__version__ = "3.0.0"
+__version__ = "1.0.0"
 __maintainer__ = "Chris Scott"
 __email__ = "cms190009@utdallas.edu"
 __status__ = "Development"
 
+# Connect to Cassandra service
+cass_IP = os.environ["CASS_DB"]
+cluster = Cluster([cass_IP])
+session = cluster.connect('pizza_grocery')
+
+# Cassandra prepared statements
+while True:
+    try:
+        select_items_prepared = session.prepare('SELECT * FROM items WHERE name=?')
+        insert_customers_prepared = session.prepare('\
+            INSERT INTO customers (customerName, latitude, longitude) \
+            VALUES (?, ?, ?)\
+        ')
+        insert_payments_prepared = session.prepare('\
+            INSERT INTO payments (paymentToken, method) \
+            VALUES (?, ?)\
+        ')
+        insert_pizzas_prepared = session.prepare('\
+            INSERT INTO pizzas (pizzaID, toppings, cost) \
+            VALUES (?, ?, ?)\
+        ')
+        insert_order_prepared = session.prepare('\
+            INSERT INTO orderTable \
+                (orderID, orderedFrom, orderedBy, deliveredBy, containsPizzas, \
+                    containsItems, paymentID, placedAt, active, estimatedDeliveryTime) \
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\
+        ')
+        insert_order_by_store_prepared = session.prepare('\
+            INSERT INTO orderByStore (orderedFrom, placedAt, orderID) \
+            VALUES (?, ?, ?)\
+        ')
+        insert_order_by_customer_prepared = session.prepare('\
+            INSERT INTO orderByCustomer (orderedBy, placedAt, orderID) \
+            VALUES (?, ?, ?)\
+        ')
+    except:
+        time.sleep(5)
+    else:
+        break
+
 # Create Flask app
 app = Flask(__name__)
-
-# Open jsonschema for pizza-order
-with open("src/pizza-order.schema.json", "r") as pizza_schema:
-    pizza_schema = json.loads(pizza_schema.read())
 
 # Open jsonschema for workflow-request
 with open("src/workflow-request.schema.json", "r") as workflow_schema:
@@ -38,10 +77,90 @@ logging.getLogger('requests').setLevel(logging.INFO)
 workflows = dict()
 
 
+# Calculate pizza price based on ingredients
+def calc_pizza_cost(ingredient_set):
+    cost = 0.0
+    for ingredient in ingredient_set:
+        result = session.execute(select_items_prepared, (ingredient[0],))
+        for (name, price) in result:
+            cost += price * ingredient[1] 
+    return cost
+
+
+# Insert an order's pizza(s) into 'pizzas' table
+def insert_pizzas(pizza_list):
+    pizza_uuid_set = set()
+
+    for pizza in pizza_list:
+        pizza_uuid = uuid.uuid4()
+        pizza_uuid_set.add(pizza_uuid)
+        ingredient_set = set()
+
+        if pizza["crustType"] == "Thin":
+            ingredient_set.add(("Dough", 1))
+        elif pizza["crustType"] == "Traditional":
+            ingredient_set.add(("Dough", 2))
+
+        if pizza["sauceType"] == "Spicy":
+            ingredient_set.add(("SpicySauce", 1))
+        elif pizza["sauceType"] == "Traditional":
+            ingredient_set.add(("TraditionalSauce", 1))
+
+        if pizza["cheeseAmt"] == "Light":
+            ingredient_set.add(("Cheese", 1))
+        elif pizza["cheeseAmt"] == "Normal":
+            ingredient_set.add(("Cheese", 2))
+        elif pizza["cheeseAmt"] == "Extra":
+            ingredient_set.add(("Cheese", 3))
+
+        for topping in pizza["toppingList"]:
+            ingredient_set.add((topping, 1))
+        
+        cost = calc_pizza_cost(ingredient_set)
+        session.execute(insert_pizzas_prepared, (pizza_uuid, ingredient_set, cost))
+    
+    return pizza_uuid_set
+
+
+# Insert order info into DB
+def create_order(order_dict):
+    order_uuid = uuid.UUID(order_dict["orderId"])
+    store_uuid = uuid.UUID(order_dict["storeId"])
+    pay_uuid = uuid.UUID(order_dict["paymentToken"])
+    cust_name = order_dict["custName"]
+    cust_lat = order_dict["custLocation"]["lat"]
+    cust_lon = order_dict["custLocation"]["lon"]
+    placed_at = datetime.strptime(order_dict["orderDate"], '%Y-%m-%dT%H:%M:%S')
+
+    valid = True
+    mess = None
+    try:
+        # Insert customer information into 'customers' table
+        session.execute(insert_customers_prepared, (cust_name, cust_lat, cust_lon))
+        # Insert order payment information into 'payments' table
+        session.execute(insert_payments_prepared, (pay_uuid, order_dict["paymentTokenType"]))  
+        # Insert the ordered pizzas into 'pizzas' table
+        pizza_uuid_set = insert_pizzas(order_dict["pizzaList"])
+        # Insert order into 'orderTable' table
+        session.execute(
+            insert_order_prepared, 
+            (order_uuid, store_uuid, cust_name, "", pizza_uuid_set, None, pay_uuid, placed_at, True, -1)
+        )
+        # Insert order into 'orderByStore' table
+        session.execute(insert_order_by_store_prepared, (store_uuid, placed_at, order_uuid))
+        # Insert order into 'orderByCustomer' table
+        session.execute(insert_order_by_customer_prepared, (cust_name, placed_at, order_uuid))
+    except Exception as inst:
+        valid = False
+        mess = inst.args[0]
+    
+    return valid, mess
+
+
 def get_next_component(store_id):
     comp_list = workflows[store_id]["component-list"].copy()
     comp_list.remove("cass")
-    next_comp_index = comp_list.index("order-verifier") + 1
+    next_comp_index = comp_list.index("order-processor") + 1
     if next_comp_index >= len(comp_list):
         return None
     return comp_list[next_comp_index]
@@ -51,14 +170,14 @@ def get_component_url(component, store_id):
     comp_name = component +\
         (str(workflows[store_id]["workflow-offset"]) if workflows[store_id]["method"] == "edge" else "")
     url = "http://" + comp_name + ":"
-    if component == "delivery-assigner":
+    if component == "order-verifier":
+        url += "1000/order"
+    elif component == "delivery-assigner":
         url += "3000/order"
     elif component == "stock-analyzer":
         url += "4000/order"
     elif component == "restocker":
         url += "5000/order"
-    elif component == "order-processor":
-        url += "6000/order"
     return url
 
 
@@ -96,28 +215,15 @@ def send_results_to_client(store_id, order):
     message = "Order from " + cust_name + " is valid."
     if r.status_code == 200:
         logging.info(message + " Restuarant Owner received the results.")
-        return Response(status=200, response=json.dumps(order))
+        return Response(status=r.status_code, response=json.dumps(order))
     else:
         logging.info(message + " Issue sending results to Restaurant Owner:\n" + r.text)
         return Response(status=r.status_code, response=r.text)
 
 
-# validate pizza-order against schema
-def verify_order(data):
-    global pizza_schema
-    valid = True
-    mess = None
-    try:
-        jsonschema.validate(instance=data, schema=pizza_schema)
-    except Exception as inst:
-        valid = False
-        mess = inst.args[0]
-    return valid, mess
-
-
-# validate pizza-order request
+# if pizza-order is valid, try to create it
 @app.route('/order', methods=['POST'])
-def order_funct():
+def process_order():
     logging.info("POST /order")
     order = json.loads(request.get_json())
 
@@ -126,11 +232,17 @@ def order_funct():
         logging.info(message)
         return Response(status=422, response=message)
 
-    valid, mess = verify_order(order["pizza-order"])
-    order.update({"valid": valid})
+    order["pizza-order"]["orderId"] = str(uuid.uuid4())
+    order_id = order["pizza-order"]["orderId"]
+    store_id = order["pizza-order"]["storeId"]
+    cust_name = order["pizza-order"]["custName"]
+
+    logging.info("Store " + store_id + ":\n\tProcessing order " + order_id + " for " + cust_name)
+
+    valid, mess = create_order(order["pizza-order"])
 
     if valid:
-        store_id = order["pizza-order"]["storeId"]
+        order.update({"processor": "accepted"})
         next_comp = get_next_component(store_id)
         if next_comp is None:
             # last component in the workflow, report results to client
@@ -140,8 +252,8 @@ def order_funct():
             next_comp_url = get_component_url(next_comp, store_id)
             return send_order_to_next_component(next_comp_url, order)
     else:
-        logging.info("Request rejected, pizza-order is malformed:\n" + mess)
-        return Response(status=400, response="Request rejected, pizza-order is malformed:\n" + mess)
+        logging.info("Request rejected, order processing failed:\n" + mess)
+        return Response(status=400, response="Request rejected, order processing failed:\n" + mess)
 
 
 # validate workflow-request against schema
@@ -180,10 +292,10 @@ def setup_workflow(storeId):
 
     logging.info("Workflow started for {}\n".format(storeId))
     
-    return Response(status=201, response="Order Verifier deployed for {}\n".format(storeId))    
+    return Response(status=201, response="Order Processor deployed for {}\n".format(storeId))    
 
 
-# if the resource exists, update it
+# if the recource exists, update it
 @app.route("/workflow-update/<storeId>", methods=['PUT'])
 def update_workflow(storeId):
     logging.info("PUT /workflow-update/" + storeId)
@@ -202,10 +314,10 @@ def update_workflow(storeId):
 
     logging.info("Workflow updated for {}\n".format(storeId))
 
-    return Response(status=200, response="Order Verifier updated for {}\n".format(storeId))
+    return Response(status=200, response="Order Processor updated for {}\n".format(storeId))
 
 
-# if the resource exists, remove it
+# if the recource exists, remove it
 @app.route("/workflow-requests/<storeId>", methods=["DELETE"])
 def teardown_workflow(storeId):
     logging.info("DELETE /workflow-requests/" + storeId)

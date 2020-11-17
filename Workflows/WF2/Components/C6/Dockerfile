@@ -16,6 +16,6 @@ RUN pip install pipenv
 RUN echo python3 --version
 RUN pipenv install --system --deploy
 
-EXPOSE 1000
+EXPOSE 6000
 
-CMD gunicorn --bind 0.0.0.0:1000 --timeout 30 src.order-verifier:app
+CMD gunicorn --bind 0.0.0.0:6000 --timeout 30 src.order-processor:app
