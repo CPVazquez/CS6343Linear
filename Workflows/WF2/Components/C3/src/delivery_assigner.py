@@ -184,7 +184,7 @@ async def _insert_pizzas(pizza_list):
         for topping in pizza["toppingList"]:
             ingredient_set.add((topping, 1))
          
-        cost = _calc_pizza_cost(ingredient_set)
+        cost = await _calc_pizza_cost(ingredient_set)
         session.execute(insert_pizzas_query, (pizza_uuid, ingredient_set, cost))
     
     return pizza_uuid_set
@@ -252,10 +252,10 @@ async def _send_order_to_next_component(url, order):
     
     if response.status_code == 200:
         logging.info("{} assigned to order from {} with time of delivery {} seconds.\
-            Order sent to next component.".format(entity, cust_name, time))
+            Order sent to next component.".format(entity, cust_name, eta))
     else:
         logging.info("{} assigned to order from {} with time of delivery {} seconds.\
-            Issue sending order to next component:".format(entity, cust_name, time))
+            Issue sending order to next component:".format(entity, cust_name, eta))
         logging.info(response.text)
     return Response(status=response.status_code, response=response.text)
 
@@ -313,7 +313,7 @@ async def assign_entity(store_id, order):
         
     return Response(
         status=200,        
-        json=json.dumps(order)
+        response=json.dumps(order)
     )
 
 
@@ -382,7 +382,7 @@ async def retrieve_workflow(storeId):
         logger.info('{} Workflow found on delivery-assigner\n'.format(storeId))
         return Response(
             status=200,
-            response=json.dumps(workflows[storeId]) + '\n'
+            response=json.dumps(workflows[storeId])
         )
 
 
@@ -391,7 +391,7 @@ async def retrieve_workflows():
     logger.info('Received request for workflows\n')
     return Response(
         status=200,
-        response='worflows::' + json.dumps(workflows) + '\n'
+        response='worflows::' + json.dumps(workflows)
     )
 
 
@@ -420,7 +420,7 @@ async def assign():
 
     if 'orderId' not in order:
        order['pizza-order']['orderId'] = str(uuid.uuid4())
-       await _create_order(order)
+       await _create_order(order['pizza-order'])
     else:
        order['pizza-order']['orderId'] = uuid.UUID(order['pizza-order']['orderId'])
 
