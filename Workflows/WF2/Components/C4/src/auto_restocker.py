@@ -110,7 +110,7 @@ async def _aggregate_ingredients(pizza_list, ingredients):
 	return ingredients
 
 
-async def _predict_item_stocks(storeId, item_name):
+def _predict_item_stocks(storeId, item_name):
 	
 	values = [(key, value[item_name]) for key, value in history[storeId].items()]
 	df = pd.DataFrame(values, columns=['ds', 'y'])
@@ -190,7 +190,7 @@ async def _send_order_to_next_component(url, order):
 		return requests.post(url, json=json.dumps(order))
 	response = await run_sync(request_post)()
 	    
-    if response.status_code == 200:
+	if response.status_code == 200:
 		logging.info("Order from {} aggregated.\
 			Order sent to next component.".format(cust_name))		
 	else:
@@ -264,7 +264,7 @@ async def get_order():
 	new_date = False
 		
 	if order_date not in history[storeId]:
-		history[storeId][order_date] = _get_ingredients_dict()		
+		history[storeId][order_date] = await _get_ingredients_dict()		
 		new_date = True
 			
 	history[storeId][order_date] = await _aggregate_ingredients(pizza_list, history[storeId][order_date])
