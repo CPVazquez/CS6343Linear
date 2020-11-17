@@ -294,7 +294,7 @@ def register_workflow(storeId):
 			response="Oops! A workflow already exists for this client!\n" +
 				"Please teardown existing workflow before deploying " +
 				"a new one\n"
-		)
+		) 
 
 	if not ("cass" in data["component-list"]):
 		logging.info("Workflow-request rejected, cass is a required workflow component\n")
