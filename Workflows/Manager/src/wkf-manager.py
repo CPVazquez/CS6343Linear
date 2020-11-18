@@ -290,7 +290,6 @@ async def comp_action(action, component, storeId, data, response_list=None):
 
 
 async def start_threads(action, storeId, component_list, data):
-    #  thread_list = []
     response_list = []
 
     # check if the workflow request specifies cass
