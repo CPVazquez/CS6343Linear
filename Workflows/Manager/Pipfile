@@ -6,10 +6,10 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-gunicorn = "*"
 docker = "*"
-flask = "*"
 jsonschema = "*"
+quart = "*"
+requests = "*"
 
 [requires]
 python_version = "3.8"
