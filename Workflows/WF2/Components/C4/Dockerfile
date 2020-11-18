@@ -21,4 +21,4 @@ RUN pip install flask
 
 EXPOSE 4000
 
-CMD gunicorn -b 0.0.0.0:4000 --log-level info src.auto_restocker:app
+CMD gunicorn -b 0.0.0.0:4000 --timeout 30 --log-level info src.auto_restocker:app
