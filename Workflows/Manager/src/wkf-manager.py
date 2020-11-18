@@ -26,6 +26,7 @@ logging.basicConfig(
 )
 logging.getLogger('docker').setLevel(logging.INFO)
 logging.getLogger('requests').setLevel(logging.INFO)
+logging.getLogger('quart').setLevel(logging.INFO)
 
 # # set up necessary docker clients
 client = docker.from_env()
@@ -54,9 +55,9 @@ with open("src/workflow-request.schema.json", "r") as schema:
     schema = json.loads(schema.read())
 
 
-# ###############################################################################
-# #                           Helper Functions
-# ###############################################################################
+###############################################################################
+#                           Helper Functions
+###############################################################################
 
 # check that the workflow specification json is valid
 async def verify_workflow(data):
@@ -159,7 +160,7 @@ async def spinup_component(component, data, origin_url, component_service):
         sleep(5)
 
     def send_message():
-        return requests.post(origin_url, json=json.dumps(message_dict)) 
+        return requests.post(origin_url, json=json.dumps(message_dict))
 
     # wait for component to spin up
     while True:
@@ -171,10 +172,10 @@ async def spinup_component(component, data, origin_url, component_service):
             logging.debug(ex)
             if count < 4:
                 logging.info(
-                    "Attempt " + str(count) + ", " + component +
+                    "Attempt " + str(count) + ", component " + comp_name +
                     " is not ready"
                 )
-                message = "Attempting to spin up " + component
+                message = "Attempting to spin up " + comp_name
                 message_dict = {"message": message}
                 await run_sync(send_message)()
                 await run_sync(sleepfor5)()
@@ -211,8 +212,8 @@ async def spinup_cass(component, component_service, cass_name):
         if not healthy:
             if count < 9:  # request has not timed out
                 logging.info(
-                    "Attempt " + str(count) + ", " + component +
-                    " is not ready"
+                    "Attempt " + str(count) + ", " + cass_name +
+                    " database is not ready"
                 )
                 await run_sync(sleepfor5)()
                 count += 1
@@ -253,7 +254,8 @@ async def comp_action(action, component, storeId, data, response_list=None):
             return
 
     if action == "start":
-        timeOut = await start_component(component, storeId, data, response_list)
+        timeOut = await start_component(
+            component, storeId, data, response_list)
         if timeOut:
             return
 
@@ -302,6 +304,8 @@ async def start_threads(action, storeId, component_list, data):
 
     # start threads for the rest of the components
     for comp in component_list:
+        if response_list:
+            break
         await comp_action(action, comp, storeId, data, response_list)
 
     return response_list
@@ -471,7 +475,8 @@ async def teardown_workflow(storeId):
     # get the list of components for the workflow
     component_list = workflows[storeId]["component-list"].copy()
     # teardown components
-    await start_threads("teardown", storeId, component_list, workflows[storeId])
+    await start_threads(
+        "teardown", storeId, component_list, workflows[storeId])
     # delete the given workflow from the dictionary
     del workflows[storeId]
 

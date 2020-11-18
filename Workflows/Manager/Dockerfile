@@ -17,4 +17,3 @@ EXPOSE 8080
 ENV QUART_APP=src.wkf-manager:app
 
 CMD quart run --port 8080 --host 0.0.0.0
-# CMD gunicorn -b 0.0.0.0:8080 --timeout=300 --graceful-timeout=300 src.wkf-manager:app
