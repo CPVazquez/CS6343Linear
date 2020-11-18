@@ -6,7 +6,7 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-flask = "*"
+quart = "*"
 gunicorn = "*"
 jsonschema = "*"
 cassandra-driver = "*"

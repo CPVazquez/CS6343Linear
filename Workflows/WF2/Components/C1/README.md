@@ -22,7 +22,7 @@ Package requirements:
 * pipenv
 
 Packages installed on pipenv virtual environment:
-* flask
+* quart
 * gunicorn
 * jsonschema
 * cassandra-driver

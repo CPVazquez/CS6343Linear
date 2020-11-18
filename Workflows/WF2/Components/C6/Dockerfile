@@ -18,4 +18,7 @@ RUN pipenv install --system --deploy
 
 EXPOSE 6000
 
-CMD gunicorn --bind 0.0.0.0:6000 --timeout 30 src.order-processor:app
+ENV QUART_APP=src.order-processor:app
+
+CMD quart run --port 6000 --host 0.0.0.0
+#CMD gunicorn --bind 0.0.0.0:6000 --timeout 30 src.order-processor:app
