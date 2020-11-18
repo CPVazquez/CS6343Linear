@@ -1,4 +1,9 @@
-"""Order Verifier Component"""
+"""Order Verifier Component
+
+Upon receiving a order request, this component validates the received order against the pizza-order jsonschema.
+If the pizza-order is valid, then the order will be passed to the next component in the workflow.
+If the pizza-order is invalid, then the request is rejected by this component.
+"""
 
 import copy
 import json
@@ -34,6 +39,7 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logging.getLogger('requests').setLevel(logging.WARNING)
+logging.getLogger('quart').setLevel(logging.WARNING)
 
 # Global workflows dict
 workflows = dict()
@@ -80,36 +86,6 @@ async def send_order_to_next_component(url, order):
         return Response(status=r.status_code, response=r.text)
 
 
-async def send_results_to_client(store_id, order):
-    # form results message for Restaurant Owner (client)
-    cust_name = order["pizza-order"]["custName"]
-    message = "Order for " + cust_name
-    if "assignment" in order:
-        delivery_entity = order["assignment"]["deliveredBy"]
-        estimated_time = str(order["assignment"]["estimatedTime"])
-        message += " will be delivered in " + estimated_time
-        message += " minutes by delivery entity " + delivery_entity + "."
-    else:
-        message += " has been placed."
-    
-    # send results message json to Restaurant Owner
-    origin_url = "http://" + workflows[store_id]["origin"] + ":8080/results"
-    
-    def request_post():
-        return requests.post(origin_url, json=json.dumps({"message": message}))
-
-    r = await run_sync(request_post)()
-
-    # form log message based on response status code from Restaurant Owner
-    message = "Order from " + cust_name + " is valid."
-    if r.status_code == 200:
-        logging.info(message + " Restuarant Owner received the results.")
-        return Response(status=r.status_code, response=json.dumps(order))
-    else:
-        logging.info(message + " Issue sending results to Restaurant Owner:\n" + r.text)
-        return Response(status=r.status_code, response=r.text)
-
-
 # validate pizza-order against schema
 async def verify_order(data):
     global pizza_schema
@@ -145,15 +121,17 @@ async def order_funct():
 
     if valid:
         next_comp = await get_next_component(store_id)
-        if next_comp is None:
-            # last component in the workflow, report results to client
-            resp = await send_results_to_client(store_id, order)
-            return resp
-        else:
+        if next_comp is not None:
             # send order to next component in workflow
             next_comp_url = await get_component_url(next_comp, store_id)
             resp = await send_order_to_next_component(next_comp_url, order)
             return resp
+        else:
+            # last component in workflow, return response with order
+            return Response(
+                status=200,
+                response=json.dumps(order)
+            )
     else:
         logging.info("Request rejected, pizza-order is malformed:\n" + mess)
         return Response(
