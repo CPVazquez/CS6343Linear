@@ -418,7 +418,7 @@ async def update_workflow(storeId):
     logging.info("starting components not in previous workflow")
     failed_list = await start_threads("start", storeId, list_start, data)
 
-    if len(failed_list) != 0:
+    if failed_list:
         logging.info("failed to start new components")
         await start_threads("teardown", storeId, list_start, data)
         success = False
@@ -426,7 +426,7 @@ async def update_workflow(storeId):
         logging.info("updating components in previous workflow")
         failed_list = await start_threads("update", storeId, list_update, data)
 
-        if len(failed_list) != 0:
+        if failed_list:
             logging.info("failed to update existing components")
             # get the comps that succeeded
             undo_update_list = list(set(list_update) - set(failed_list))
