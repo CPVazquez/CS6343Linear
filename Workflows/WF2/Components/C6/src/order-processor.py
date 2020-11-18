@@ -76,6 +76,7 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logging.getLogger('requests').setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.getLogger('quart').setLevel(logging.WARNING)
 
 # Global workflows dict
@@ -283,6 +284,10 @@ async def process_order():
         "    Processing order " + order_id + " for " + cust_name)
 
     valid, mess = await create_order(order["pizza-order"])
+
+    # REMOVE THIS AFTER TESTING
+    valid = False
+    mess = "This is only a test..."
 
     if valid:
         order.update({"processor": "accepted"})
