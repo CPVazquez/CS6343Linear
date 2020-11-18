@@ -24,9 +24,10 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
-logging.getLogger('docker').setLevel(logging.INFO)
-logging.getLogger('requests').setLevel(logging.INFO)
-logging.getLogger('quart').setLevel(logging.INFO)
+logging.getLogger('docker').setLevel(logging.WARNING)
+logging.getLogger('requests').setLevel(logging.WARNING)
+logging.getLogger('quart.app').setLevel(logging.WARNING)
+logging.getLogger('quart.serving').setLevel(logging.WARNING)
 
 # # set up necessary docker clients
 client = docker.from_env()
@@ -91,8 +92,8 @@ async def start_component(component, storeId, data, response_list):
 
     # if not exists
     if len(service_filter) == 0:
-        logging.info(component + " doesn't exist")
-        logging.info("Spinning up " + component + " ")
+        logging.info(comp_name + " doesn't exist")
+        logging.info("Spinning up " + comp_name + " ")
 
         if component != "cass":
             # create the service
