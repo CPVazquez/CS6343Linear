@@ -128,13 +128,13 @@ async def start_component(component, storeId, data, response_list):
         )
 
     if count < 4:
-        logging.info("SUCCESS: " + component + " is healthy")
+        logging.info("SUCCESS: " + comp_name + " is healthy")
         # send update to the restaurant owner
-        message = "Component " + component +\
+        message = "Component " + comp_name +\
             " of your workflow has been deployed"
     else:
-        logging.info("FAILURE: " + component + " could not be deployed ")
-        message = "Timeout. Component " + component +\
+        logging.info("FAILURE: " + comp_name + " could not be deployed ")
+        message = "Timeout. Component " + comp_name +\
             " of your workflow could not be deployed"
         response_list.append(component)
         timeOut = True
