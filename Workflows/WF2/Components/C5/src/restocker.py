@@ -200,13 +200,11 @@ async def restocker():
         logging.info(message)
         return Response(status=422, response=message)
 
+    cust_name = order["pizza-order"]["custName"]
     store_id = order["pizza-order"]["storeId"]
     store_uuid = uuid.UUID(store_id)
 
-    logging.info(
-        "Store " + store_id + ":\n    Checking stock on order from " + \
-            order["pizza-order"]["custName"]
-    )
+    logging.info("Store " + store_id + ":\n    Checking stock for order from " + cust_name)
 
     valid = True
     mess = None
@@ -247,10 +245,11 @@ async def restocker():
             return resp
         else:
             # last component in workflow, return response with order
+            logging.info("Sufficient stock for order from " + cust_name + ".")
             return Response(status=200, response=json.dumps(order))
-            
+
     else:
-        error_mess = "Request rejected, restock failed:\n" + mess
+        error_mess = "Request rejected, restock failed:  " + mess
         logging.info(error_mess)
 
         order.update({"stock": {"status": "insufficient"}})
@@ -406,7 +405,7 @@ def scan_out_of_stock():
                     # restock it
                     new_quantity = 50
                     session.execute(add_stock_prepared, (new_quantity, store_uuid, item.name))
-                    logging.info("Store " + store_id + " Daily Scan:\n\t" + \
+                    logging.info("Store " + store_id + " Daily Scan:\n    " + \
                         item.name + " restocked to " + str(new_quantity)
                     )
     # if app.config["ENV"] == "production":

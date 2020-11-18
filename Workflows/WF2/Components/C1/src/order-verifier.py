@@ -118,7 +118,7 @@ async def order_funct():
     logging.info("Store " + store_id + ":\n    Verifying order from " + cust_name + ".")
 
     valid, mess = await verify_order(order["pizza-order"])
-    
+
     order.update({"valid": valid})
 
     if valid:
@@ -130,10 +130,11 @@ async def order_funct():
             return resp
         else:
             # last component in workflow, return response with order
+            logging.info("Order from " + cust_name + " is valid.")
             return Response(status=200, response=json.dumps(order))
     else:
         # failure of some kind - add error info to order and return it
-        error_mess = "Request rejected, pizza-order is malformed:\n" + mess
+        error_mess = "Request rejected, pizza-order is malformed:  " + mess
         logging.info(error_mess)
         order.update({"error": error_mess})
         return Response(status=400, response=json.dumps(order))

@@ -280,14 +280,12 @@ async def process_order():
     store_id = order["pizza-order"]["storeId"]
     cust_name = order["pizza-order"]["custName"]
 
-    logging.info("Store " + store_id + ":\n" + \
-        "    Processing order " + order_id + " for " + cust_name)
+    logging.info(
+        "Store " + store_id + ":\n" + "    Processing order " + \
+            order_id + " for " + cust_name
+    )
 
     valid, mess = await create_order(order["pizza-order"])
-
-    # REMOVE THIS AFTER TESTING
-    valid = False
-    mess = "This is only a test..."
 
     if valid:
         order.update({"processor": "accepted"})
@@ -299,10 +297,11 @@ async def process_order():
             return resp
         else:
             # last component in workflow, return response with order
+            logging.info("Order from " + cust_name + " is processed.")
             return Response(status=200, response=json.dumps(order))
     else:
         # failure of some kind - add error info to order and return it
-        error_mess = "Request rejected, order processing failed:\n" + mess
+        error_mess = "Request rejected, order processing failed:  " + mess
         logging.info(error_mess)
         order.update({"processor": "rejected"})
         order.update({"error": error_mess})
