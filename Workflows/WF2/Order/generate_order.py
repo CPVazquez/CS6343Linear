@@ -84,16 +84,29 @@ def request_order(q, url, print_results):
     while True:
         order = q.get()
         order_dict = order.generate_order()
+
         print("\nPizza Order Request:\n" + json.dumps(order_dict, sort_keys=True, indent=4))
+
         r = requests.post(url, json=json.dumps(order_dict))
+
+        processed_order = json.loads(r.text)
+
         if r.status_code == 200:
+            # order successfully processed
             if print_results:
                 print("SUCCESS! Response:")
-                print(json.dumps(json.loads(r.text), sort_keys=True, indent=4))
+                print(json.dumps(processed_order, sort_keys=True, indent=4))
             else:
                 print("SUCCESS!")
         else:
-            print("FAILURE: {}, {}".format(r.status_code, r.text))
+            # order processing failed
+            if print_results:
+                print("FAILURE! Response:")
+                print(json.dumps(processed_order, sort_keys=True, indent=4))
+            else:
+                print("FAILURE! Error Message:")
+                print(processed_order["error"])
+
         q.task_done()
 
 

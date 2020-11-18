@@ -76,6 +76,7 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logging.getLogger('requests').setLevel(logging.WARNING)
+logging.getLogger('quart').setLevel(logging.WARNING)
 
 # Global workflows dict
 workflows = dict()
@@ -252,42 +253,13 @@ async def send_order_to_next_component(url, order):
     
     # form log message based on response status code from next component
     message = "Order from " + order["pizza-order"]["custName"] + " is processed."
+
     if r.status_code == 200:
         logging.info(message + " Order sent to next component.")
-        return Response(status=r.status_code, response=json.dumps(json.loads(r.text)))
     else:
         logging.info(message + " Issue sending order to next component:\n" + r.text)
-        return Response(status=r.status_code, response=r.text)
-
-
-async def send_results_to_client(store_id, order):
-    # form results message for Restaurant Owner (client)
-    cust_name = order["pizza-order"]["custName"]
-    message = "Order for " + cust_name
-    if "assignment" in order:
-        delivery_entity = order["assignment"]["deliveredBy"]
-        estimated_time = str(order["assignment"]["estimatedTime"])
-        message += " will be delivered in " + estimated_time
-        message += " minutes by delivery entity " + delivery_entity + "."
-    else:
-        message += " has been placed."
-    
-    # send results message json to Restaurant Owner
-    origin_url = "http://" + workflows[store_id]["origin"] + ":8080/results"
-
-    def request_post():
-        return requests.post(origin_url, json=json.dumps({"message": message}))
-
-    r = await run_sync(request_post)()
-
-    # form log message based on response status code from Restaurant Owner
-    message = "Order from " + cust_name + " is valid."
-    if r.status_code == 200:
-        logging.info(message + " Restuarant Owner received the results.")
-        return Response(status=r.status_code, response=json.dumps(order))
-    else:
-        logging.info(message + " Issue sending results to Restaurant Owner:\n" + r.text)
-        return Response(status=r.status_code, response=r.text)
+        
+    return Response(status=r.status_code, response=r.text)
 
 
 # if pizza-order is valid, try to create it
@@ -315,21 +287,21 @@ async def process_order():
     if valid:
         order.update({"processor": "accepted"})
         next_comp = await get_next_component(store_id)
-        if next_comp is None:
-            # last component in the workflow, report results to client
-            resp = await send_results_to_client(store_id, order)
-            return resp
-        else:
+        if next_comp is not None:
             # send order to next component in workflow
             next_comp_url = await get_component_url(next_comp, store_id)
             resp = await send_order_to_next_component(next_comp_url, order)
             return resp
+        else:
+            # last component in workflow, return response with order
+            return Response(status=200, response=json.dumps(order))
     else:
-        logging.info("Request rejected, order processing failed:\n" + mess)
-        return Response(
-            status=400, 
-            response="Request rejected, order processing failed:\n" + mess
-        )
+        # failure of some kind - add error info to order and return it
+        error_mess = "Request rejected, order processing failed:\n" + mess
+        logging.info(error_mess)
+        order.update({"processor": "rejected"})
+        order.update({"error": error_mess})
+        return Response(status=400, response=json.dumps(order))
 
 
 # validate workflow-request against schema

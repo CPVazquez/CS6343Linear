@@ -62,6 +62,7 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logging.getLogger('requests').setLevel(logging.WARNING)
+logging.getLogger('quart').setLevel(logging.WARNING)
 
 # create Quart app
 app = Quart(__name__)
@@ -116,42 +117,13 @@ async def send_order_to_next_component(url, order):
 
     # form log message based on response status code from next component
     message = "Sufficient stock for order from " + order["pizza-order"]["custName"] + "."
+    
     if r.status_code == 200:
         logging.info(message + " Order sent to next component.")
-        return Response(status=200, response=json.dumps(json.loads(r.text)))
     else:
         logging.info(message + " Issue sending order to next component:\n" + r.text)
-        return Response(status=r.status_code, response=r.text)
-
-
-async def send_results_to_client(store_id, order):
-    # form results message for Restaurant Owner (client)
-    cust_name = order["pizza-order"]["custName"]
-    message = "Order for " + cust_name
-    if "assignment" in order:
-        delivery_entity = order["assignment"]["deliveredBy"]
-        estimated_time = str(order["assignment"]["estimatedTime"])
-        message += " will be delivered in " + estimated_time
-        message += " minutes by delivery entity " + delivery_entity + "."
-    else:
-        message += " has been placed."
-
-    # send results message json to Restaurant Owner
-    origin_url = "http://" + workflows[store_id]["origin"] + ":8080/results"
-
-    def request_post():
-        return requests.post(origin_url, json=json.dumps({"message": message}))
-
-    r = await run_sync(request_post)()
-
-    # form log message based on response status code from Restaurant Owner
-    message = "Sufficient stock for order from " + cust_name + "."
-    if r.status_code == 200:
-        logging.info(message + " Restuarant Owner received the results.")
-        return Response(status=r.status_code, response=json.dumps(order))
-    else:
-        logging.info(message + " Issue sending results to Restaurant Owner:\n" + r.text)
-        return Response(status=r.status_code, response=r.text)
+        
+    return Response(status=r.status_code, response=r.text)
 
 
 # Decrement a store's stock for the order about to be placed
@@ -163,6 +135,7 @@ async def decrement_stock(store_uuid, instock_dict, required_dict):
     for item_name in required_dict:
         quantity = instock_dict[item_name] - required_dict[item_name]
         await run_sync(update_stock_prepared_execute)()
+
 
 # Aggregate all ingredients for a given order
 async def aggregate_ingredients(pizza_list):
@@ -231,7 +204,8 @@ async def restocker():
     store_uuid = uuid.UUID(store_id)
 
     logging.info(
-        "Store " + store_id + ":\n    Checking stock on order from " + order["pizza-order"]["custName"]
+        "Store " + store_id + ":\n    Checking stock on order from " + \
+            order["pizza-order"]["custName"]
     )
 
     valid = True
@@ -262,22 +236,27 @@ async def restocker():
         mess = inst.args[0]
 
     if valid:
+        order.update({"stock": {"status": "sufficient", "restocked": restock_list}})
+
         next_comp = await get_next_component(store_id)
-        if next_comp is None:
-            # last component in the workflow, report results to client
-            resp = await send_results_to_client(store_id, order)
-            return resp
-        else:
+
+        if next_comp is not None:
             # send order to next component in workflow
             next_comp_url = await get_component_url(next_comp, store_id)
             resp = await send_order_to_next_component(next_comp_url, order)
             return resp
+        else:
+            # last component in workflow, return response with order
+            return Response(status=200, response=json.dumps(order))
+            
     else:
-        logging.info("Request rejected, restock failed:\n" + mess)
-        return Response(
-            status=400,
-            response="Request rejected, restock failed:\n" + mess
-        )
+        error_mess = "Request rejected, restock failed:\n" + mess
+        logging.info(error_mess)
+
+        order.update({"stock": {"status": "insufficient"}})
+        order.update({"error": error_mess})
+
+        return Response(status=400, response=json.dumps(order))
 
 
 async def verify_workflow(data):

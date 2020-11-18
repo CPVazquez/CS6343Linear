@@ -78,12 +78,13 @@ async def send_order_to_next_component(url, order):
     
     # form log message based on response status code from next component
     message = "Order from " + order["pizza-order"]["custName"] + " is valid."
+
     if r.status_code == 200:
         logging.info(message + " Order sent to next component.")
-        return Response(status=200, response=json.dumps(json.loads(r.text)))
     else:
         logging.info(message + " Issue sending order to next component:\n" + r.text)
-        return Response(status=r.status_code, response=r.text)
+        
+    return Response(status=r.status_code, response=r.text)
 
 
 # validate pizza-order against schema
@@ -117,6 +118,7 @@ async def order_funct():
     logging.info("Store " + store_id + ":\n    Verifying order from " + cust_name + ".")
 
     valid, mess = await verify_order(order["pizza-order"])
+    
     order.update({"valid": valid})
 
     if valid:
@@ -128,16 +130,13 @@ async def order_funct():
             return resp
         else:
             # last component in workflow, return response with order
-            return Response(
-                status=200,
-                response=json.dumps(order)
-            )
+            return Response(status=200, response=json.dumps(order))
     else:
-        logging.info("Request rejected, pizza-order is malformed:\n" + mess)
-        return Response(
-            status=400, 
-            response="Request rejected, pizza-order is malformed:\n" + mess
-        )
+        # failure of some kind - add error info to order and return it
+        error_mess = "Request rejected, pizza-order is malformed:\n" + mess
+        logging.info(error_mess)
+        order.update({"error": error_mess})
+        return Response(status=400, response=json.dumps(order))
 
 
 # validate workflow-request against schema
