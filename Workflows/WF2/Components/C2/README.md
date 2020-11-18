@@ -34,7 +34,7 @@ Packages installed on pipenv virtual environment:
   ```
 * To create cassandra service:
   ```
-  docker service create --name cass --network myNet --publish 9042:9042 --publish 2000:2000 trishaire/cass:linear
+  docker service create --name cass --network myNet --publish 9042:9042 --publish 2000:2000 trishaire/cass:async
   ```
 
 ## Connecting to Cass from a python component
