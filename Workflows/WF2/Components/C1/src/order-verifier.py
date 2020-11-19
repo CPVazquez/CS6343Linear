@@ -138,7 +138,8 @@ async def order_funct():
     store_id = order["pizza-order"]["storeId"]
     cust_name = order["pizza-order"]["custName"]
 
-    logging.info("Store " + store_id + ":\n    Verifying order from " + cust_name + ".")
+    logging.info("Store " + store_id + ":")
+    logging.info("Verifying order from " + cust_name + ".")
 
     valid, mess = await verify_order(order["pizza-order"])
 

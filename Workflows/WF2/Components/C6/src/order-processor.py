@@ -302,10 +302,8 @@ async def process_order():
     store_id = order["pizza-order"]["storeId"]
     cust_name = order["pizza-order"]["custName"]
 
-    logging.info(
-        "Store " + store_id + ":\n" + "    Processing order " + \
-            order_id + " for " + cust_name
-    )
+    logging.info("Store " + store_id + ":")
+    logging.info("Processing order " + order_id + " for " + cust_name + ".")
 
     valid, mess = await create_order(order["pizza-order"])
 

@@ -226,7 +226,8 @@ async def restocker():
     store_id = order["pizza-order"]["storeId"]
     store_uuid = uuid.UUID(store_id)
 
-    logging.info("Store " + store_id + ":\n    Checking stock for order from " + cust_name)
+    logging.info("Store " + store_id + ":")
+    logging.info("Checking stock for order from " + cust_name + ".")
 
     valid = True
     mess = None
