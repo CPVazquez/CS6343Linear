@@ -17,8 +17,10 @@ RUN pip install -r requirements.txt
 RUN pip install fbprophet
 RUN pip install cassandra-driver
 RUN pip install gunicorn
-RUN pip install flask
+RUN pip install quart
 
 EXPOSE 4000
 
-CMD gunicorn -b 0.0.0.0:4000 --timeout 30 --log-level info src.auto_restocker:app
+ENV QUART_APP=src.auto_restocker:app
+
+CMD quart run --port 4000 --host 0.0.0.0
