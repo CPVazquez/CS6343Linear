@@ -262,8 +262,9 @@ async def send_order_to_next_component(url, order):
     if r.status_code == 200:
         logging.info(message + " Order sent to next component.")
     else:
-        logging.info(message + " Issue sending order to next component:\n" + r.text)
-        
+        logging.info(message + " Issue sending order to next component:")
+        logging.info(r.text)
+
     return Response(status=r.status_code, response=r.text)
 
 
@@ -308,26 +309,29 @@ async def process_order():
 
     valid, mess = await create_order(order["pizza-order"])
 
-    if valid:
-        order.update({"processor": "accepted"})
-        next_comp = await get_next_component(store_id)
-        if next_comp is not None:
-            # send order to next component in workflow
-            next_comp_url = await get_component_url(next_comp, store_id)
-            resp = await send_order_to_next_component(next_comp_url, order)
-            return resp
-        else:
-            # last component in workflow, return response with order
-            logging.info("Order from " + cust_name + " is processed.")
-            return Response(status=200, response=json.dumps(order))
-    else:
-        # failure of some kind - add error info to order and return it
+    if not valid:
+        # failure of some kind, return error message
         error_mess = "Request rejected, order processing failed:  " + mess
         logging.info(error_mess)
-        order.update({"processor": "rejected"})
-        order.update({"error": error_mess})
-        return Response(status=400, response=json.dumps(order))
+        return Response(status=400, response=error_mess)
 
+    order.update({"processor": "accepted"})
+
+    next_comp = await get_next_component(store_id)
+
+    if next_comp is not None:
+        # send order to next component in workflow
+        next_comp_url = await get_component_url(next_comp, store_id)
+        resp = await send_order_to_next_component(next_comp_url, order)
+        if resp.status_code == 200:
+            return resp
+        else:
+            order.update({"error": resp.text})
+    else:
+        logging.info("Order from " + cust_name + " is processed.")
+
+    return Response(status=200, response=json.dumps(order))
+        
 
 # if workflow-request is valid and does not exist, create it
 @app.route("/workflow-requests/<storeId>", methods=['PUT'])

@@ -126,7 +126,8 @@ async def send_order_to_next_component(url, order):
     if r.status_code == 200:
         logging.info(message + " Order sent to next component.")
     else:
-        logging.info(message + " Issue sending order to next component:\n" + r.text)
+        logging.info(message + " Issue sending order to next component:")
+        logging.info(r.text)
         
     return Response(status=r.status_code, response=r.text)
 
@@ -254,29 +255,29 @@ async def restocker():
         valid = False
         mess = inst.args[0]
 
-    if valid:
-        order.update({"stock": {"status": "sufficient", "restocked": restock_list}})
-
-        next_comp = await get_next_component(store_id)
-
-        if next_comp is not None:
-            # send order to next component in workflow
-            next_comp_url = await get_component_url(next_comp, store_id)
-            resp = await send_order_to_next_component(next_comp_url, order)
-            return resp
-        else:
-            # last component in workflow, return response with order
-            logging.info("Sufficient stock for order from " + cust_name + ".")
-            return Response(status=200, response=json.dumps(order))
-
-    else:
+    if not valid:
+        # failure of some kind, return error message
         error_mess = "Request rejected, restock failed:  " + mess
         logging.info(error_mess)
+        return Response(status=400, response=error_mess)
 
-        order.update({"stock": {"status": "insufficient"}})
-        order.update({"error": error_mess})
+    order.update({"stock": {"status": "sufficient", "restocked": restock_list}})
 
-        return Response(status=400, response=json.dumps(order))
+    next_comp = await get_next_component(store_id)
+
+    if next_comp is not None:
+        # send order to next component in workflow
+        next_comp_url = await get_component_url(next_comp, store_id)
+        resp = await send_order_to_next_component(next_comp_url, order)
+        if resp.status_code == 200:
+            return resp
+        else:
+            order.update({"error": resp.text})
+    else:
+        logging.info("Sufficient stock for order from " + cust_name + ".")
+
+    return Response(status=200, response=json.dumps(order))
+        
 
 
 # if workflow-request is valid and does not exist, create it
