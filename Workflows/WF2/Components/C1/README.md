@@ -1,4 +1,4 @@
-# Pizza Order Verifier
+# Order Verifier Component
 
 Workflow 2, Component 1
 
@@ -8,9 +8,9 @@ Christopher Michael Scott
 
 ## Description
 
-Upon receiving a order request, this component validates the received order against the pizza-order jsonschema.
-If the pizza-order is valid, then the order will be passed to the next component in the workflow.
-If the pizza-order is invalid, then the request is rejected by this component.
+Upon receiving a order request, this component validates the received order against the `pizza-order` jsonschema.
+If the `pizza-order` is valid, then the order will be passed to the next component in the workflow.
+If the `pizza-order` is invalid, then the request is rejected by this component.
 
 ## Setup
 
@@ -23,33 +23,35 @@ Package requirements:
 
 Packages installed on pipenv virtual environment:
 * quart
-* gunicorn
 * jsonschema
 * cassandra-driver
 * requests
 
 ## Commands
 
-  * To build the docker image, use the following command in the folder containing the Dockerfile:
-    ```
-    docker build --rm -t trishaire/order-verifier:linear path_to_c1_dockerfile
-    ```
-  * To update Dockerhub repository:
-    ```
-    sudo docker login
-    docker push trishaire/order-verifier:linear
-    ```
-  * To create the image as a service run the following command:
-    ```
-    docker service create --name order-verifier --network myNet --publish 1000:1000 --env CASS_DB=cass_service_vip trishaire/order-verifier:linear
-    ```
-    * Where `cass_service_vip` is the VIP of `myNet` overlay network.
+* To build the image, use the following command in the folder containing the Dockerfile:
+  ```
+  ./build.sh
+  ```
+
+* To update Dockerhub repository:
+  ```
+  sudo docker login
+  docker push trishaire/order-verifier:tag
+  ```
+  * Where `tag` is the tag of order-verifier image.
+
+* To create the image as a service run the following command:
+  ```
+  docker service create --name order-verifier --network myNet --publish 1000:1000 --env CASS_DB=cass_service_vip trishaire/order-verifier:tag
+  ```
+  * Where `cass_service_vip` is the VIP of `myNet` overlay network and `tag` is the tag of order-verifier image.
 
 ## Endpoints
 
 ### `POST /order`
 
-Requires a [`pizza-order`](https://github.com/CPVazquez/CS6343/blob/master/Workflows/WF2/Components/C1/src/pizza-order.schema.json) json object
+Requires a [`pizza-order`](https://github.com/CPVazquez/CS6343Linear/blob/main/Workflows/WF2/Components/C1/src/pizza-order.schema.json) JSON object.
 
 `pizza-order` 
 
@@ -68,8 +70,8 @@ Requires a [`pizza-order`](https://github.com/CPVazquez/CS6343/blob/master/Workf
 
 | field | type | required | description |
 |-------|------|----------|-------------|
-| lat | number | false | latitude |
-| lon | number | false | longitude |
+| lat | number | false | Customer latitude in degrees |
+| lon | number | false | Customer longitude in degrees |
 
 `pizza`
 
@@ -78,15 +80,15 @@ Requires a [`pizza-order`](https://github.com/CPVazquez/CS6343/blob/master/Workf
 | crustType | enum | Thin, Traditional | false | The type of crust |
 | sauceType | enum | Spicy, Traditional | false | The type of sauce |
 | cheeseAmt | enum | None, Light, Normal, Extra | false | The amount of cheese on the pizza |
-| toppingList | enum array | Pepperoni, Sausage, Beef, Onion, Chicken, Peppers, Olives, Bacon, Pineapple, Mushrooms | false | The list of toppings added at extra cost. Cost verified by server |
+| toppingList | enum array | Pepperoni, Sausage, Beef, Onion, Chicken, Peppers, Olives, Bacon, Pineapple, Mushrooms | false | The list of toppings added at extra cost (verified by server) |
 
 #### Responses
 
 | status code | status | meaning |
 |-------------|--------|---------|
-| 200 | Created | pizza-order successfully created |
-| 400 | Bad Request | indicates the pizza-order was ill formatted |
-| 422 | Unprocessable Entity | a workflow does not exist for the specified store, thus the pizza-order cannot be created |
+| 200 | Created | `pizza-order` successfully created |
+| 400 | Bad Request | Indicates the `pizza-order` was ill-formatted and the request was rejected |
+| 422 | Unprocessable Entity | A workflow does not exist for the specified store, thus the `pizza-order` cannot be created |
 
 ### `PUT /workflow-requests/<storeId>`
 
@@ -94,28 +96,30 @@ Requires a [`pizza-order`](https://github.com/CPVazquez/CS6343/blob/master/Workf
 
 | parameter | type | required | description |
 |-----------|------|----------|-------------|
-| storeId | string | true | the id of the store issuing the workflow request |
+| storeId | string | true | The unique identification number of the store issuing the workflow request |
 
 #### Body
 
-Requires a `workflow-request` json object. 
+Requires a [`workflow-request`](https://github.com/CPVazquez/CS6343Linear/blob/main/Workflows/WF2/Components/C1/src/workflow-request.schema.json) JSON object. 
 
 `workflow-request`
 
 | field | type | options | required | description |
 |-------|------|---------|----------|-------------|
-| method | enum | persistent, edge | true | the workflow deployment method |
-| component-list | enum array | order-verifier, cass, delivery-assigner, stock-analyzer, restocker, order-processor | true | the components the workflow is requesting |
-| origin | string - format ip | N/A | true | the ip of the host issuing the request |
-| workflow-offset| integer | N/A| false | generated by the workflow manager and passed to other components|
+| method | enum | persistent, edge | true | The workflow deployment method |
+| component-list | enum array | order-verifier, cass, delivery-assigner, stock-analyzer, restocker, order-processor | true | The components the workflow is requesting |
+| origin | string - format ip | N/A | true | The IP address of the host issuing the request |
+| workflow-offset| integer | N/A | false | Generated by the workflow manager and passed to other components |
+
 #### Responses
 
 | status code | status | meaning|
 |-------------|--------|--------|
-| 201 | Created | workflow was successfully created |
-| 400 | Bad Request | indicates the workflow-request was ill formatted |
-| 409 | Conflict | a workflow already exists for the specified store, and thus a new one cannot be created |
-| 422 | Unprocessable Entity | json is valid, but the workflow-request specifies an unsupported workflow |
+| 200 | OK | The workflow was successfully updated |
+| 201 | Created | The workflow was successfully created |
+| 400 | Bad Request | Indicates the `workflow-request` was ill-formatted |
+| 409 | Conflict | A workflow already exists for the specified store, and thus a new one cannot be created |
+| 422 | Unprocessable Entity | Request JSON is valid, but the `workflow-request` specifies an unsupported workflow |
 
 ### `DELETE /workflow-requests/<storeId>`
 
@@ -123,14 +127,14 @@ Requires a `workflow-request` json object.
 
 | parameter | type | required | description |
 |-----------|------|----------|-------------|
-| storeId | string | true | the id of the store whose workflow we want to delete |
+| storeId | string | true | The ID of the store whose workflow is to be deleted |
 
 #### Responses
 
 | status code | status | meaning|
 |-------------|--------|--------|
-| 204 | No Content | the specified workflow was deleted successfully |
-| 404 | Not Found | the specified workflow does not exist or has already been deleted |
+| 204 | No Content | The specified workflow was deleted successfully |
+| 404 | Not Found | The specified workflow does not exist or has already been deleted |
 
 ### `GET /workflow-requests/<storeId>`
 
@@ -138,14 +142,14 @@ Requires a `workflow-request` json object.
 
 | parameter | type | required | description |
 |-----------|------|----------|-------------|
-| storeId | string | true | the id of the store whose workflow we want to retrieve |
+| storeId | string | true | The ID of the store whose workflow is to be retrieved |
 
 #### Responses
 
 | status code | status | meaning | 
 |-------------|--------|---------|
-| 200 | OK | returns the `workflow-request` |
-| 404 | Not Found | the specified `workflow-request` does not exist and could not be retrieved |
+| 200 | OK | Returns the `workflow-request` |
+| 404 | Not Found | The specified `workflow-request` does not exist and could not be retrieved |
 
 ### `GET /workflow-requests`
 
@@ -153,7 +157,7 @@ Requires a `workflow-request` json object.
 
 | status code | status | meaning |
 |-------------|--------|---------|
-| 200 | OK | returns all the `workflow-request`s on the workflow manager |
+| 200 | OK | Returns all the `workflow-request`s on the workflow manager |
 
 ### `GET /health`
 
@@ -161,8 +165,8 @@ Requires a `workflow-request` json object.
 
 | status code | status | meaning |
 |-------------|--------|---------|
-| 200 | OK | the server is up and running |
+| 200 | OK | The server is up and running |
 
-Returns string `healthy` if the service is healthy
+Returns string `healthy` if the service is healthy.
 
 [Main README](https://github.com/CPVazquez/CS6343Linear)

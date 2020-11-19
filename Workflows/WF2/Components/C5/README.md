@@ -6,7 +6,7 @@ Carla Patricia Vazquez, Christopher Michael Scott
 
 ## Description
 
-This component checks the store's stock to ensure that a pizza-order request can be filled. If there is insufficient stock for one or more items, then this component performs a restock for the insufficient items. As a secondary function, this component scans the database at the end of every day to check for items that might need to be restocked.
+This component checks the store's stock to ensure that a `pizza-order` request can be filled. If there is insufficient stock for one or more items, then this component performs a restock for the insufficient items. As a secondary function, this component scans the database at the end of every day to check for items that might need to be restocked.
 
 ## Setup
 
@@ -18,60 +18,75 @@ Package requirements:
 * pipenv
 
 Packages installed on pipenv virtual environment:
-* flask
-* gunicorn
+* quart
 * jsonschema
-* uuid
+* requests
 * cassandra-driver
 
 ## Commands
 
-* To build the image:
+* To build the image, use the following command in the folder containing the Dockerfile:
     ```
-    docker build --rm -t trishare/restocker:linear path_to_c5_dockerfile
+    ./build.sh
     ```
 
 * To update the repository:
     ```
     sudo docker login
-    docker push trishaire/restocker:linear
+    docker push trishaire/restocker:tag
     ```
+  * Where `tag` is the tag of restocker image.
 
 * To create the service type the following command:
     ```
-    docker service create --name restocker --network myNet --publish 5000:5000 --env CASS_DB=VIP_of_Cass_Service trishaire/restocker:linear
+    docker service create --name restocker --network myNet --publish 5000:5000 --env CASS_DB=VIP_of_Cass_Service trishaire/restocker:tag
     ```
-  * Where `VIP_of_Cass_Service` is the VIP of `myNet` overlay network.
+  * Where `VIP_of_Cass_Service` is the VIP of `myNet` overlay network, and `tag` is the tag of restocker image.
 
 To run localy, ensure these environment variables `CASS_DB=0.0.0.0` and `FLASK_ENV=development` are set.
 
 ## Endpoints
 
-### `POST /restock`
+### `POST /order`
 
-requires a [`restock-order`](https://github.com/CPVazquez/CS6343/blob/master/Workflows/WF2/Components/C5/src/restock-order.schema.json) json object
+Requires a `pizza-order` JSON object.
  
-`restock-order` 
+`pizza-order` 
 
 | field | type | required | description |
 |-------|------|----------|-------------|
-| storeID | string - format uuid | true | the store that needs restocking |
-| restock-list | `restock-item` array | true | A list of items to restock and their quantities |
+| orderId | string - format uuid | false | A base64 ID give to each order to identify it |
+| storeId | string - format uuid | true | A base64 ID given to each store to identify it |
+| custName | string | true | The name of the customer, as a single string for both first/last name |
+| paymentToken | string - format uuid | true | The token for the third-party payment service that the customer is paying with |
+| paymentTokenType | string | true | The type of token accepted (paypal, google pay, etc) |
+| custLocation | `location` | true | The location of the customer, in degrees latitude and longitude |
+| orderDate | string - date-time format | true | The date of order creation |
+| pizzaList | `pizza` array | true | The list of pizzas that have been ordered |
 
-`restock-item` 
+`location`
 
-| field | type | required| description |
-|-------|------|---------|-------------|
-| item-name | string | true | the item that needs restocking|
-| quantity | integer | true | the number of the item we want restocked |
+| field | type | required | description |
+|-------|------|----------|-------------|
+| lat | number | false | Customer latitude in degrees |
+| lon | number | false | Customer longitude in degrees |
+
+`pizza`
+
+| field | type | options | required | description |
+|-------|------|---------|----|---|
+| crustType | enum | Thin, Traditional | false | The type of crust |
+| sauceType | enum | Spicy, Traditional | false | The type of sauce |
+| cheeseAmt | enum | None, Light, Normal, Extra | false | The amount of cheese on the pizza |
+| toppingList | enum array | Pepperoni, Sausage, Beef, Onion, Chicken, Peppers, Olives, Bacon, Pineapple, Mushrooms | false | The list of toppings added at extra cost (verified by server) |
 
 #### Responses
 
 | status code | status | meaning|
 |-------------|--------|--------|
-| 200 | OK | restock-order successfully processed |
-| 400 | Bad Request | indicates the restock-order was ill formatted |
-| 422 | Unprocessable Entity | a workflow does not exist for the specified store, thus the pizza-order cannot be processed |
+| 200 | OK | Check of store's stock and restock of insufficient items were successful |
+| 400 | Bad Request | Indicates the stock check and/or restock failed and the request was rejected |
+| 422 | Unprocessable Entity | A workflow does not exist for the specified store, thus the stock cannot be checked |
 
 ### `PUT /workflow-requests/<storeId>`
 
@@ -79,28 +94,30 @@ requires a [`restock-order`](https://github.com/CPVazquez/CS6343/blob/master/Wor
 
 | parameter | type | required | description |
 |-----------|------|----------|-------------|
-| storeId | string | true | the id of the store issuing the workflow request |
+| storeId | string | true | The unique identification number of the store issuing the workflow request |
 
 #### Body
 
-Requires a `workflow-request` json object. 
+Requires a [`workflow-request`](https://github.com/CPVazquez/CS6343Linear/blob/main/Workflows/WF2/Components/C5/src/workflow-request.schema.json) JSON object.  
 
 `workflow-request`
 
 | field | type | options | required | description |
 |-------|------|---------|----------|-------------|
-| method | enum | persistent, edge | true | the workflow deployment method |
-| component-list | enum array | order-verifier, cass, delivery-assigner, stock-analyzer, restocker, order-processor | true | the components the workflow is requesting |
-| origin | string - format ip | N/A | true | the ip of the host issuing the request |
-| workflow-offset| integer | N/A| false | generated by the workflow manager and passed to other components|
+| method | enum | persistent, edge | true | The workflow deployment method |
+| component-list | enum array | order-verifier, cass, delivery-assigner, stock-analyzer, restocker, order-processor | true | The components the workflow is requesting |
+| origin | string - format ip | N/A | true | The IP address of the host issuing the request |
+| workflow-offset| integer | N/A | false | Generated by the workflow manager and passed to other components |
 
 #### Responses
 
 | status code | status | meaning|
 |-------------|--------|--------|
-| 201 | Created | pizza order successfully created |
-| 400 | Bad Request | indicates the workflow-request was ill formatted |
-| 409 | Conflict | a workflow already exists for the specified store, and thus a new one cannot be created |
+| 200 | OK | The workflow was successfully updated |
+| 201 | Created | The workflow was successfully created |
+| 400 | Bad Request | Indicates the `workflow-request` was ill-formatted |
+| 409 | Conflict | A workflow already exists for the specified store, and thus a new one cannot be created |
+| 422 | Unprocessable Entity | Request JSON is valid, but the `workflow-request` specifies an unsupported workflow |
 
 ### `DELETE /workflow-requests/<storeId>`
 
@@ -108,14 +125,14 @@ Requires a `workflow-request` json object.
 
 | parameter | type | required | description |
 |-----------|------|----------|-------------|
-| storeId | string | true | the id of the store whose workflow we want to delete |
+| storeId | string | true | The ID of the store whose workflow is to be deleted |
 
 #### Responses
 
 | status code | status | meaning|
 |-------------|--------|--------|
-| 204 | No Content | the specified workflow was deleted successfully |
-| 404 | Not Found | the specified workflow does not exist or has already been deleted |
+| 204 | No Content | The specified workflow was deleted successfully |
+| 404 | Not Found | The specified workflow does not exist or has already been deleted |
 
 ### `GET /workflow-requests/<storeId>`
 
@@ -123,14 +140,14 @@ Requires a `workflow-request` json object.
 
 | parameter | type | required | description |
 |-----------|------|----------|-------------|
-| storeId | string | true | the id of the store whose workflow we want to retrieve |
+| storeId | string | true | The ID of the store whose workflow is to be retrieved |
 
 #### Responses
 
 | status code | status | meaning | 
 |-------------|--------|---------|
-| 200 | OK | returns the `workflow-request` |
-| 404 | Not Found | the specified `workflow-request` does not exist and could not be retrieved |
+| 200 | OK | Returns the `workflow-request` |
+| 404 | Not Found | The specified `workflow-request` does not exist and could not be retrieved |
 
 ### `GET /workflow-requests`
 
@@ -138,7 +155,7 @@ Requires a `workflow-request` json object.
 
 | status code | status | meaning |
 |-------------|--------|---------|
-| 200 | OK | returns all the `workflow-request`s on the workflow manager |
+| 200 | OK | Returns all the `workflow-request`s on the workflow manager |
 
 ### `GET /health`
 
@@ -146,16 +163,8 @@ Requires a `workflow-request` json object.
 
 | status code | status | meaning |
 |-------------|--------|---------|
-| 200 | OK | the server is up and running |
+| 200 | OK | The server is up and running |
 
-Returns string `healthy` if the service is healthy
+Returns string `healthy` if the service is healthy.
 
-## Testing
-
-This component uses pytest to run unit test. you must be connected to a Cassandra instance to run the tests correctly. I'm still trying to figure out how to mock Cassandra. 
-
-Use the following command to run tests:
-```
-pytest --cov=src tests
-```
 [Main README](https://github.com/CPVazquez/CS6343Linear)

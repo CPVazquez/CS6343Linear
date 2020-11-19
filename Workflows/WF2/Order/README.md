@@ -9,9 +9,9 @@ Chris Scott
     * Randomly constructs pizza orders from the valid pizza attributes
   * The script prompts the user for the following information:
     * Store UUID (assigned by Restaurant Owner client)
-    * Start date of order generation
+    * Start date of order generation:
       * Valid date in the format MM-DD-YYYY
-    * Number of days to generate orders
+    * Number of days to generate orders:
       * Min: 1
       * Max: 365
     * Number of orders to generate per day:
@@ -20,6 +20,9 @@ Chris Scott
     * Limit on the number of pizzas allowed per order:
       * Min: 1
       * Max: 20
+    * Detailed results of processed pizza-order:
+      * If enabled, the processed pizza-order JSON object will be printed, in addition to success/failure status.
+      * If disabled, only the success/failure status will be printed for each order. In the event of a failure, an error message will also be printed.
 
 ## Setup
 Machine requirements:

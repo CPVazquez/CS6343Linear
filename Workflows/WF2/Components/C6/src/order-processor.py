@@ -1,6 +1,6 @@
 """Order Processor Component
 
-Upon receiving a Pizza Order, this component assigns the pizza-order request an order ID
+Upon receiving a pizza-order, this component assigns the pizza-order request an order ID
 and inserts the order's information into the database.
 """
 
@@ -76,12 +76,16 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logging.getLogger('requests').setLevel(logging.WARNING)
-logging.getLogger("urllib3").setLevel(logging.WARNING)
-logging.getLogger('quart').setLevel(logging.WARNING)
+logging.getLogger('quart.app').setLevel(logging.WARNING)
+logging.getLogger('quart.serving').setLevel(logging.WARNING)
 
 # Global workflows dict
 workflows = dict()
 
+
+###############################################################################
+#                           Helper Functions
+###############################################################################
 
 # Calculate pizza price based on ingredients
 async def calc_pizza_cost(ingredient_set):
@@ -263,10 +267,27 @@ async def send_order_to_next_component(url, order):
     return Response(status=r.status_code, response=r.text)
 
 
+# validate workflow-request against schema
+async def verify_workflow(data):
+    global workflow_schema
+    valid = True
+    mess = None
+    try:
+        jsonschema.validate(instance=data, schema=workflow_schema)
+    except Exception as inst:
+        valid = False
+        mess = inst.args[0]
+    return valid, mess
+
+
+###############################################################################
+#                           API Endpoints
+###############################################################################
+
 # if pizza-order is valid, try to create it
 @app.route('/order', methods=['POST'])
 async def process_order():
-    logging.info("POST /order")
+    logging.info("{:*^74}".format(" POST /order "))
     request_data = await request.get_json()
     order = json.loads(request_data)
 
@@ -308,27 +329,10 @@ async def process_order():
         return Response(status=400, response=json.dumps(order))
 
 
-# validate workflow-request against schema
-async def verify_workflow(data):
-    global workflow_schema
-    valid = True
-    mess = None
-    try:
-        jsonschema.validate(instance=data, schema=workflow_schema)
-    except Exception as inst:
-        valid = False
-        mess = inst.args[0]
-    return valid, mess
-
-
-###############################################################################
-#                           API Endpoints
-###############################################################################
-
 # if workflow-request is valid and does not exist, create it
 @app.route("/workflow-requests/<storeId>", methods=['PUT'])
 async def setup_workflow(storeId):
-    logging.info("PUT /workflow-requests/" + storeId)
+    logging.info("{:*^74}".format(" PUT /workflow-requests/" + storeId + " "))
     request_data = await request.get_json()
     data = json.loads(request_data)
     # verify the workflow-request is valid
@@ -368,7 +372,7 @@ async def setup_workflow(storeId):
 # if the recource exists, update it
 @app.route("/workflow-update/<storeId>", methods=['PUT'])
 async def update_workflow(storeId):
-    logging.info("PUT /workflow-update/" + storeId)
+    logging.info("{:*^74}".format(" PUT /workflow-update/" + storeId + " "))
     request_data = await request.get_json()
     data = json.loads(request_data)
     # verify the workflow-request is valid
@@ -401,7 +405,7 @@ async def update_workflow(storeId):
 # if the recource exists, remove it
 @app.route("/workflow-requests/<storeId>", methods=["DELETE"])
 async def teardown_workflow(storeId):
-    logging.info("DELETE /workflow-requests/" + storeId)
+    logging.info("{:*^74}".format(" DELETE /workflow-requests/" + storeId + " "))
     if not (storeId in workflows):
         return Response(
             status=404, 
@@ -415,7 +419,7 @@ async def teardown_workflow(storeId):
 # retrieve the specified resource, if it exists
 @app.route("/workflow-requests/<storeId>", methods=["GET"])
 async def retrieve_workflow(storeId):
-    logging.info("GET /workflow-requests/" + storeId)
+    logging.info("{:*^74}".format(" GET /workflow-requests/" + storeId + " "))
     if not (storeId in workflows):
         return Response(
             status=404, 
@@ -431,12 +435,12 @@ async def retrieve_workflow(storeId):
 # retrieve all resources
 @app.route("/workflow-requests", methods=["GET"])
 async def retrieve_workflows():
-    logging.info("GET /workflow-requests")
+    logging.info("{:*^74}".format(" GET /workflow-requests "))
     return Response(status=200, response=json.dumps(workflows))
 
 
 # Health check endpoint
 @app.route('/health', methods=['GET'])
 async def health_check():
-    logging.info("GET /health")
+    logging.info("{:*^74}".format(" GET /health "))
     return Response(status=200,response="healthy\n")

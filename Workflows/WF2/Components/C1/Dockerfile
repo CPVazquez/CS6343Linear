@@ -21,4 +21,3 @@ EXPOSE 1000
 ENV QUART_APP=src.order-verifier:app
 
 CMD quart run --port 1000 --host 0.0.0.0
-# CMD gunicorn --bind 0.0.0.0:1000 --timeout 30 src.order-verifier:app

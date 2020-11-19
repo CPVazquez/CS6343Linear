@@ -7,7 +7,6 @@ verify_ssl = true
 
 [packages]
 quart = "*"
-gunicorn = "*"
 jsonschema = "*"
 cassandra-driver = "*"
 requests = "*"
