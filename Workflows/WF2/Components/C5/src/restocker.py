@@ -421,9 +421,8 @@ def scan_out_of_stock():
                     # restock it
                     new_quantity = 50
                     session.execute(add_stock_prepared, (new_quantity, store_uuid, item.name))
-                    logging.info("Store " + store_id + " Daily Scan:\n    " + \
-                        item.name + " restocked to " + str(new_quantity)
-                    )
+                    logging.info("Store " + store_id + " Daily Scan:")
+                    logging.info(item.name + " restocked to " + str(new_quantity)
     # if app.config["ENV"] == "production":
     threading.Timer(60, scan_out_of_stock).start()
 
