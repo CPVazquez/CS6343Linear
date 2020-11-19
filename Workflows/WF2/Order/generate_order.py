@@ -88,22 +88,21 @@ def request_order(q, url, print_results):
 
         r = requests.post(url, json=json.dumps(order_dict))
 
-        processed_order = json.loads(r.text)
-
         if r.status_code == 200:
             # order successfully processed
             if print_results:
                 print("SUCCESS! Response:")
-                print(json.dumps(processed_order, sort_keys=True, indent=4))
+                print(json.dumps(json.loads(r.text), sort_keys=True, indent=4))
             else:
                 print("SUCCESS!")
         elif r.status_code == 208:
             # order processing failed
             if print_results:
                 print("FAILURE! Response:")
-                print(json.dumps(processed_order, sort_keys=True, indent=4))
+                print(json.dumps(json.loads(r.text), sort_keys=True, indent=4))
             else:
                 print("FAILURE! Error Message:")
+                processed_order = json.loads(r.text)
                 print(json.dumps(processed_order["error"], sort_keys=True, indent=4))
         else:
             # failure in one-component workflow, or an unexpected failure
