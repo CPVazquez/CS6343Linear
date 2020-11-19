@@ -259,7 +259,11 @@ async def restocker():
 
     next_comp = await get_next_component(store_id)
 
-    if resp.status_code == 200:
+    if next_comp is not None:
+        # send order to next component in workflow
+        next_comp_url = await get_component_url(next_comp, store_id)
+        resp = await send_order_to_next_component(next_comp_url, order)
+        if resp.status_code == 200:
             # successful response from next component, return same response
             logging.info(log_mess + " Order sent to next component.")
             return resp
