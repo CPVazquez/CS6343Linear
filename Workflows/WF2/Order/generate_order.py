@@ -97,14 +97,19 @@ def request_order(q, url, print_results):
                 print(json.dumps(processed_order, sort_keys=True, indent=4))
             else:
                 print("SUCCESS!")
-        else:
+        elif r.status_code == 208:
             # order processing failed
             if print_results:
                 print("FAILURE! Response:")
                 print(json.dumps(processed_order, sort_keys=True, indent=4))
             else:
                 print("FAILURE! Error Message:")
-                print(processed_order["error"])
+                print(json.dumps(processed_order["error"], sort_keys=True, indent=4))
+        else:
+            # failure in one-component workflow, or an unexpected failure
+            print("FAILURE! Response:")
+            print("Status Code: {}".format(r.status_code))
+            print("Text: {}".format(r.text))
 
         q.task_done()
 
