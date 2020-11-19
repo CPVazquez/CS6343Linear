@@ -33,7 +33,8 @@ logger = logging.getLogger(__name__)
 logging.getLogger('docker').setLevel(logging.INFO)
 logging.getLogger('requests').setLevel(logging.INFO)
 logging.getLogger('cassandra.cluster').setLevel(logging.ERROR)
-
+logging.getLogger('quart.app').setLevel(logging.WARNING)
+logging.getLogger('quart.serving').setLevel(logging.WARNING)
 
 workflows = {}
 
@@ -273,27 +274,27 @@ async def assign_entity(store_id, order):
     try:
         store_info = await _get_store_info(store_id)
     except:
-        return (Response(
+        return Response(
             status=409,
             response="Store ID not found in Database!\n" +
                      "Please request with valid store ID."   
-        ),)
+        )
     try:	
         entities = await _get_entities(store_id)    
         if len(entities) == 0:
-            return (Response(
+            return Response(
                 status=204,
                 response="No Avaiblabe delivery entities for storeID::" + 
                          str(storeID) + "\n" +
                          "Please update delivery entities or " + 
                          "wait for entities to finish active deliveries!"            
-            ),)
+            )
     except:
-        return (Response(
+        return Response(
             status=502,
             response="Entities table in database corrupted!\n" +
                      "Please recreate delivery entities table."
-        ),)
+        )
     
     customer_info = (order['pizza-order']['custLocation']['lat'], order['pizza-order']['custLocation']['lon'])
    
@@ -301,11 +302,11 @@ async def assign_entity(store_id, order):
         time, entity = await _get_delivery_time(entities, customer_info, store_info)
     except:
     
-        return (Response(
+        return Response(
             status=502,
             response="Error in Google API!\n" +
                      "Please contact admin."
-            ),)
+            )
     
     order['assignment'] = {}
     order['assignment']['deliveredBy'] = entity
@@ -438,8 +439,14 @@ async def assign():
         component = await _get_next_component(storeId)
         if component is not None:
             url = await _get_component_url(component, storeId)
-            return await _send_order_to_next_component(url, order)            
-    
+            response =  await _send_order_to_next_component(url, order)            
+            if response.status_code == 200:
+                return response
+            else:
+                order = json.loads(res.text)
+                order['error'] = response.text
+		return Response(status=200,
+                    json=json.dumps(order))
     return res
 
 
