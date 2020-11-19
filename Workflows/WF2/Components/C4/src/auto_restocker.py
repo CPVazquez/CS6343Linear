@@ -35,6 +35,9 @@ logger = logging.getLogger(__name__)
 logging.getLogger('docker').setLevel(logging.INFO)
 logging.getLogger('requests').setLevel(logging.INFO)
 logging.getLogger('cassandra.cluster').setLevel(logging.ERROR)
+logging.getLogger('quart.app').setLevel(logging.WARNING)
+logging.getLogger('quart.serving').setLevel(logging.WARNING)
+
 
 workflows = {}
 
@@ -280,7 +283,11 @@ async def get_order():
 
 	if component is not None:
 		url = await _get_component_url(component, storeId)
-		return  await _send_order_to_next_component(url, order)
+		res =  await _send_order_to_next_component(url, order)
+		if res.status_code == 200:
+			return res
+		else:
+			order['error'] = res.text
 
 	return Response(
 		status=200,
