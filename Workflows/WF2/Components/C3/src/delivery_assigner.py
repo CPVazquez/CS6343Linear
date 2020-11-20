@@ -138,7 +138,7 @@ async def _get_entities(store_id):
     rows = session.execute(entity_query, (store_id,))
     for row in rows:
         entities.append(row)
-    logger.info("in entities:{}\n".format(entities))
+    
     return entities
 
 
@@ -433,19 +433,21 @@ async def assign():
             await _update_order(order['pizza-order']['orderId'], order['assignment']['deliveredBy'], 
                 order['assignment']['estimatedTime'])
         except:    
-            logging.info("order does not exist in the database, unable to update database order")
+            #logging.info("order does not exist in the database, unable to update database order")
+            pass
 
         order['pizza-order']['orderId'] = str(order['pizza-order']['orderId'])
         component = await _get_next_component(storeId)
         if component is not None:
             url = await _get_component_url(component, storeId)
             response =  await _send_order_to_next_component(url, order)            
-            if response.status_code == 200:
+            if response.status_code == 200 or response.status_code == 208:
                 return response
             else:
                 order = json.loads(res.text)
-                order['error'] = response.text
-		return Response(status=200,
+                order.update({"error": {"status-code": response.status_code, "text": response.text}})
+                
+                return Response(status=208,
                     json=json.dumps(order))
     return res
 
