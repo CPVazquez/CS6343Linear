@@ -119,14 +119,6 @@ async def send_order_to_next_component(url, order):
         return requests.post(url, json=json.dumps(order))
 
     r = await run_sync(request_post)()
-
-    # form log message based on response status code from next component
-    message = "Sufficient stock for order from " + order["pizza-order"]["custName"] + "."
-    
-    if r.status_code == 200:
-        logging.info(message + " Order sent to next component.")
-    else:
-        logging.info(message + " Issue sending order to next component:\n" + r.text)
         
     return Response(status=r.status_code, response=r.text)
 
@@ -225,7 +217,8 @@ async def restocker():
     store_id = order["pizza-order"]["storeId"]
     store_uuid = uuid.UUID(store_id)
 
-    logging.info("Store " + store_id + ":\n    Checking stock for order from " + cust_name)
+    logging.info("Store " + store_id + ":")
+    logging.info("Checking stock for order from " + cust_name + ".")
 
     valid = True
     mess = None
@@ -254,30 +247,43 @@ async def restocker():
         valid = False
         mess = inst.args[0]
 
-    if valid:
-        order.update({"stock": {"status": "sufficient", "restocked": restock_list}})
-
-        next_comp = await get_next_component(store_id)
-
-        if next_comp is not None:
-            # send order to next component in workflow
-            next_comp_url = await get_component_url(next_comp, store_id)
-            resp = await send_order_to_next_component(next_comp_url, order)
-            return resp
-        else:
-            # last component in workflow, return response with order
-            logging.info("Sufficient stock for order from " + cust_name + ".")
-            return Response(status=200, response=json.dumps(order))
-
-    else:
+    if not valid:
+        # failure of some kind, return error message
         error_mess = "Request rejected, restock failed:  " + mess
         logging.info(error_mess)
+        return Response(status=400, response=error_mess)
 
-        order.update({"stock": {"status": "insufficient"}})
-        order.update({"error": error_mess})
+    order.update({"stock": {"status": "sufficient", "restocked": restock_list}})
 
-        return Response(status=400, response=json.dumps(order))
+    log_mess = "Sufficient stock for order from " + cust_name + "."
 
+    next_comp = await get_next_component(store_id)
+
+    if next_comp is not None:
+        # send order to next component in workflow
+        next_comp_url = await get_component_url(next_comp, store_id)
+        resp = await send_order_to_next_component(next_comp_url, order)
+        if resp.status_code == 200:
+            # successful response from next component, return same response
+            logging.info(log_mess + " Order sent to next component.")
+            return resp
+        elif resp.status_code == 208:
+            # an error occurred in the workflow but has been handled already
+            # return the response unchanged
+            return resp
+        else:
+            # an error occurred in the next component, add the response status
+            # code and text to 'error' key in order dict and return it
+            logging.info(log_mess + " Issue sending order to next component:")
+            logging.info(resp.text)
+            order.update({"error": {"status-code": resp.status_code, "text": resp.text}})
+            return Response(status=208, response=json.dumps(order))
+    
+    # last component, print successful log message and return processed order
+    logging.info(log_mess)
+
+    return Response(status=200, response=json.dumps(order))
+        
 
 # if workflow-request is valid and does not exist, create it
 @app.route("/workflow-requests/<storeId>", methods=['PUT'])
@@ -415,9 +421,8 @@ def scan_out_of_stock():
                     # restock it
                     new_quantity = 50
                     session.execute(add_stock_prepared, (new_quantity, store_uuid, item.name))
-                    logging.info("Store " + store_id + " Daily Scan:\n    " + \
-                        item.name + " restocked to " + str(new_quantity)
-                    )
+                    logging.info("Store " + store_id + " Daily Scan:")
+                    logging.info(item.name + " restocked to " + str(new_quantity))
     # if app.config["ENV"] == "production":
     threading.Timer(60, scan_out_of_stock).start()
 

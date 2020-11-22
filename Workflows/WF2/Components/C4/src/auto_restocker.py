@@ -9,7 +9,8 @@ from datetime import datetime, date, timedelta
 from cassandra.query import dict_factory
 from cassandra.policies import RoundRobinPolicy
 from cassandra.cluster import Cluster
-from flask import Flask, request, Response
+from quart import Quart, Response, request
+from quart.utils import run_sync
 import pandas as pd
 from fbprophet import Prophet
 import requests
@@ -24,8 +25,8 @@ __status__ = "Development"
 '''Component for forecasting the demand of an item and automatically restocking'''
 
 today = date.today() 
-#Flask application initialzation
-app = Flask(__name__)
+#Quart application initialzation
+app = Quart(__name__)
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
@@ -34,6 +35,9 @@ logger = logging.getLogger(__name__)
 logging.getLogger('docker').setLevel(logging.INFO)
 logging.getLogger('requests').setLevel(logging.INFO)
 logging.getLogger('cassandra.cluster').setLevel(logging.ERROR)
+logging.getLogger('quart.app').setLevel(logging.WARNING)
+logging.getLogger('quart.serving').setLevel(logging.WARNING)
+
 
 workflows = {}
 
@@ -77,7 +81,7 @@ session.row_factory = pandas_factory
 
 
 
-def _get_ingredients_dict():
+async def _get_ingredients_dict():
 	return {
 		'Dough': 0,         'SpicySauce': 0,        'TraditionalSauce': 0,  'Cheese': 0,
 		'Pepperoni': 0,     'Sausage': 0,           'Beef': 0,              'Onion': 0,
@@ -85,7 +89,7 @@ def _get_ingredients_dict():
 		'Pineapple': 0,     'Mushrooms': 0
 	}
 
-def _aggregate_ingredients(pizza_list, ingredients):
+async def _aggregate_ingredients(pizza_list, ingredients):
 	for pizza in pizza_list:
 		if pizza['crustType'] == 'Thin':
 			ingredients['Dough'] += 1
@@ -123,7 +127,7 @@ def _predict_item_stocks(storeId, item_name):
 	return prediction, date
 
   
-def _predict_stocks(store_id, item_name, history, days):	
+async def _predict_stocks(store_id, item_name, history, days):	
 	
 	rows = session.execute(get_item_stock_query, (store_id, item_name, today))
 	df = rows._current_rows
@@ -141,7 +145,7 @@ def _predict_stocks(store_id, item_name, history, days):
 	return result
 
 
-def _update_stock_tracker(ingredients, storeId, date):
+async def _update_stock_tracker(ingredients, storeId, date):
 
 	ingredient_list = ['Dough', 'TraditionalSauce']
 	
@@ -150,7 +154,7 @@ def _update_stock_tracker(ingredients, storeId, date):
 			storeId, ingredient, date))
 
 
-def _insert_stock_tracker(ingredients, storeId, date):
+async def _insert_stock_tracker(ingredients, storeId, date):
 	
 	ingredient_list = ['Dough', 'TraditionalSauce']
 	
@@ -158,7 +162,7 @@ def _insert_stock_tracker(ingredients, storeId, date):
 		session.execute(insert_tracker_query, (storeId, ingredient,
 			ingredients[ingredient], date))
 
-def _get_next_component(store_id):
+async def _get_next_component(store_id):
 	comp_list = workflows[store_id]["component-list"].copy()
 	comp_list.remove("cass")
 	next_comp_index = comp_list.index("stock-analyzer") + 1
@@ -167,7 +171,7 @@ def _get_next_component(store_id):
 	return comp_list[next_comp_index]
 
 
-def _get_component_url(component, store_id):
+async def _get_component_url(component, store_id):
 	comp_name = component +\
 		(str(workflows[store_id]["workflow-offset"]) if workflows[store_id]["method"] == "edge" else "")
 	url = "http://" + comp_name + ":"
@@ -182,11 +186,13 @@ def _get_component_url(component, store_id):
 	return url
 
 
-def _send_order_to_next_component(url, order):
+async def _send_order_to_next_component(url, order):
 
 	cust_name = order["pizza-order"]["custName"]
-
-	response = requests.post(url, json=json.dumps(order))
+	def request_post():
+		return requests.post(url, json=json.dumps(order))
+	response = await run_sync(request_post)()
+	    
 	if response.status_code == 200:
 		logging.info("Order from {} aggregated.\
 			Order sent to next component.".format(cust_name))		
@@ -221,10 +227,12 @@ t.start()
 
 
 @app.route('/predict-stocks/<storeId>', methods=['GET'])
-def predict_stocks(storeId):
+async def predict_stocks(storeId):
 	'''REST API for requesting future sales of an item'''
 
-	data = json.loads(request.get_json())
+	data = request.get_json()
+	data = json.loads(data)
+
 	logger.info("Received request by {} for predicting sales for" +
 		"{} using {} days for the next {} days\n".format(
 			storeId, data['itemName'], data['history'], data['days']
@@ -232,7 +240,7 @@ def predict_stocks(storeId):
 
 	storeID = uuid.UUID(storeId)
 	
-	result = _predict_stocks(storeID, data['itemName'], data['history'], data['days'])
+	result = await _predict_stocks(storeID, data['itemName'], data['history'], data['days'])
 	logger.info("Predictions for item {}, for storeId {}::{}".format(
 		data['itemName'], storeId, result))
 
@@ -243,11 +251,12 @@ def predict_stocks(storeId):
 
 
 @app.route('/order', methods=['POST'])
-def get_order():
+async def get_order():
 	'''REST API for storing order'''
 
 	
-	order = json.loads(request.get_json())
+	order = await request.get_json()
+	order = json.loads(order)
 	storeId = order['pizza-order']['storeId']
 	storeID = uuid.UUID(storeId)
 	pizza_list = order['pizza-order']['pizzaList']
@@ -258,23 +267,30 @@ def get_order():
 	new_date = False
 		
 	if order_date not in history[storeId]:
-		history[storeId][order_date] = _get_ingredients_dict()		
+		history[storeId][order_date] = await _get_ingredients_dict()		
 		new_date = True
 			
-	history[storeId][order_date] = _aggregate_ingredients(pizza_list, history[storeId][order_date])
+	history[storeId][order_date] = await _aggregate_ingredients(pizza_list, history[storeId][order_date])
 	
 	
 	if new_date:		
-		_insert_stock_tracker(history[storeId][order_date], storeID, order_date)
+		await _insert_stock_tracker(history[storeId][order_date], storeID, order_date)
 	else:
-		_update_stock_tracker(history[storeId][order_date], storeID, order_date)
+		await _update_stock_tracker(history[storeId][order_date], storeID, order_date)
 
 	
-	component = _get_next_component(storeId)
+	component = await _get_next_component(storeId)
 
 	if component is not None:
-		url = _get_component_url(component, storeId)
-		return _send_order_to_next_component(url, order)
+		url = await _get_component_url(component, storeId)
+		res =  await _send_order_to_next_component(url, order)
+		if res.status_code == 200 or res.status_code == 208:
+			return res
+		else:
+			order.update({"error": {"status-code": res.status_code, "text": res.text}})
+			return Response(
+				status=208,
+				response=json.dumps(order))
 
 	return Response(
 		status=200,
@@ -283,10 +299,11 @@ def get_order():
 
 
 @app.route('/workflow-requests/<storeId>', methods=['PUT'])
-def register_workflow(storeId):
+async def register_workflow(storeId):
 	'''REST API for registering workflow to stock-analyzer service'''
     
-	data = json.loads(request.get_json())
+	data = await request.get_json()
+	data = json.loads(data)
 
 	logger.info("Received workflow request for store::{},\nspecs:{}\n".format(
 		storeId, data))
@@ -315,7 +332,7 @@ def register_workflow(storeId):
 
     
 @app.route('/workflow-requests/<storeId>', methods=['DELETE'])
-def teardown_workflow(storeId):
+async def teardown_workflow(storeId):
 	'''REST API for tearing down workflow for stock-analyzer service'''
 	
 	logger.info('Received teardown request for store::{}\n'.format(storeId))
@@ -339,7 +356,7 @@ def teardown_workflow(storeId):
 
     
 @app.route("/workflow-requests/<storeId>", methods=["GET"])
-def retrieve_workflow(storeId):
+async def retrieve_workflow(storeId):
 	
 	if not (storeId in workflows):
 		logger.info('Workflow not registered to stock-analyzer\n')
@@ -356,7 +373,7 @@ def retrieve_workflow(storeId):
 
 
 @app.route("/workflow-requests", methods=["GET"])
-def retrieve_workflows():
+async def retrieve_workflows():
 	logger.info('Received request for workflows\n')
 	return Response(
 		status=200,
@@ -365,13 +382,14 @@ def retrieve_workflows():
 
 
 @app.route("/workflow-update/<storeId>", methods=['PUT'])
-def update_workflow(storeId):
+async def update_workflow(storeId):
     '''REST API for updating registered workflow'''
 
     logging.info('Update request for workflow {} to stock analyzer\n'.format(storeId))
 
-    data = json.loads(request.get_json())
-    
+    data = await request.get_json()
+    data = json.loads(data)
+
     if not ("cass" in data["component-list"]):
         logging.info("Workflow-request rejected, cass is a required workflow component\n")
         return Response(status=422, response="workflow-request rejected, cass is a required workflow component\n")
@@ -384,7 +402,7 @@ def update_workflow(storeId):
 
 
 @app.route('/health', methods=['GET'])
-def health_check():
+async def health_check():
 	'''REST API for checking health of task.'''
 
 	logger.info("Checking health of stock-analyzer.\n")

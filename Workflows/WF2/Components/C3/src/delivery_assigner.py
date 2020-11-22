@@ -9,7 +9,8 @@ import time
 from cassandra.query import dict_factory
 from cassandra.cluster import Cluster
 from cassandra.policies import RoundRobinPolicy
-from flask import Flask, request, Response
+from quart import Quart, Response, request
+from quart.utils import run_sync
 
 from src.config import API_KEY
 
@@ -21,8 +22,8 @@ __status__ = "Development"
 
 '''Component for assigning the best delivery entity to an order'''
 
-#Flask application initialzation
-app = Flask(__name__)
+#Quart application initialzation
+app = Quart(__name__)
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s ' + 
@@ -32,7 +33,8 @@ logger = logging.getLogger(__name__)
 logging.getLogger('docker').setLevel(logging.INFO)
 logging.getLogger('requests').setLevel(logging.INFO)
 logging.getLogger('cassandra.cluster').setLevel(logging.ERROR)
-
+logging.getLogger('quart.app').setLevel(logging.WARNING)
+logging.getLogger('quart.serving').setLevel(logging.WARNING)
 
 workflows = {}
 
@@ -84,7 +86,7 @@ while True:
 
 
 
-def _convert_time_str(time):
+async def _convert_time_str(time):
     time = time.split()        
     if len(time) > 2:
         mins = int(time[2])
@@ -94,18 +96,22 @@ def _convert_time_str(time):
         hours = 0
     return hours * 60 + mins    
 
-def _get_time(origin, destination):
+async def _get_time(origin, destination):
     url = URL.format(origin[0], origin[1], destination[0],
-        destination[1], API_KEY)        
-    response = requests.get(url)
+        destination[1], API_KEY)  
+    def request_get():
+        return requests.get(url)
+    
+    response = await run_sync(request_get)()      
+    
     content = json.loads(response.content.decode())            
     if len(content['routes']) == 0:
         return 0 
     time = (content['routes'][0]['legs'][0]['duration']['text'])        
-    return _convert_time_str(time)
+    return await _convert_time_str(time)
        
 
-def _get_delivery_time(delivery_entities, customer, store):    
+async def _get_delivery_time(delivery_entities, customer, store):    
     store = (store['latitude'], store['longitude'])    
     delivery_entities = [(entity['name'], (entity['latitude'],
         entity['longitude'])) for entity in delivery_entities]        
@@ -114,36 +120,36 @@ def _get_delivery_time(delivery_entities, customer, store):
     for delivery_entity in delivery_entities:        
         coordinates = delivery_entity[1]
         name = delivery_entity[0]	
-        time = _get_time(coordinates, store)                
+        time = await _get_time(coordinates, store)                
 
         if time < best_time:
             best_time = time
             best_entity = name 
    	
-    store_to_cust = _get_time(store, customer)
+    store_to_cust = await _get_time(store, customer)
      
     time = store_to_cust + best_time
 
     return time, best_entity
     
 
-def _get_entities(store_id):
+async def _get_entities(store_id):
     entities = []
     rows = session.execute(entity_query, (store_id,))
     for row in rows:
         entities.append(row)
-    logger.info("in entities:{}\n".format(entities))
+    
     return entities
 
 
-def _get_store_info(store_id):    
+async def _get_store_info(store_id):    
     row = session.execute(store_info_query, (store_id,)).one()
     return row
 
-def _update_order(order_id, entity, time):
+async def _update_order(order_id, entity, time):
     session.execute(update_order_query, (entity, time, order_id))
 
-def _calc_pizza_cost(ingredient_set):
+async def _calc_pizza_cost(ingredient_set):
     cost = 0.0
     for ingredient in ingredient_set:
         result = session.execute(select_items_query, (ingredient[0],))
@@ -151,7 +157,7 @@ def _calc_pizza_cost(ingredient_set):
             cost += row['price'] * ingredient[1] 
     return cost
 
-def _insert_pizzas(pizza_list):
+async def _insert_pizzas(pizza_list):
     pizza_uuid_set = set()
 
     for pizza in pizza_list:
@@ -179,12 +185,12 @@ def _insert_pizzas(pizza_list):
         for topping in pizza["toppingList"]:
             ingredient_set.add((topping, 1))
          
-        cost = _calc_pizza_cost(ingredient_set)
+        cost = await _calc_pizza_cost(ingredient_set)
         session.execute(insert_pizzas_query, (pizza_uuid, ingredient_set, cost))
     
     return pizza_uuid_set
 
-def _create_order(order_dict):
+async def _create_order(order_dict):
     order_uuid = uuid.UUID(order_dict["orderId"])
     store_uuid = uuid.UUID(order_dict["storeId"])
     pay_uuid = uuid.UUID(order_dict["paymentToken"])
@@ -198,7 +204,7 @@ def _create_order(order_dict):
     # Insert order payment information into 'payments' table
     session.execute(insert_payments_query, (pay_uuid, order_dict["paymentTokenType"]))  
     # Insert the ordered pizzas into 'pizzas' table
-    pizza_uuid_set = _insert_pizzas(order_dict["pizzaList"])
+    pizza_uuid_set = await _insert_pizzas(order_dict["pizzaList"])
     # Insert order into 'orderTable' table
     
     session.execute(
@@ -212,7 +218,7 @@ def _create_order(order_dict):
     session.execute(insert_order_by_customer_query, (cust_name, placed_at, order_uuid))
 
 
-def _get_next_component(store_id):
+async def _get_next_component(store_id):
     comp_list = workflows[store_id]["component-list"].copy()
     comp_list.remove("cass")
     next_comp_index = comp_list.index("delivery-assigner") + 1
@@ -221,7 +227,7 @@ def _get_next_component(store_id):
     return comp_list[next_comp_index]
 
 
-def _get_component_url(component, store_id):
+async def _get_component_url(component, store_id):
     comp_name = component +\
         (str(workflows[store_id]["workflow-offset"]) if workflows[store_id]["method"] == "edge" else "")
     url = "http://" + comp_name + ":"
@@ -236,22 +242,26 @@ def _get_component_url(component, store_id):
     return url
 
 
-def _send_order_to_next_component(url, order):
+async def _send_order_to_next_component(url, order):
     cust_name = order["pizza-order"]["custName"]
     entity = order["assignment"]["deliveredBy"]
     eta = order["assignment"]["estimatedTime"]
-    response = requests.post(url, json=json.dumps(order))
+    def request_post():
+        return requests.post(url, json=json.dumps(order))
+    
+    response = await run_sync(request_post)()
+    
     if response.status_code == 200:
         logging.info("{} assigned to order from {} with time of delivery {} seconds.\
-            Order sent to next component.".format(entity, cust_name, time))
+            Order sent to next component.".format(entity, cust_name, eta))
     else:
         logging.info("{} assigned to order from {} with time of delivery {} seconds.\
-            Issue sending order to next component:".format(entity, cust_name, time))
+            Issue sending order to next component:".format(entity, cust_name, eta))
         logging.info(response.text)
-    return response
+    return Response(status=response.status_code, response=response.text)
 
 
-def assign_entity(store_id, order):
+async def assign_entity(store_id, order):
     '''Assigns the best delivery entity to and order and updates orderTable in the DB.
         
            Parameters:
@@ -262,58 +272,58 @@ def assign_entity(store_id, order):
     '''
       
     try:
-        store_info = _get_store_info(store_id)
+        store_info = await _get_store_info(store_id)
     except:
-        return (Response(
+        return Response(
             status=409,
             response="Store ID not found in Database!\n" +
                      "Please request with valid store ID."   
-        ),)
+        )
     try:	
-        entities = _get_entities(store_id)    
+        entities = await _get_entities(store_id)    
         if len(entities) == 0:
-            return (Response(
+            return Response(
                 status=204,
                 response="No Avaiblabe delivery entities for storeID::" + 
                          str(storeID) + "\n" +
                          "Please update delivery entities or " + 
                          "wait for entities to finish active deliveries!"            
-            ),)
+            )
     except:
-        return (Response(
+        return Response(
             status=502,
             response="Entities table in database corrupted!\n" +
                      "Please recreate delivery entities table."
-        ),)
+        )
     
     customer_info = (order['pizza-order']['custLocation']['lat'], order['pizza-order']['custLocation']['lon'])
    
     try:
-        time, entity = _get_delivery_time(entities, customer_info, store_info)
+        time, entity = await _get_delivery_time(entities, customer_info, store_info)
     except:
     
-        return (Response(
+        return Response(
             status=502,
             response="Error in Google API!\n" +
                      "Please contact admin."
-            ),)
+            )
     
     order['assignment'] = {}
     order['assignment']['deliveredBy'] = entity
     order['assignment']['estimatedTime'] = time
-    order['pizza-order']['orderId'] = str(order['pizza-order']['orderId'])
-    
+        
     return Response(
         status=200,        
-        json=json.dumps(order)
+        response=json.dumps(order)
     )
 
 
 @app.route('/workflow-requests/<storeId>', methods=['PUT'])
-def register_workflow(storeId):
+async def register_workflow(storeId):
     '''REST API for registering workflow to delivery assigner service'''
     
-    data = json.loads(request.get_json())
+    data = await request.get_json()
+    data = json.loads(data)
 
     logger.info("Received workflow request for store::{},\nspecs:{}\n".format(
         storeId, data))
@@ -337,7 +347,7 @@ def register_workflow(storeId):
 
     
 @app.route('/workflow-requests/<storeId>', methods=['DELETE'])
-def teardown_workflow(storeId):
+async def teardown_workflow(storeId):
     '''REST API for tearing down workflow for delivery assigner service'''
 
     logger.info('Received teardown request for store::{}\n'.format(storeId))
@@ -360,7 +370,7 @@ def teardown_workflow(storeId):
 
     
 @app.route("/workflow-requests/<storeId>", methods=["GET"])
-def retrieve_workflow(storeId):
+async def retrieve_workflow(storeId):
     '''REST API for requesting details of registered store'''
 
     if not (storeId in workflows):
@@ -373,24 +383,26 @@ def retrieve_workflow(storeId):
         logger.info('{} Workflow found on delivery-assigner\n'.format(storeId))
         return Response(
             status=200,
-            response=json.dumps(workflows[storeId]) + '\n'
+            response=json.dumps(workflows[storeId])
         )
 
 
 @app.route("/workflow-requests", methods=["GET"])
-def retrieve_workflows():
+async def retrieve_workflows():
     logger.info('Received request for workflows\n')
     return Response(
         status=200,
-        response='worflows::' + json.dumps(workflows) + '\n'
+        response='worflows::' + json.dumps(workflows)
     )
 
 
-@app.route('/order', methods=['GET'])
-def assign():
+@app.route('/order', methods=['POST'])
+async def assign():
     '''REST API for assigning best delivery entity.'''
  
-    order = json.loads(request.get_json())
+    order = await request.get_json()
+    order = json.loads(order)
+
     storeId = order['pizza-order']['storeId']
     storeID = uuid.UUID(storeId)
 
@@ -409,44 +421,46 @@ def assign():
 
     if 'orderId' not in order:
        order['pizza-order']['orderId'] = str(uuid.uuid4())
-       _create_order(order)
+       await _create_order(order['pizza-order'])
     else:
        order['pizza-order']['orderId'] = uuid.UUID(order['pizza-order']['orderId'])
 
         
-    response = assign_entity(storeID, order)            
+    res = await assign_entity(storeID, order)            
    
-    if response.status_code == 200: 
+    if res.status_code == 200: 
         try:
-            _update_order(order['pizza-order']['orderId'], order['assignment']['deliveredBy'], 
+            await _update_order(order['pizza-order']['orderId'], order['assignment']['deliveredBy'], 
                 order['assignment']['estimatedTime'])
-        except:
-    
-            return Response(
-                status=509,
-                response="Unable to update order with delivery entity and estimated time!" +
-                         "Order does not exist."
-            )
+        except:    
+            #logging.info("order does not exist in the database, unable to update database order")
+            pass
 
         order['pizza-order']['orderId'] = str(order['pizza-order']['orderId'])
-        component = _get_next_component(storeId)
-        if component:
-            url = _get_component_url(component, storeId)
-            res = _send_order_to_next_component(url, order)
-            if res.status_code == 200:
-                return res
-    
-    return response
+        component = await _get_next_component(storeId)
+        if component is not None:
+            url = await _get_component_url(component, storeId)
+            response =  await _send_order_to_next_component(url, order)            
+            if response.status_code == 200 or response.status_code == 208:
+                return response
+            else:
+                order = json.loads(res.text)
+                order.update({"error": {"status-code": response.status_code, "text": response.text}})
+                
+                return Response(status=208,
+                    json=json.dumps(order))
+    return res
 
 
 @app.route("/workflow-update/<storeId>", methods=['PUT'])
-def update_workflow(storeId):
+async def update_workflow(storeId):
     '''REST API for updating registered workflow'''
 
     logging.info('Update request for workflow {} to delivery assigner\n'.format(storeId))
 
-    data = json.loads(request.get_json())
-    
+    data = await request.get_json()
+    data =  json.loads(data)
+
     if not ("cass" in data["component-list"]):
         logging.info("Workflow-request rejected, cass is a required workflow component\n")
         return Response(status=422, response="workflow-request rejected, cass is a required workflow component\n")
@@ -459,7 +473,7 @@ def update_workflow(storeId):
 
 
 @app.route('/health', methods=['GET'])
-def health_check():
+async def health_check():
     '''REST API for checking health of task.'''
     logger.info("Checking health of delivery assigner.\n")
     return Response(status=200,response="Delivery Assigner is healthy!!\n")

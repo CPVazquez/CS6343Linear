@@ -80,14 +80,6 @@ async def send_order_to_next_component(url, order):
         return requests.post(url, json=json.dumps(order))
     
     r = await run_sync(request_post)()
-    
-    # form log message based on response status code from next component
-    message = "Order from " + order["pizza-order"]["custName"] + " is valid."
-
-    if r.status_code == 200:
-        logging.info(message + " Order sent to next component.")
-    else:
-        logging.info(message + " Issue sending order to next component:\n" + r.text)
         
     return Response(status=r.status_code, response=r.text)
 
@@ -137,29 +129,47 @@ async def order_funct():
     store_id = order["pizza-order"]["storeId"]
     cust_name = order["pizza-order"]["custName"]
 
-    logging.info("Store " + store_id + ":\n    Verifying order from " + cust_name + ".")
+    logging.info("Store " + store_id + ":")
+    logging.info("Verifying order from " + cust_name + ".")
 
     valid, mess = await verify_order(order["pizza-order"])
 
-    order.update({"valid": valid})
-
-    if valid:
-        next_comp = await get_next_component(store_id)
-        if next_comp is not None:
-            # send order to next component in workflow
-            next_comp_url = await get_component_url(next_comp, store_id)
-            resp = await send_order_to_next_component(next_comp_url, order)
-            return resp
-        else:
-            # last component in workflow, return response with order
-            logging.info("Order from " + cust_name + " is valid.")
-            return Response(status=200, response=json.dumps(order))
-    else:
-        # failure of some kind - add error info to order and return it
+    if not valid:
+        # failure of some kind, return error message
         error_mess = "Request rejected, pizza-order is malformed:  " + mess
         logging.info(error_mess)
-        order.update({"error": error_mess})
-        return Response(status=400, response=json.dumps(order))
+        return Response(status=400, response=error_mess)
+
+    order.update({"valid": valid})
+
+    log_mess = "Order from " + cust_name + " is valid."
+
+    next_comp = await get_next_component(store_id)
+
+    if next_comp is not None:
+        # send order to next component in workflow
+        next_comp_url = await get_component_url(next_comp, store_id)
+        resp = await send_order_to_next_component(next_comp_url, order)
+        if resp.status_code == 200:
+            # successful response from next component, return same response
+            logging.info(log_mess + " Order sent to next component.")
+            return resp
+        elif resp.status_code == 208:
+            # an error occurred in the workflow but has been handled already
+            # return the response unchanged
+            return resp
+        else:
+            # an error occurred in the next component, add the response status
+            # code and text to 'error' key in order dict and return it
+            logging.info(log_mess + " Issue sending order to next component:")
+            logging.info(resp.text)
+            order.update({"error": {"status-code": resp.status_code, "text": resp.text}})
+            return Response(status=208, response=json.dumps(order))
+
+    # last component, print successful log message and return processed order
+    logging.info(log_mess)
+
+    return Response(status=200, response=json.dumps(order))
 
 
 # if workflow-request is valid and does not exist, create it
