@@ -1,7 +1,10 @@
-"""Order Processor Component
+"""The Order Processor Component for this Cloud Computing project.
 
-Upon receiving a pizza-order, this component assigns the pizza-order request an order ID
-and inserts the order's information into the database.
+Upon receiving a pizza-order request, Order Processor assigns the pizza-order request 
+an orderID, calculates the cost of each pizza contained in the pizza-order request, 
+calculates the total cost of the pizza-order, and inserts the pizza-order information 
+into the database. The request is then sent to the next component in the workflow, if 
+one exists.
 """
 
 import json

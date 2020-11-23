@@ -1,9 +1,16 @@
 """The Restocker Component for this Cloud Computing project.
 
-This component checks the store's stock to ensure that a pizza-order request can be filled. 
-If stock is insufficient, then this component performs a restock for the insufficient items. 
-As a secondary function, this component scans the database at the end of every day to check 
-for items that might need to be restocked.
+Upon receiving a pizza-order request, Restocker aggregates the pizza ingredients from 
+the pizzas contained in the pizza-order and checks the store’s stock to determine if 
+there is sufficient stock to fill the order. If the current stock is insufficient, 
+then a restock is performed for the deficient items so that the order can be filled. 
+Once there is sufficient stock, this component decrements the store’s stock by the 
+required amounts to fill the order, and the request is sent to the next component 
+in the workflow, if one exists. The request is then sent to the next component in 
+the workflow, if one exists. As a secondary function, this component scans the 
+database at the end of every workflow day to check for items that might need to be 
+restocked. If stock quantity for any item is below 10, then that item is restocked 
+to a quantity of 50.
 """
 
 import json

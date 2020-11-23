@@ -79,7 +79,7 @@ class PizzaOrder:
 
 
 # send pizza-order to first component in store's workflow
-def request_order(q, url, print_results):
+def send_order(q, url, print_results):
     while True:
         order = q.get()
         order_dict = order.generate_order()
@@ -210,7 +210,7 @@ if __name__ == "__main__":
     total_orders = num_days * orders_per_day
     q = Queue(total_orders)
 
-    t = threading.Thread(target=request_order, args=(q, first_comp_url, print_results))
+    t = threading.Thread(target=send_order, args=(q, first_comp_url, print_results))
     t.daemon = True
     t.start()
 

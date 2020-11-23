@@ -8,9 +8,11 @@ Christopher Michael Scott
 
 ## Description
 
-Upon receiving a order request, this component validates the received order against the `pizza-order` jsonschema.
-If the `pizza-order` is valid, then the order will be passed to the next component in the workflow.
-If the `pizza-order` is invalid, then the request is rejected by this component.
+Upon receiving a `pizza-order` request, this component validates the received order request 
+against the `pizza-order` jsonschema (pizza-order.schema.json). If the request is a valid 
+`pizza-order`, then the request will be sent to the next component in the workflow, 
+if one exists. If the request is determined to be invalid, then the request is rejected 
+by this component and removed from the workflow.
 
 ## Setup
 
