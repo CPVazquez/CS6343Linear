@@ -85,6 +85,7 @@ Requires a `pizza-order` JSON object.
 | status code | status | meaning|
 |-------------|--------|--------|
 | 200 | OK | Check of store's stock and restock of insufficient items were successful |
+| 208 | Already Reported | Indicates an error occurred in a subsequent component, just return the response |
 | 400 | Bad Request | Indicates the stock check and/or restock failed and the request was rejected |
 | 422 | Unprocessable Entity | A workflow does not exist for the specified store, thus the stock cannot be checked |
 
