@@ -280,24 +280,21 @@ async def get_order():
 
 	
 	component = await _get_next_component(storeId)
-
+	end = time.time() - start
+	order['stock-analyzer_execution_time'] = end
 	if component is not None:
 		url = await _get_component_url(component, storeId)
 		res =  await _send_order_to_next_component(url, order)
-		if res.status_code == 200 or res.status_code == 208:
-			end = time.time() - start
-			order = json.loads(res.text)
-			order['stock-analyzer_execution_time'] = end
-			return Response(status=res.status_code,
-				response=json.dumps(order))
+		if res.status_code == 200 or res.status_code == 208:			
+			return res 
+		
 		else:
 			order.update({"error": {"status-code": res.status_code, "text": res.text}})
 			return Response(
 				status=208,
 				response=json.dumps(order))
-        end = time.time() - start
-        order['stock-analyzer_execution_time'] = end
-	return Response(
+        
+        return Response(
 		status=200,
 		response=json.dumps(order)
 	)
