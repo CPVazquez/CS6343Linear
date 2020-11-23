@@ -437,16 +437,15 @@ async def assign():
             pass
 
         order['pizza-order']['orderId'] = str(order['pizza-order']['orderId'])
-        component = await _get_next_component(storeId)
+        component = await _get_next_component(storeId) 
+        end = time.time() - start    
+        order['delivery-assigner_execution_time'] = end
         if component is not None:            
             end = time.time() - start
             url = await _get_component_url(component, storeId)
             response =  await _send_order_to_next_component(url, order)            
-            if response.status_code == 200 or response.status_code == 208:                
-                order = json.loads(response.text)
-                order['delivery-assigner_execution_time'] = end
-                return Response(status=response.status_code,
-                    response=json.dumps(order))
+            if response.status_code == 200 or response.status_code == 208:               
+                return response 
             else:
                 order = json.loads(res.text)
                 order.update({"error": {"status-code": response.status_code, "text": response.text}})
@@ -454,9 +453,6 @@ async def assign():
                 return Response(status=208,
                     response=json.dumps(order))
 
-    end = time.time() - start
-    order = json.loads(res.text)
-    order['delivery-assigner_execution_time'] = end
     return Response(status=res.status_code,
         response=json.dumps(order))
 
