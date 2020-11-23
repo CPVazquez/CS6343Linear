@@ -438,11 +438,11 @@ async def assign():
 
         order['pizza-order']['orderId'] = str(order['pizza-order']['orderId'])
         component = await _get_next_component(storeId)
-        if component is not None:
+        if component is not None:            
+            end = time.time() - start
             url = await _get_component_url(component, storeId)
             response =  await _send_order_to_next_component(url, order)            
             if response.status_code == 200 or response.status_code == 208:                
-                end = time.time() - start
                 order = json.loads(response.text)
                 order['delivery-assigner_execution_time'] = end
                 return Response(status=response.status_code,
