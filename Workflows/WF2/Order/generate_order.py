@@ -1,3 +1,5 @@
+import copy
+import csv
 import json
 import random
 import threading
@@ -26,6 +28,8 @@ port_dict = {
     "restocker": 5000,
     "order-processor": 6000
 }
+
+experiment_list = list()
 
 
 class PizzaOrder:
@@ -86,13 +90,29 @@ def send_order(q, url, print_results):
 
         print("\nPizza Order Request:\n" + json.dumps(order_dict, sort_keys=True, indent=4))
 
+        start = time.time()
+
         r = requests.post(url, json=json.dumps(order_dict))
 
+        end = time.time() - start
+
         if r.status_code == 200:
+            res_order_dict = json.loads(r.text)
+
+            time_dict = dict()
+            time_dict["order-verifier_execution_time"] = str(res_order_dict["order-verifier_execution_time"])
+            #time_dict["delivery-assigner_execution_time"] = str(res_order_dict["delivery-assigner_execution_time"])
+            #time_dict["stock-analyzer_execution_time"] = str(res_order_dict["stock-analyzer_execution_time"])
+            time_dict["restocker_execution_time"] = str(res_order_dict["restocker_execution_time"])
+            time_dict["order-processor_execution_time"] = str(res_order_dict["order-processor_execution_time"])
+            time_dict["total_execution_time"] = str(end)
+
+            experiment_list.append(time_dict)
+
             # order successfully processed
             if print_results:
                 print("SUCCESS! Response:")
-                print(json.dumps(json.loads(r.text), sort_keys=True, indent=4))
+                print(json.dumps(res_order_dict, sort_keys=True, indent=4))
             else:
                 print("SUCCESS!")
         elif r.status_code == 208:
@@ -225,3 +245,21 @@ if __name__ == "__main__":
         time.sleep(1)
         
     q.join()    # Wait for all PizzaOrder objects to be processed from the queue
+
+    fields = [
+        "order-verifier_execution_time",
+        #"delivery-assigner_execution_time",
+        #"stock-analyzer_execution_time",
+        "restocker_execution_time",
+        "order-processor_execution_time",
+        "total_execution_time"
+    ]
+
+    filename = store_id + ".csv"
+
+    with open(filename, 'w') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=fields)
+
+        writer.writeheader()
+
+        writer.writerows(experiment_list)

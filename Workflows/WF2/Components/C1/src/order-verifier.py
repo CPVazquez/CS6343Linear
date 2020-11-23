@@ -12,6 +12,7 @@ import json
 import logging
 import os
 import uuid
+import time
 
 import jsonschema
 import requests
@@ -120,6 +121,7 @@ async def verify_workflow(data):
 @app.route('/order', methods=['POST'])
 async def order_funct():
     logging.info("{:*^74}".format(" POST /order "))
+    start = time.time()
     request_data = await request.get_json()
     order = json.loads(request_data)
 
@@ -154,8 +156,11 @@ async def order_funct():
         resp = await send_order_to_next_component(next_comp_url, order)
         if resp.status_code == 200:
             # successful response from next component, return same response
+            end = time.time() - start
+            resp_dict = json.loads(resp.text)
+            resp_dict["order-verifier_execution_time"] = end
             logging.info(log_mess + " Order sent to next component.")
-            return resp
+            return Response(status=resp.status_code, response=json.dumps(resp_dict))
         elif resp.status_code == 208:
             # an error occurred in the workflow but has been handled already
             # return the response unchanged
@@ -170,6 +175,9 @@ async def order_funct():
 
     # last component, print successful log message and return processed order
     logging.info(log_mess)
+
+    end = time.time() - start
+    order["order-verifier_execution_time"] = end
 
     return Response(status=200, response=json.dumps(order))
 
