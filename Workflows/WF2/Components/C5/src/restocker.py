@@ -267,13 +267,14 @@ async def restocker():
 
     next_comp = await get_next_component(store_id)
 
+    end = time.time() - start
+
     if next_comp is not None:
         # send order to next component in workflow
         next_comp_url = await get_component_url(next_comp, store_id)
         resp = await send_order_to_next_component(next_comp_url, order)
         if resp.status_code == 200:
             # successful response from next component, return same response
-            end = time.time() - start
             resp_dict = json.loads(resp.text)
             resp_dict["restocker_execution_time"] = end
             logging.info(log_mess + " Order sent to next component.")
@@ -293,7 +294,6 @@ async def restocker():
     # last component, print successful log message and return processed order
     logging.info(log_mess)
 
-    end = time.time() - start
     order["restocker_execution_time"] = end
 
     return Response(status=200, response=json.dumps(order))

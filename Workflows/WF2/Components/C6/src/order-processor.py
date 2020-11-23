@@ -314,17 +314,18 @@ async def process_order():
 
     next_comp = await get_next_component(store_id)
 
+    end = time.time() - start
+
     if next_comp is not None:
         # send order to next component in workflow
         next_comp_url = await get_component_url(next_comp, store_id)
         resp = await send_order_to_next_component(next_comp_url, order)
         if resp.status_code == 200:
             # successful response from next component, return same response
-            end = time.time() - start
             resp_dict = json.loads(resp.text)
             resp_dict["order-processor_execution_time"] = end
             logging.info(log_mess + " Order sent to next component.")
-            return resp
+            return Response(status=resp.status_code, response=json.dumps(resp_dict))
         elif resp.status_code == 208:
             # an error occurred in the workflow but has been handled already
             # return the response unchanged
@@ -340,7 +341,6 @@ async def process_order():
     # last component, print successful log message and return processed order
     logging.info(log_mess)
 
-    end = time.time() - start
     order["order-processor_execution_time"] = end
 
     return Response(status=200, response=json.dumps(order))
