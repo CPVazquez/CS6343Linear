@@ -101,8 +101,8 @@ def send_order(q, url, print_results):
 
             time_dict = dict()
             time_dict["order-verifier_execution_time"] = str(res_order_dict["order-verifier_execution_time"])
-            #time_dict["delivery-assigner_execution_time"] = str(res_order_dict["delivery-assigner_execution_time"])
-            #time_dict["stock-analyzer_execution_time"] = str(res_order_dict["stock-analyzer_execution_time"])
+            time_dict["delivery-assigner_execution_time"] = str(res_order_dict["delivery-assigner_execution_time"])
+            time_dict["stock-analyzer_execution_time"] = str(res_order_dict["stock-analyzer_execution_time"])
             time_dict["restocker_execution_time"] = str(res_order_dict["restocker_execution_time"])
             time_dict["order-processor_execution_time"] = str(res_order_dict["order-processor_execution_time"])
             time_dict["total_execution_time"] = str(end)
@@ -248,8 +248,8 @@ if __name__ == "__main__":
 
     fields = [
         "order-verifier_execution_time",
-        #"delivery-assigner_execution_time",
-        #"stock-analyzer_execution_time",
+        "delivery-assigner_execution_time",
+        "stock-analyzer_execution_time",
         "restocker_execution_time",
         "order-processor_execution_time",
         "total_execution_time"
