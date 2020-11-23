@@ -87,6 +87,7 @@ Requires a [`pizza-order`](https://github.com/CPVazquez/CS6343Linear/blob/main/W
 | status code | status | meaning |
 |-------------|--------|---------|
 | 200 | Created | `pizza-order` successfully created |
+| 208 | Already Reported | Indicates an error occurred in a subsequent component, just return the response |
 | 400 | Bad Request | Indicates the `pizza-order` was ill-formatted and the request was rejected |
 | 422 | Unprocessable Entity | A workflow does not exist for the specified store, thus the `pizza-order` cannot be created |
 
