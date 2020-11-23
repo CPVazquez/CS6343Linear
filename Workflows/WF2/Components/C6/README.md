@@ -86,6 +86,7 @@ Requires a `pizza-order` JSON object.
 | status code | status | meaning |
 |-------------|--------|---------|
 | 200 | OK | pizza-order successfully processed |
+| 208 | Already Reported | Indicates an error occurred in a subsequent component, just return the response |
 | 400 | Bad Request | Indicates that the pizza-order processing failed and the request was rejected |
 | 422 | Unprocessable Entity | A workflow does not exist for the specified store, thus the pizza-order cannot be processed |
 
