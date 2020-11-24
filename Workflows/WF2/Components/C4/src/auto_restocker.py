@@ -277,7 +277,6 @@ async def get_order():
 		await _insert_stock_tracker(history[storeId][order_date], storeID, order_date)
 	else:
 		await _update_stock_tracker(history[storeId][order_date], storeID, order_date)
-
 	
 	component = await _get_next_component(storeId)
 	end = time.time() - start
@@ -293,8 +292,7 @@ async def get_order():
 			return Response(
 				status=208,
 				response=json.dumps(order))
-        
-        return Response(
+	return Response(
 		status=200,
 		response=json.dumps(order)
 	)
