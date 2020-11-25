@@ -1,7 +1,8 @@
 #!/bin/bash
 
-declare -a imageArray=("trishaire/order-verifier:async" "trishaire/order-processor:async" "trishaire/delivery-assigner:async" "trishaire/stock-analyzer:async" "trishaire/cass:async")
+#declare -a imageArray=("trishaire/order-verifier:async" "trishaire/order-processor:async" "trishaire/delivery-assigner:async" "trishaire/stock-analyzer:async" "trishaire/cass:async")
 
+declare -a imageArray=("trishaire/stock-analyzer:async")
 function pull() {
 	Workers=$(docker node ls  -f "role=worker" --format '{{.Hostname}}')
 	for val in ${imageArray[@]}; do

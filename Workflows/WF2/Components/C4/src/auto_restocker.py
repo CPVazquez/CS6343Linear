@@ -253,8 +253,8 @@ async def predict_stocks(storeId):
 @app.route('/order', methods=['POST'])
 async def get_order():
 	'''REST API for storing order'''
-
 	
+	start = time.time()	
 	order = await request.get_json()
 	order = json.loads(order)
 	storeId = order['pizza-order']['storeId']
@@ -277,21 +277,21 @@ async def get_order():
 		await _insert_stock_tracker(history[storeId][order_date], storeID, order_date)
 	else:
 		await _update_stock_tracker(history[storeId][order_date], storeID, order_date)
-
 	
 	component = await _get_next_component(storeId)
-
+	end = time.time() - start
+	order['stock-analyzer_execution_time'] = end
 	if component is not None:
 		url = await _get_component_url(component, storeId)
 		res =  await _send_order_to_next_component(url, order)
-		if res.status_code == 200 or res.status_code == 208:
-			return res
+		if res.status_code == 200 or res.status_code == 208:			
+			return res 
+		
 		else:
 			order.update({"error": {"status-code": res.status_code, "text": res.text}})
 			return Response(
 				status=208,
 				response=json.dumps(order))
-
 	return Response(
 		status=200,
 		response=json.dumps(order)
