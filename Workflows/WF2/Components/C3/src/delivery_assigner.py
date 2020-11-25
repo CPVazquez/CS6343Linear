@@ -321,7 +321,7 @@ async def assign_entity(store_id, order):
 @app.route('/workflow-requests/<storeId>', methods=['PUT'])
 async def register_workflow(storeId):
     '''REST API for registering workflow to delivery assigner service'''
-    
+       
     data = await request.get_json()
     data = json.loads(data)
 
@@ -399,7 +399,7 @@ async def retrieve_workflows():
 @app.route('/order', methods=['POST'])
 async def assign():
     '''REST API for assigning best delivery entity.'''
- 
+    start = time.time()
     order = await request.get_json()
     order = json.loads(order)
 
@@ -437,19 +437,24 @@ async def assign():
             pass
 
         order['pizza-order']['orderId'] = str(order['pizza-order']['orderId'])
-        component = await _get_next_component(storeId)
-        if component is not None:
+        component = await _get_next_component(storeId) 
+        end = time.time() - start    
+        order['delivery-assigner_execution_time'] = end
+        if component is not None:            
+            end = time.time() - start
             url = await _get_component_url(component, storeId)
             response =  await _send_order_to_next_component(url, order)            
-            if response.status_code == 200 or response.status_code == 208:
-                return response
+            if response.status_code == 200 or response.status_code == 208:               
+                return response 
             else:
                 order = json.loads(res.text)
                 order.update({"error": {"status-code": response.status_code, "text": response.text}})
                 
                 return Response(status=208,
-                    json=json.dumps(order))
-    return res
+                    response=json.dumps(order))
+
+    return Response(status=res.status_code,
+        response=json.dumps(order))
 
 
 @app.route("/workflow-update/<storeId>", methods=['PUT'])
