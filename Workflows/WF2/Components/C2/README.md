@@ -186,6 +186,7 @@ Requires a [`workflow-request`](https://github.com/CPVazquez/CS6343Linear/blob/m
 |-------------|--------|---------|
 | 200 | OK | the server is up and running |
 | 400 | Bad Request | the server is not ready. Prepared CQL statements not loaded |
+
 Returns string `healthy` if the service is healthy, and string `unhealthy` if the service is unhealthy.
 
 [Main README](https://github.com/CPVazquez/CS6343Linear)

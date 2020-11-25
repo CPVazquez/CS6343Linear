@@ -22,7 +22,6 @@ Packages installed on pipenv virtual environment:
 
 ## Commands
 * To build the imag, type the following command in the current directory:
-
   ```
   ./build.sh
   ```
@@ -44,11 +43,11 @@ Packages installed on pipenv virtual environment:
 
 | parameter | type | required | description |
 |-------|------|----|---|
-|storeId | string| true| the id of the store issuing the workflow request|
+|storeId | string - format uuid| true| the id of the store issuing the workflow request|
 
 #### Body
 
-requires a `workflow-request` json object. 
+Requires a [`workflow-request`](https://github.com/CPVazquez/CS6343Linear/blob/main/Workflows/WF2/Components/C1/src/workflow-request.schema.json) JSON object. 
 
 `workflow-request`
 | field | type | options | required | description |
@@ -74,7 +73,7 @@ requires a `workflow-request` json object.
 
 | parameter | type | required | description |
 |-------|------|----|---|
-|storeId | string| true| the id of the store whose workflow we want to delete|
+|storeId | string - format uuid| true| the id of the store whose workflow we want to delete|
 
 #### Responses
 
@@ -89,7 +88,7 @@ requires a `workflow-request` json object.
 
 | parameter | type | required | description |
 |-------|------|----|---|
-|storeId | string| true| the id of the store whose workflow we want to retrieve|
+|storeId | string - format uuid| true| the id of the store whose workflow we want to retrieve|
 
 #### Responses
 
@@ -104,11 +103,11 @@ requires a `workflow-request` json object.
 
 | parameter | type | required | description |
 |-------|------|----|---|
-|storeId | string| true| the id of the store issuing the workflow update|
+|storeId | string - format uuid| true| the id of the store issuing the workflow update|
 
 #### Body
 
-requires a `workflow-request` json object. 
+Requires a [`workflow-request`](https://github.com/CPVazquez/CS6343Linear/blob/main/Workflows/WF2/Components/C1/src/workflow-request.schema.json) JSON object. 
 
 `workflow-request`
 | field | type | options | required | description |

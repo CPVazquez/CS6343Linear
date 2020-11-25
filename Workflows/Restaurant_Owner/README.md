@@ -50,10 +50,9 @@ Packages installed on pipenv virtual environment:
 * requests
 
 ## Commands
-
-```
-python3 generate_workflow_request.py
-```
+  ```
+  pipenv run python3 generate_workflow_request.py
+  ```
 
 ## Endpoints
 

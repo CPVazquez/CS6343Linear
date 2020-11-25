@@ -201,6 +201,7 @@ Requires a [`workflow-request`](https://github.com/CPVazquez/CS6343Linear/blob/m
 | status code | status | meaning|
 |---|---|---|
 |200| OK | The server is up and running  |
+
 returns string `healthy` if the service is healthy
 
 [Main README](https://github.com/CPVazquez/CS6343Linear)

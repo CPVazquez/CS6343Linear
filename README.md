@@ -100,7 +100,7 @@ pipenv run command
 
 Workflow 2 is the workflow of a pizza restaurant that takes online orders. It validates the order and creates the pizza order then assigns an entity to deliver the pizza. It scans periodically to check if it needs to restock. It also does analysis as to what the stock should be for each item at the start of the day.
 
-[Order Verifier Component](https://github.com/CPVazquez/CS6343Linear/tree/main/Workflows/WF2/Components/C1)
+[Order Verifier](https://github.com/CPVazquez/CS6343Linear/tree/main/Workflows/WF2/Components/C1)
 
 [Cass](https://github.com/CPVazquez/CS6343Linear/tree/main/Workflows/WF2/Components/C2)
 
