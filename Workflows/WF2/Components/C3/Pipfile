@@ -5,7 +5,6 @@ verify_ssl = true
 
 [packages]
 cassandra-driver = "*"
-gunicorn = "*"
 quart = "*"
 requests = "*"
 

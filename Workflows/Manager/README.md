@@ -21,7 +21,7 @@ Packages installed on pipenv virtual environment:
 * requests
 
 ## Commands
-* To build the image:
+* To build the imag, type the following command in the current directory:
 
   ```
   ./build.sh
@@ -31,7 +31,7 @@ Packages installed on pipenv virtual environment:
   sudo docker login
   docker push trishaire/wkf-manager:tag
   ```
-* To create the container, type the following command:
+* To create the container, type the following command in the current directory:
   ```
   ./wkf.sh
   ```

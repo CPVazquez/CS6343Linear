@@ -44,6 +44,10 @@ After this is complete, connect to the server you want the worker nodes to exist
 
 This can be verified by returning to the server with the Manager node and running `docker node ls` and verifying the worker and manager nodes are in the list.  
 
+### Swarm script
+
+we also provided a `swarm.sh` script that can automate the process of bringing up the cluster using keyword `create` and tear it down using keyword `destroy`.
+
 ## Dockerhub as a Registry
 To make sure that all nodes are using the correct image, and have access to said image, when creating a service, we are using Dockerhub as a registry for our image repositories<sup>[1](#repositoryFootnote)</sup>. Currently we are using Carla's account on Dockerhub, [trishaire](https://hub.docker.com/u/trishaire), to host the repositories. Carla's credentials are on the `cluster1-1` machine. 
 
@@ -75,6 +79,10 @@ This project is written in python3.8, thus you will need python 3.8 installed on
 ```
 pip3 install pipenv
 ```
+Before entering a virtual environment for the first time, or entering one that has been updated it may be necessary to sync it to apply all dependencies.
+```
+pipenv sync
+```
 If you want to test a component locally and do not want to spin up a container/service you will have to enter the virtual environment to make sure you have the necessary packages. To enter the virtual environment of a component, make sure you are in the root folder of the component and enter the following command:
 ```
 pipenv shell
@@ -85,10 +93,6 @@ To run a command in the virtual environment without entering the shell you can t
 ```
 pipenv run command
 ```
-Before entering a virtual environment for the first time, or entering one that has been updated it may be necessary to sync it to apply all dependencies.
-```
-pipenv sync
-```
 
 ## Workflows
 
@@ -96,15 +100,17 @@ pipenv sync
 
 Workflow 2 is the workflow of a pizza restaurant that takes online orders. It validates the order and creates the pizza order then assigns an entity to deliver the pizza. It scans periodically to check if it needs to restock. It also does analysis as to what the stock should be for each item at the start of the day.
 
-[OrderVerifier](https://github.com/CPVazquez/CS6343Linear/tree/main/Workflows/WF2/Components/C1)
+[Order Verifier Component](https://github.com/CPVazquez/CS6343Linear/tree/main/Workflows/WF2/Components/C1)
 
 [Cass](https://github.com/CPVazquez/CS6343Linear/tree/main/Workflows/WF2/Components/C2)
 
-[DeliveryAssigner](https://github.com/CPVazquez/CS6343Linear/tree/main/Workflows/WF2/Components/C3)
+[Delivery-Assigner](https://github.com/CPVazquez/CS6343Linear/tree/main/Workflows/WF2/Components/C3)
 
-[AutoRestocker](https://github.com/CPVazquez/CS6343Linear/tree/main/Workflows/WF2/Components/C4)
+[Stock-Analyzer](https://github.com/CPVazquez/CS6343Linear/tree/main/Workflows/WF2/Components/C4)
 
 [Restocker](https://github.com/CPVazquez/CS6343Linear/tree/main/Workflows/WF2/Components/C5)
+
+[Order-Processor](https://github.com/CPVazquez/CS6343Linear/tree/main/Workflows/WF2/Components/C6)
 
 ### Pizza Order Generator (Data Source)
 

@@ -16,7 +16,6 @@ RUN apt-get install -y \
 RUN pip install -r requirements.txt
 RUN pip install fbprophet
 RUN pip install cassandra-driver
-RUN pip install gunicorn
 RUN pip install quart
 
 EXPOSE 4000
